@@ -160,6 +160,10 @@ class Prefs(ctx: Context, override_: android.content.SharedPreferences? = null) 
     var cardPos: Int
         get() = sp.getInt("cardPos", 1)
         set(v) { sp.edit().putInt("cardPos", v).apply() }
+    /** Modelo visual do aplicativo (0 a 9). */
+    var template: Int
+        get() = sp.getInt("template", 0)
+        set(v) { sp.edit().putInt("template", v).apply() }
     /** 0 claro, 1 escuro, 2 cheio */
     var cardTheme: Int
         get() = sp.getInt("cardTheme", 1)

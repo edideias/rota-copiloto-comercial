@@ -18,14 +18,16 @@ import android.widget.TextView
 
 /** Paleta branco + roxo. Verde/amarelo/vermelho ficam só para o semáforo. */
 object C {
-    val PURPLE = Color.parseColor("#6D28D9")
-    val PURPLE_DARK = Color.parseColor("#4C1D95")
-    val PURPLE_LIGHT = Color.parseColor("#EDE9FE")
-    val BG = Color.parseColor("#F6F4FB")
-    val WHITE = Color.WHITE
-    val TEXT = Color.parseColor("#1E1B3A")
-    val MUTED = Color.parseColor("#6B7280")
-    val LINE = Color.parseColor("#E5E1F0")
+    /** Escala dos cantos arredondados (0 = reto). Muda com o modelo escolhido. */
+    var RS = 1f
+    var PURPLE = Color.parseColor("#6D28D9")
+    var PURPLE_DARK = Color.parseColor("#4C1D95")
+    var PURPLE_LIGHT = Color.parseColor("#EDE9FE")
+    var BG = Color.parseColor("#F6F4FB")
+    var WHITE = Color.WHITE
+    var TEXT = Color.parseColor("#1E1B3A")
+    var MUTED = Color.parseColor("#6B7280")
+    var LINE = Color.parseColor("#E5E1F0")
     val GOOD = Color.parseColor("#16A34A")
     val MID = Color.parseColor("#F2B600")
     val BAD = Color.parseColor("#DC2626")
@@ -33,20 +35,36 @@ object C {
 
 object Fonts {
     private val cache = HashMap<Int, Typeface>()
+    private var family = 0
 
-    /** 0 regular, 1 medium, 2 semibold, 3 bold (Poppins). */
+    /** Família de fonte do modelo: 0 Poppins, 1 serifada, 2 monoespaçada, 3 preta (pesada), 4 condensada. */
+    fun setFamily(f: Int) {
+        if (f != family) {
+            family = f
+            cache.clear()
+        }
+    }
+
+    /** 0 regular, 1 medium, 2 semibold, 3 bold. */
     fun get(ctx: Context, weight: Int): Typeface = cache.getOrPut(weight) {
-        try {
-            ctx.resources.getFont(
-                when (weight) {
-                    0 -> R.font.poppins_regular
-                    1 -> R.font.poppins_medium
-                    2 -> R.font.poppins_semibold
-                    else -> R.font.poppins_bold
-                }
-            )
-        } catch (e: Exception) {
-            Typeface.DEFAULT
+        val bold = weight >= 2
+        when (family) {
+            1 -> Typeface.create("serif", if (bold) Typeface.BOLD else Typeface.NORMAL)
+            2 -> Typeface.create("monospace", if (bold) Typeface.BOLD else Typeface.NORMAL)
+            3 -> if (bold) Typeface.create("sans-serif-black", Typeface.NORMAL) else Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            4 -> Typeface.create("sans-serif-condensed", if (bold) Typeface.BOLD else Typeface.NORMAL)
+            else -> try {
+                ctx.resources.getFont(
+                    when (weight) {
+                        0 -> R.font.poppins_regular
+                        1 -> R.font.poppins_medium
+                        2 -> R.font.poppins_semibold
+                        else -> R.font.poppins_bold
+                    }
+                )
+            } catch (e: Exception) {
+                Typeface.DEFAULT
+            }
         }
     }
 }
@@ -70,7 +88,7 @@ class Ui(val ctx: Context) {
     fun round(color: Int, radius: Int, stroke: Int = 0, strokeColor: Int = 0): GradientDrawable =
         GradientDrawable().apply {
             setColor(color)
-            cornerRadius = dpf(radius.toFloat())
+            cornerRadius = dpf(radius.toFloat() * C.RS)
             if (stroke > 0) setStroke(dp(stroke), strokeColor)
         }
 
@@ -271,6 +289,8 @@ class RangeBar(
 /** Cartão que aparece por cima do Uber/99 (e na prévia das configurações). */
 object OverlayCard {
     fun build(ctx: Context, a: Analysis, p: Prefs): View {
+        Templates.ensure(p.template)
+        val tpl = Templates.tpl(p.template)
         val ui = Ui(ctx)
         val verdict = when (a.verdict) {
             Verdict.GREEN -> C.GOOD
@@ -292,7 +312,12 @@ object OverlayCard {
         val size = p.cardFont.toFloat()
 
         val outer = ui.vbox().apply {
-            background = ui.round(bg, 14, if (theme == 2) 0 else 3, verdict)
+            background = GradientDrawable().apply {
+                setColor(bg)
+                cornerRadius = ui.dpf(tpl.ovRadius.toFloat())
+                val w = if (theme == 2) 0 else maxOf(2, tpl.ovBorder + 1)
+                if (w > 0) setStroke(ui.dp(w), verdict)
+            }
             setPadding(ui.dp(14), ui.dp(8), ui.dp(16), ui.dp(8))
         }
 

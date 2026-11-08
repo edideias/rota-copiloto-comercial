@@ -21,6 +21,7 @@ import android.provider.Settings
 import android.text.InputType
 import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -45,16 +46,98 @@ class MainActivity : Activity() {
 
     private fun dp(v: Int) = ui.dp(v)
 
+    /** Cor das barras do sistema acompanha o modelo escolhido. */
+    private fun applyChrome() {
+        val t = Templates.tpl(prefs.template)
+        window.statusBarColor = t.bar
+        window.navigationBarColor = t.bar
+        var flags = if (t.darkBars) 0 else View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+        if (Build.VERSION.SDK_INT >= 26 && !t.darkBars) flags = flags or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+        window.decorView.systemUiVisibility = flags
+        if (::root.isInitialized) root.setBackgroundColor(C.BG)
+    }
+
+    private fun pickTemplate(i: Int) {
+        prefs.template = i
+        Templates.apply(i)
+        ui = Ui(this)
+        applyChrome()
+        render()
+    }
+
+    private fun homeScreen(): View {
+        val mi = ActivityManager.MemoryInfo()
+        (getSystemService(ACTIVITY_SERVICE) as ActivityManager).getMemoryInfo(mi)
+        val gb = Math.round(mi.totalMem / 1073741824.0)
+        val ver = try { packageManager.getPackageInfo(packageName, 0).versionName } catch (e: Exception) { "" }
+        val footer = "v$ver · Android ${Build.VERSION.RELEASE} · ${gb}GB RAM\n${Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${Build.MODEL}"
+        val acts = HomeActions(
+            prefs = prefs,
+            reading = isServiceEnabled(),
+            a = OverlayCard.sample(prefs),
+            footer = footer,
+            setCopilot = { v ->
+                prefs.enabled = v
+                if (v && !isServiceEnabled()) startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                render()
+            },
+            setCalc = { v -> prefs.calcEnabled = v; render() },
+            setShots = { v -> prefs.saveShots = v; render() },
+            activate = { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) },
+            release = { push { wizardStep(0) } },
+            config = { push { configMenu() } },
+            apps = { openConfig("Apps de trabalho") { appsContent(it) } },
+            shots = { openConfig("Captura de tela") { captureContent(it) } },
+            tutorial = { push { wizardStep(0) } },
+            xiaomi = { push { screen("Ajuda Xiaomi", xiaomiHelpContent()) } },
+            diag = {
+                tab = 1
+                stack[0] = { mainScreen() }
+                render()
+            },
+            help = { push { helpScreen() } }
+        )
+        return HomeTemplates.build(this, prefs.template, acts)
+    }
+
+    private fun templatePicker(): View {
+        val box = ui.vbox()
+        box.addView(pageHeader("Modelo do aplicativo", "Escolha o visual da tela inicial. Todos têm as mesmas funções."))
+        Templates.all.forEachIndexed { i, t ->
+            val on = i == prefs.template
+            val r = ui.hbox().apply {
+                background = ui.round(C.WHITE, 18, if (on) 2 else 0, C.PURPLE)
+                elevation = ui.dpf(2f)
+                setPadding(dp(16), dp(14), dp(14), dp(14))
+                setOnClickListener { pickTemplate(i) }
+            }
+            val sw = ui.hbox()
+            listOf(t.bg, t.surface, t.accent).forEach { col ->
+                sw.addView(View(this).apply {
+                    background = android.graphics.drawable.GradientDrawable().apply {
+                        shape = android.graphics.drawable.GradientDrawable.OVAL
+                        setColor(col)
+                        setStroke(dp(1), Color.parseColor("#33888888"))
+                    }
+                }, LinearLayout.LayoutParams(dp(22), dp(22)).also { it.marginEnd = dp(4) })
+            }
+            r.addView(sw, LinearLayout.LayoutParams(dp(84), ViewGroup.LayoutParams.WRAP_CONTENT))
+            val l = ui.vbox()
+            l.addView(ui.tv("${i + 1} · ${t.name}", 15f, C.TEXT, 2))
+            l.addView(ui.tv(t.tagline, 12f, C.MUTED, 0))
+            r.addView(l, ui.lp(0, weight = 1f))
+            if (on) r.addView(ui.tv("✓", 20f, C.PURPLE, 3))
+            box.addView(r, ui.lp(top = 12))
+        }
+        return screen("Modelo do aplicativo", box)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         prefs = Prefs(this)
+        Templates.apply(prefs.template)
         ui = Ui(this)
-
-        window.statusBarColor = C.WHITE
-        window.navigationBarColor = C.WHITE
-        var flags = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
-        if (Build.VERSION.SDK_INT >= 26) flags = flags or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
-        window.decorView.systemUiVisibility = flags
+        applyChrome()
 
         root = FrameLayout(this)
         root.setBackgroundColor(C.BG)
@@ -108,6 +191,7 @@ class MainActivity : Activity() {
     // ---------------------------------------------------------------- tela inicial
 
     private fun mainScreen(): View {
+        if (tab == 0) return homeScreen()
         val col = ui.vbox()
         val head = ui.hbox().apply {
             setBackgroundColor(C.WHITE)
@@ -377,6 +461,7 @@ class MainActivity : Activity() {
             r.addView(ui.tv("›", 26f, C.PURPLE, 2))
             box.addView(r, ui.lp(top = 12))
         }
+        item("Modelo do aplicativo", "10 estilos de tela inicial") { push { templatePicker() } }
         item("Apps de trabalho", "Uber, 99 e leitura por imagem") { openConfig("Apps de trabalho") { appsContent(it) } }
         item("Metas e custo", "Ganho por km, por hora e custo do carro") { openConfig("Metas e custo") { goalsContent(it) } }
         item("Aparência do quadro", "Métricas, posição, tema e fonte") { openConfig("Aparência do quadro") { cardContent(it) } }
