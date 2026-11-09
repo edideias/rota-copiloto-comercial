@@ -161,6 +161,32 @@ class Prefs(ctx: Context, override_: android.content.SharedPreferences? = null) 
     var cardPos: Int
         get() = sp.getInt("cardPos", 1)
         set(v) { sp.edit().putInt("cardPos", v).apply() }
+    // ---- Destaque "corrida TOP" (verde neon piscando) + km total/valor abaixo do quadro
+    var topOn: Boolean
+        get() = sp.getBoolean("topOn", true)
+        set(v) { sp.edit().putBoolean("topOn", v).apply() }
+    /** Mínimo de R$ por km (centavos: 350 = R$ 3,50). */
+    var topMinC: Int
+        get() = sp.getInt("topMinC", 350)
+        set(v) { sp.edit().putInt("topMinC", v.coerceIn(100, 2000)).apply() }
+    /** 0 verde neon, 1 turquesa, 2 lima, 3 ciano */
+    var topColor: Int
+        get() = sp.getInt("topColor", 0)
+        set(v) { sp.edit().putInt("topColor", v).apply() }
+    /** 0 lenta, 1 normal, 2 rápida */
+    var topSpeed: Int
+        get() = sp.getInt("topSpeed", 1)
+        set(v) { sp.edit().putInt("topSpeed", v).apply() }
+    var topVibrate: Boolean
+        get() = sp.getBoolean("topVibrate", false)
+        set(v) { sp.edit().putBoolean("topVibrate", v).apply() }
+    var showTotals: Boolean
+        get() = sp.getBoolean("showTotals", true)
+        set(v) { sp.edit().putBoolean("showTotals", v).apply() }
+
+    /** A oferta é "TOP"? Só dentro do verde e a partir do mínimo por km. */
+    fun isTop(a: Analysis): Boolean = topOn && a.verdict == Verdict.GREEN && a.perKm >= topMinC / 100.0
+
     /** Modelo visual do aplicativo (0 a 9). */
     var template: Int
         get() = sp.getInt("template", 0)

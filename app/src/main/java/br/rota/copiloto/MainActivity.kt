@@ -465,6 +465,7 @@ class MainActivity : Activity() {
         item("Apps de trabalho", "Uber, 99 e leitura por imagem") { openConfig("Apps de trabalho") { appsContent(it) } }
         item("Metas e custo", "Ganho por km, por hora e custo do carro") { openConfig("Metas e custo") { goalsContent(it) } }
         item("Aparência do quadro", "Métricas, posição, tema e fonte") { openConfig("Aparência do quadro") { cardContent(it) } }
+        item("Destaque corrida TOP", "Verde neon piscando e km total/valor") { openConfig("Destaque corrida TOP") { topContent(it) } }
         item("Tempo na tela", "Quanto tempo o quadro fica visível") { openConfig("Tempo na tela") { timeContent(it) } }
         item("Captura de tela", "Salvar cada oferta na galeria") { openConfig("Captura de tela") { captureContent(it) } }
         return screen("Configurar", box)
@@ -764,6 +765,62 @@ class MainActivity : Activity() {
             cornerRadius = ui.dpf(12f)
             setStroke(ui.dp(2), Color.parseColor("#C9C4D8"), ui.dpf(5f), ui.dpf(4f))
         }
+    }
+
+    private fun topContent(p: Prefs): View {
+        val box = ui.vbox()
+        box.addView(pageHeader("Corrida TOP", "Quando a corrida paga muito por km, o quadro verde pisca em neon para você ver de cara"))
+
+        val c = ui.card()
+        val prev = ui.vbox().apply {
+            background = ui.round(C.BG, 14)
+            setPadding(dp(14), dp(18), dp(14), dp(18))
+        }
+        prev.addView(
+            OverlayCard.build(this, OverlayCard.sampleTop(p), p),
+            LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).also { it.gravity = Gravity.CENTER_HORIZONTAL }
+        )
+        c.addView(prev)
+        c.addView(ui.tv("A prévia mostra uma corrida de exemplo. Se o destaque estiver desligado ou o mínimo for maior que R\$ 3,75/km, ela aparece como um quadro comum.", 11f, C.MUTED, 0), ui.lp(top = 6))
+
+        c.addView(switchRow("Destacar corrida TOP", p.topOn) { p.topOn = it; render() }, ui.lp(top = 16))
+        c.addView(
+            stepperRow(
+                "Mínimo por km",
+                String.format(java.util.Locale("pt", "BR"), "R$ %.2f", p.topMinC / 100.0),
+                { p.topMinC = p.topMinC - 10; render() },
+                { p.topMinC = p.topMinC + 10; render() }
+            ),
+            ui.lp(top = 16)
+        )
+        c.addView(ui.tv("Conta o km total: a busca até o passageiro mais a corrida. Só vale quando o quadro já está verde.", 11f, C.MUTED, 0), ui.lp(top = 4))
+
+        c.addView(ui.tv("Cor do destaque", 16f, C.TEXT, 2), ui.lp(top = 18))
+        val colors = ui.hbox()
+        OverlayCard.NEONS.forEachIndexed { i, col ->
+            val on = p.topColor == i
+            colors.addView(
+                View(this).apply {
+                    background = android.graphics.drawable.GradientDrawable().apply {
+                        shape = android.graphics.drawable.GradientDrawable.OVAL
+                        setColor(col)
+                        if (on) setStroke(dp(4), Color.parseColor("#1B2430"))
+                    }
+                    contentDescription = OverlayCard.NEON_NAMES[i]
+                    setOnClickListener { p.topColor = i; render() }
+                },
+                LinearLayout.LayoutParams(dp(46), dp(46)).also { it.marginEnd = dp(12) }
+            )
+        }
+        c.addView(colors, ui.lp(top = 8))
+
+        c.addView(ui.tv("Velocidade da piscada", 16f, C.TEXT, 2), ui.lp(top = 18))
+        c.addView(ui.segmented(listOf("Lenta", "Normal", "Rápida"), p.topSpeed) { p.topSpeed = it; render() }, ui.lp(top = 8))
+
+        c.addView(switchRow("Vibrar ao detectar corrida TOP", p.topVibrate) { p.topVibrate = it; render() }, ui.lp(top = 18))
+        c.addView(switchRow("Mostrar km total e valor abaixo do quadro", p.showTotals) { p.showTotals = it; render() }, ui.lp(top = 14))
+        box.addView(c, ui.lp(top = 20))
+        return box
     }
 
     private fun stepperRow(label: String, value: String, onMinus: () -> Unit, onPlus: () -> Unit): View {

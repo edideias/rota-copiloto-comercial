@@ -466,7 +466,16 @@ class CopilotService : AccessibilityService() {
         lastOfferKey = key
         lastOfferAt = now
         notifyOffer(a)
+        if (prefs.topVibrate && prefs.isTop(a)) vibrateTop()
         if (o.platform != "Simulação") saveShot(o.platform)
+    }
+
+    /** Três toques curtos: corrida TOP detectada. */
+    private fun vibrateTop() {
+        try {
+            val v = getSystemService(android.content.Context.VIBRATOR_SERVICE) as android.os.Vibrator
+            v.vibrate(android.os.VibrationEffect.createWaveform(longArrayOf(0, 120, 90, 120, 90, 120), -1))
+        } catch (_: Exception) {}
     }
 
     private fun notifyOffer(a: Analysis) {

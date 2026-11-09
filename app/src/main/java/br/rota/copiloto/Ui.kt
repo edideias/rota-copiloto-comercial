@@ -298,14 +298,19 @@ object OverlayCard {
             Verdict.RED -> C.BAD
         }
         val theme = p.cardTheme
-        val bg = when (theme) {
-            0 -> Color.WHITE
-            1 -> Color.parseColor("#17142A")
+        val top = p.isTop(a)
+        val neon = NEONS[p.topColor.coerceIn(0, NEONS.size - 1)]
+        val ink = Color.parseColor("#06210A")
+        val bg = when {
+            top -> neon
+            theme == 0 -> Color.WHITE
+            theme == 1 -> Color.parseColor("#17142A")
             else -> verdict
         }
-        val fg = when (theme) {
-            0 -> C.TEXT
-            1 -> Color.WHITE
+        val fg = when {
+            top -> ink
+            theme == 0 -> C.TEXT
+            theme == 1 -> Color.WHITE
             else -> if (a.verdict == Verdict.YELLOW) Color.parseColor("#1A1A1A") else Color.WHITE
         }
         val muted = if (theme == 0) C.MUTED else Color.argb(200, Color.red(fg), Color.green(fg), Color.blue(fg))
@@ -313,10 +318,13 @@ object OverlayCard {
 
         val outer = ui.vbox().apply {
             background = GradientDrawable().apply {
-                setColor(bg)
-                cornerRadius = ui.dpf(tpl.ovRadius.toFloat())
-                val w = if (theme == 2) 0 else maxOf(2, tpl.ovBorder + 1)
-                if (w > 0) setStroke(ui.dp(w), verdict)
+                if (top) {
+                    orientation = GradientDrawable.Orientation.TL_BR
+                    colors = intArrayOf(neon, darker(neon))
+                } else setColor(bg)
+                cornerRadius = ui.dpf(if (top) maxOf(22f, tpl.ovRadius.toFloat()) else tpl.ovRadius.toFloat())
+                val w = if (theme == 2 && !top) 0 else maxOf(2, tpl.ovBorder + 1)
+                if (w > 0) setStroke(ui.dp(w), if (top) Color.WHITE else verdict)
             }
             setPadding(ui.dp(14), ui.dp(8), ui.dp(16), ui.dp(8))
         }
@@ -327,7 +335,7 @@ object OverlayCard {
             col.addView(ui.tv(Metrics.label(key), size * 0.55f, muted, 1))
             val vr = ui.hbox()
             val bar = View(ctx).apply {
-                background = ui.round(if (theme == 2) fg else Metrics.color(a, key, p), 3)
+                background = ui.round(if (theme == 2 || top) fg else Metrics.color(a, key, p), 3)
                 layoutParams = LinearLayout.LayoutParams(ui.dp(4), ui.dp((size * 1.25f).toInt()))
             }
             vr.addView(bar)
@@ -382,11 +390,89 @@ object OverlayCard {
             }
             foot.addView(tag, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).also { it.marginStart = ui.dp(8) })
         }
+        var superTag: View? = null
+        if (top) {
+            superTag = ui.tv("⚡ SUPER", size * 0.5f, neon, 3).apply {
+                background = ui.round(ink, 4)
+                setPadding(ui.dp(6), ui.dp(1), ui.dp(6), ui.dp(1))
+            }
+            foot.addView(superTag, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).also { it.marginStart = ui.dp(8) })
+        }
         outer.addView(foot, ui.lp(top = 4))
-        return outer
+
+        if (!p.showTotals && !top) return outer
+
+        // Envoltório: quadro + (km total e valor) em pílulas + brilho neon quando é corrida TOP
+        val box = ui.vbox().apply { setPadding(ui.dp(8), ui.dp(8), ui.dp(8), ui.dp(8)) }
+        box.addView(outer)
+        if (p.showTotals) {
+            val pills = ui.hbox()
+            fun pill(label: String, value: String, fill: Int?, txt: Int, stroke: Int): View {
+                val v = ui.vbox().apply {
+                    background = GradientDrawable().apply {
+                        setColor(fill ?: Color.argb(215, 255, 255, 255))
+                        cornerRadius = ui.dpf(40f)
+                        setStroke(ui.dp(2), stroke)
+                    }
+                    setPadding(ui.dp(16), ui.dp(5), ui.dp(16), ui.dp(5))
+                }
+                v.addView(ui.tv(label, size * 0.45f, txt, 3).apply { alpha = 0.8f })
+                v.addView(ui.tv(value, size * 1.1f, txt, 3))
+                return v
+            }
+            val br = java.util.Locale("pt", "BR")
+            val km = pill("KM TOTAL", String.format(br, "%.1f km", a.totalKm), null, Color.parseColor("#1B2430"), Color.WHITE)
+            val valueFill = if (top) neon else if (theme == 2) verdict else verdict
+            val valueTxt = if (top || a.verdict == Verdict.YELLOW) ink else Color.WHITE
+            val vl = pill("VALOR", String.format(br, "R$ %.2f", a.offer.value), valueFill, valueTxt, valueFill)
+            pills.addView(km, ui.lp(0, weight = 1f))
+            pills.addView(vl, ui.lp(0, weight = 1f).also { it.marginStart = ui.dp(8) })
+            box.addView(pills, ui.lp(top = 8))
+        }
+
+        if (top) {
+            val period = when (p.topSpeed) { 0 -> 1500L; 2 -> 480L; else -> 950L }
+            val halo = GradientDrawable().apply {
+                setColor(Color.TRANSPARENT)
+                cornerRadius = ui.dpf(30f)
+                setStroke(ui.dp(5), neon)
+            }
+            box.background = halo
+            val anim = android.animation.ValueAnimator.ofFloat(0.25f, 1f).apply {
+                duration = period
+                repeatMode = android.animation.ValueAnimator.REVERSE
+                repeatCount = android.animation.ValueAnimator.INFINITE
+                addUpdateListener {
+                    val f = it.animatedValue as Float
+                    halo.setStroke(ui.dp(5), Color.argb((255 * f).toInt(), Color.red(neon), Color.green(neon), Color.blue(neon)))
+                    superTag?.alpha = 0.35f + 0.65f * f
+                }
+            }
+            box.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+                override fun onViewAttachedToWindow(v: View) { if (!anim.isStarted) anim.start() }
+                override fun onViewDetachedFromWindow(v: View) { anim.cancel() }
+            })
+            anim.start()
+        }
+        return box
+    }
+
+    /** Verde neon, turquesa, lima, ciano. */
+    val NEONS = intArrayOf(Color.parseColor("#39FF14"), Color.parseColor("#00F5D4"), Color.parseColor("#C6FF00"), Color.parseColor("#00E5FF"))
+    val NEON_NAMES = listOf("Verde neon", "Turquesa", "Lima", "Ciano")
+
+    private fun darker(c: Int): Int {
+        val hsv = FloatArray(3)
+        Color.colorToHSV(c, hsv)
+        hsv[2] = hsv[2] * 0.78f
+        return Color.HSVToColor(hsv)
     }
 
     /** Oferta de exemplo para a prévia e o botão de teste. */
     fun sample(p: Prefs): Analysis =
         Calc.analyze(Offer("Uber", 18.50, 1.2, 4.0, 6.8, 17.0), p)
+
+    /** Oferta de exemplo "corrida TOP" para a prévia da configuração. */
+    fun sampleTop(p: Prefs): Analysis =
+        Calc.analyze(Offer("Uber", 36.0, 1.2, 4.0, 8.4, 22.0), p)
 }
