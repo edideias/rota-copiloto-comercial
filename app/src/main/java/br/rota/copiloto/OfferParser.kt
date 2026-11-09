@@ -12,20 +12,27 @@ object OfferParser {
     // Aceita "R$23,00", "R$ 10,38" e também "R$ | 10,38" (quando o app separa em dois textos).
     private val moneyRx = Regex("""R\$\s*(?:\|\s*)?(\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d+(?:,\d{1,2})?)""")
 
-    // "4 min (1,2 km)"  |  "4 min • 1,2 km"  |  "4min 1.2km"
-    private val minKmRx = Regex(
-        """(\d+)\s*min[^\d]{0,12}?(\d+(?:[.,]\d+)?)\s*km""",
-        RegexOption.IGNORE_CASE
-    )
+    // Distância em km OU metros ("806 m" vira 0,806 km). "min" nunca é confundido com "m".
+    private const val DIST = """(\d+(?:[.,]\d+)?)\s*(km|m)(?![a-zA-Z])"""
+    // Tempo "23 min" ou "1 h 05 min"
+    private const val TEMPO = """(?:(\d+)\s*h\s*)?(\d+)\s*min"""
 
-    // "1,2 km (4 min)"  |  "1,2 km • 4 min"
-    private val kmMinRx = Regex(
-        """(\d+(?:[.,]\d+)?)\s*km[^\d]{0,12}?(\d+)\s*min""",
-        RegexOption.IGNORE_CASE
-    )
+    // "4 min (1,2 km)"  |  "4 min • 800 m"  |  "1 h 05 min (25 km)"
+    private val minKmRx = Regex(TEMPO + """[^\d]{0,12}?""" + DIST, RegexOption.IGNORE_CASE)
 
-    private val kmOnlyRx = Regex("""(\d+(?:[.,]\d+)?)\s*km""", RegexOption.IGNORE_CASE)
-    private val minOnlyRx = Regex("""(\d+)\s*min""", RegexOption.IGNORE_CASE)
+    // "1,2 km (4 min)"  |  "800 m • 4 min"
+    private val kmMinRx = Regex(DIST + """[^\d]{0,12}?""" + TEMPO, RegexOption.IGNORE_CASE)
+
+    private val kmOnlyRx = Regex(DIST, RegexOption.IGNORE_CASE)
+    private val minOnlyRx = Regex(TEMPO, RegexOption.IGNORE_CASE)
+
+    // "R$1,47/km" que o próprio 99 mostra: serve para conferir a distância lida.
+    private val perKmRx = Regex("""R\$\s*(\d+(?:,\d{1,2})?)\s*/\s*km""", RegexOption.IGNORE_CASE)
+
+    private fun dist(v: String, unit: String): Double =
+        num(v) / (if (unit.equals("m", true)) 1000.0 else 1.0)
+    private fun mins(h: String, m: String): Double =
+        (if (h.isEmpty()) 0.0 else h.toDouble() * 60.0) + m.toDouble()
 
     private data class Pair(val start: Int, val end: Int, val km: Double, val min: Double)
 
@@ -34,10 +41,10 @@ object OfferParser {
 
         val pairs = ArrayList<Pair>()
         for (m in minKmRx.findAll(text)) {
-            pairs.add(Pair(m.range.first, m.range.last, num(m.groupValues[2]), m.groupValues[1].toDouble()))
+            pairs.add(Pair(m.range.first, m.range.last, dist(m.groupValues[3], m.groupValues[4]), mins(m.groupValues[1], m.groupValues[2])))
         }
         for (m in kmMinRx.findAll(text)) {
-            pairs.add(Pair(m.range.first, m.range.last, num(m.groupValues[1]), m.groupValues[2].toDouble()))
+            pairs.add(Pair(m.range.first, m.range.last, dist(m.groupValues[1], m.groupValues[2]), mins(m.groupValues[3], m.groupValues[4])))
         }
         pairs.sortBy { it.start }
         val chosen = ArrayList<Pair>()
@@ -48,13 +55,13 @@ object OfferParser {
         if (chosen.size >= 2) {
             val a = chosen[0]
             val b = chosen[1]
-            return valid(Offer(platform, value, a.km, a.min, b.km, b.min))
+            return confere(text, valid(Offer(platform, value, a.km, a.min, b.km, b.min)))
         }
 
         // Plano B: lê km e minutos soltos, na ordem em que aparecem.
-        val kms = kmOnlyRx.findAll(text).map { num(it.groupValues[1]) }.toList()
-        val mins = minOnlyRx.findAll(text).map { it.groupValues[1].toDouble() }.toList()
-        return when {
+        val kms = kmOnlyRx.findAll(text).map { dist(it.groupValues[1], it.groupValues[2]) }.toList()
+        val mins = minOnlyRx.findAll(text).map { mins(it.groupValues[1], it.groupValues[2]) }.toList()
+        return confere(text, when {
             kms.size >= 2 && mins.size >= 2 ->
                 valid(Offer(platform, value, kms[0], mins[0], kms[1], mins[1]))
             chosen.size == 1 ->
@@ -62,7 +69,23 @@ object OfferParser {
             kms.size == 1 ->
                 valid(Offer(platform, value, 0.0, 0.0, kms[0], mins.firstOrNull() ?: 0.0))
             else -> null
-        }
+        })
+    }
+
+    /**
+     * Se a tela mostra "R$ x/km" (como o 99 faz), a distância total tem que bater com valor ÷ (R$/km).
+     * Quando a leitura foge mais de 15%, a distância é corrigida por essa referência.
+     */
+    private fun confere(text: String, o: Offer?): Offer? {
+        if (o == null) return null
+        val ref = perKmRx.find(text)?.groupValues?.get(1)?.let { num(it) } ?: return o
+        if (ref <= 0.0) return o
+        val esperado = o.value / ref
+        val lido = o.pickupKm + o.tripKm
+        if (lido <= 0.0 || Math.abs(lido - esperado) / esperado <= 0.15) return o
+        if (esperado > 500.0) return o
+        val f = esperado / lido
+        return Offer(o.platform, o.value, o.pickupKm * f, o.pickupMin, o.tripKm * f, o.tripMin)
     }
 
     private fun valid(o: Offer): Offer? {
