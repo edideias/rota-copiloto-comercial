@@ -42,6 +42,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
-          name: Rota Copiloto (build ${{ github.run_number }})
+          name: Rota Calculadora (build ${{ github.run_number }})
           files: app/build/outputs/apk/debug/app-debug.apk
           make_latest: true

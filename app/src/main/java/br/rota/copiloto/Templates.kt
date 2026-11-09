@@ -688,7 +688,7 @@ object HomeTemplates {
         val p = a.prefs
         val c = b.v().apply { setPadding(b.dp(26), b.dp(34), b.dp(26), b.dp(22)) }
         val top = b.h()
-        top.addView(b.t("Rota Copiloto", 12f, C.MUTED, 1), b.lp(0, weight = 1f))
+        top.addView(b.t("Rota Calculadora", 12f, C.MUTED, 1), b.lp(0, weight = 1f))
         top.addView(readingChip(b, a, C.MUTED, C.PURPLE))
         c.addView(top)
         c.addView(b.t(Metrics.value(an, "km"), 88f, C.TEXT, 0), b.lp(top = 28))
@@ -1094,7 +1094,7 @@ object HomeTemplates {
 
         val top = b.h().apply { setPadding(b.dp(16), b.dp(30), b.dp(16), 0) }
         top.addView(
-            b.t("Rota Copiloto", 14f, ink, 3).apply {
+            b.t("Rota Calculadora", 14f, ink, 3).apply {
                 background = b.rr(Color.WHITE, 22)
                 setPadding(b.dp(16), b.dp(10), b.dp(16), b.dp(10))
             }

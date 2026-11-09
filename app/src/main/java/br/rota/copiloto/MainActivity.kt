@@ -243,7 +243,7 @@ class MainActivity : Activity() {
         if (!isServiceEnabled()) {
             val c = ui.card()
             c.addView(ui.tv("Leitura desligada", 16f, C.TEXT, 2))
-            c.addView(ui.tv("Ative o Rota Copiloto em Acessibilidade para ele ler as ofertas.", 13f, C.MUTED, 0))
+            c.addView(ui.tv("Ative o Rota Calculadora em Acessibilidade para ele ler as ofertas.", 13f, C.MUTED, 0))
             c.addView(ui.button("Ativar leitura") { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) })
             c.addView(ui.button("Como liberar (configuração restrita)", false) { push { wizardStep(0) } })
             body.addView(c, ui.lp(top = 0))
@@ -390,8 +390,8 @@ class MainActivity : Activity() {
         b.addView(ui.tv("Ativar a leitura", 17f, C.TEXT, 2))
         b.addView(
             ui.tv(
-                "Configurações > Acessibilidade > Rota Copiloto > ativar. Se o Android disser \"configuração restrita\": " +
-                    "Configurações > Apps > Rota Copiloto > menu ⋮ (canto superior) > Permitir configurações restritas. Depois volte e ative.",
+                "Configurações > Acessibilidade > Rota Calculadora > ativar. Se o Android disser \"configuração restrita\": " +
+                    "Configurações > Apps > Rota Calculadora > menu ⋮ (canto superior) > Permitir configurações restritas. Depois volte e ative.",
                 13f, C.MUTED, 0
             ),
             ui.lp(top = 6)
@@ -900,7 +900,7 @@ class MainActivity : Activity() {
             )
             box.addView(ui.tv("Passo B: ativar a leitura", 15f, C.TEXT, 2), ui.lp(top = 22))
             box.addView(ui.button("Abrir Acessibilidade") { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) })
-            box.addView(ui.tv("Na lista, toque em \"Rota Copiloto\" e ative.", 12f, C.MUTED, 0), ui.lp(top = 6))
+            box.addView(ui.tv("Na lista, toque em \"Rota Calculadora\" e ative.", 12f, C.MUTED, 0), ui.lp(top = 6))
         }
         return box
     }
@@ -938,7 +938,7 @@ class MainActivity : Activity() {
             })
         }
         box.addView(
-            ui.tv("Dica: em Configurações > Apps > Rota Copiloto, desative \"Pausar atividade no app quando não usado\" e coloque a economia de bateria em \"Sem restrições\".", 12f, C.MUTED, 0, true),
+            ui.tv("Dica: em Configurações > Apps > Rota Calculadora, desative \"Pausar atividade no app quando não usado\" e coloque a economia de bateria em \"Sem restrições\".", 12f, C.MUTED, 0, true),
             ui.lp(top = 16)
         )
         return box
@@ -954,7 +954,7 @@ class MainActivity : Activity() {
                     "Abra as Configurações do celular",
                     "Toque em Apps",
                     "Entre em \"Inicialização automática em segundo plano\" (ou Permissões > Início automático)",
-                    "Ative a opção pro Rota Copiloto"
+                    "Ative a opção pro Rota Calculadora"
                 )
             )
         )
@@ -979,14 +979,14 @@ class MainActivity : Activity() {
                     "Toque em \"Otimizar Velocidade\"",
                     "Toque na engrenagem no canto superior direito",
                     "Abra a lista de exceções",
-                    "Adicione o Rota Copiloto à lista"
+                    "Adicione o Rota Calculadora à lista"
                 )
             )
         )
         box.addView(ui.button("Abrir app \"Segurança\" do Xiaomi") {
             tryStart(
                 Intent().setComponent(ComponentName("com.miui.powerkeeper", "com.miui.powerkeeper.ui.HiddenAppsConfigActivity"))
-                    .putExtra("package_name", packageName).putExtra("package_label", "Rota Copiloto"),
+                    .putExtra("package_name", packageName).putExtra("package_label", "Rota Calculadora"),
                 Intent().setComponent(ComponentName("com.miui.securitycenter", "com.miui.securitycenter.Main")),
                 appDetailsIntent()
             )
@@ -1091,11 +1091,11 @@ class MainActivity : Activity() {
         AlertDialog.Builder(this)
             .setTitle("Antes de começar")
             .setMessage(
-                "O Rota Copiloto é uma calculadora de apoio. Ele apenas lê os valores que aparecem na tela do " +
+                "O Rota Calculadora é uma calculadora de apoio. Ele apenas lê os valores que aparecem na tela do " +
                     "Uber Driver e do 99 Motorista e mostra uma análise. Ele não aceita, não recusa e não toca em nada.\n\n" +
                     "Não é afiliado, aprovado ou mantido pela Uber nem pela 99. Os números são estimativas; " +
                     "a decisão de aceitar a corrida é sempre sua.\n\n" +
-                    "Quando o app não entrega o texto da tela, o Rota Copiloto lê os números por imagem, só enquanto o Uber/99 está aberto. " +
+                    "Quando o app não entrega o texto da tela, o Rota Calculadora lê os números por imagem, só enquanto o Uber/99 está aberto. " +
                     "A imagem é analisada no próprio celular e descartada (a não ser que você ligue a Captura de Tela).\n\n" +
                     "Nada sai do seu celular: não há login nem servidor."
             )
