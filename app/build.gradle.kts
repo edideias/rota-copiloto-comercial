@@ -11,8 +11,19 @@ android {
         applicationId = "br.rota.copiloto.pro"
         minSdk = 26
         targetSdk = 34
-        versionCode = 17
-        versionName = "3.5.1"
+        versionCode = 18
+        versionName = "3.5.2"
+    }
+
+    // Chave fixa: todas as versões saem assinadas igual, então o Android atualiza por cima
+    // mantendo configurações e permissões (sem precisar desinstalar).
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("rota-calculadora.keystore")
+            storePassword = "rotacalc2026"
+            keyAlias = "rota"
+            keyPassword = "rotacalc2026"
+        }
     }
 
     buildTypes {
