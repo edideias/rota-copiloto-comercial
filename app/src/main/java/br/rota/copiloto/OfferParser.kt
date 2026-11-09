@@ -36,7 +36,22 @@ object OfferParser {
 
     private data class Pair(val start: Int, val end: Int, val km: Double, val min: Double)
 
+    private val stopsRx = Regex("""(\d+)\s*parada""", RegexOption.IGNORE_CASE)
+
+    /** "1 parada(s)", "2 paradas" ou "Taxa de parada" => ha parada no caminho. */
+    private fun readStops(text: String): Int {
+        val n = stopsRx.find(text)?.groupValues?.get(1)?.toIntOrNull()
+        if (n != null && n > 0) return n
+        return if (text.contains("taxa de parada", ignoreCase = true)) 1 else 0
+    }
+
     fun parse(platform: String, text: String): Offer? {
+        val o = parseBase(platform, text) ?: return null
+        val s = readStops(text)
+        return if (s > 0) o.copy(stops = s) else o
+    }
+
+    private fun parseBase(platform: String, text: String): Offer? {
         val value = readValue(text) ?: return null
 
         val pairs = ArrayList<Pair>()
@@ -85,7 +100,7 @@ object OfferParser {
         if (lido <= 0.0 || Math.abs(lido - esperado) / esperado <= 0.15) return o
         if (esperado > 500.0) return o
         val f = esperado / lido
-        return Offer(o.platform, o.value, o.pickupKm * f, o.pickupMin, o.tripKm * f, o.tripMin)
+        return o.copy(pickupKm = o.pickupKm * f, tripKm = o.tripKm * f)
     }
 
     private fun valid(o: Offer): Offer? {
