@@ -417,7 +417,7 @@ object OverlayCard {
                     setPadding(ui.dp(16), ui.dp(5), ui.dp(16), ui.dp(5))
                 }
                 v.addView(ui.tv(label, size * 0.45f, txt, 3).apply { alpha = 0.8f })
-                v.addView(ui.tv(value, size * 1.1f, txt, 3))
+                v.addView(ui.tv(value, size * 1.1f, txt, 3).apply { setSingleLine(true); maxLines = 1; ellipsize = null })
                 return v
             }
             val br = java.util.Locale("pt", "BR")
@@ -425,8 +425,10 @@ object OverlayCard {
             val valueFill = if (top) neon else if (theme == 2) verdict else verdict
             val valueTxt = if (top || a.verdict == Verdict.YELLOW) ink else Color.WHITE
             val vl = pill("VALOR", String.format(br, "R$ %.2f", a.offer.value), valueFill, valueTxt, valueFill)
-            pills.addView(km, ui.lp(0, weight = 1f))
-            pills.addView(vl, ui.lp(0, weight = 1f).also { it.marginStart = ui.dp(8) })
+            // largura natural primeiro (o valor nunca quebra em duas linhas); a sobra é dividida igual
+            val wrap = ViewGroup.LayoutParams.WRAP_CONTENT
+            pills.addView(km, LinearLayout.LayoutParams(wrap, wrap, 1f))
+            pills.addView(vl, LinearLayout.LayoutParams(wrap, wrap, 1f).also { it.marginStart = ui.dp(8) })
             box.addView(pills, ui.lp(top = 8))
         }
 

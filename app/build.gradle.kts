@@ -11,8 +11,8 @@ android {
         applicationId = "br.rota.copiloto.pro"
         minSdk = 26
         targetSdk = 34
-        versionCode = 16
-        versionName = "3.5"
+        versionCode = 17
+        versionName = "3.5.1"
     }
 
     buildTypes {
