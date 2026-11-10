@@ -12,7 +12,7 @@ SERVIDORES = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.
               "https://maps.mail.ru/osm/tools/overpass/api/interpreter"]
 BB = "(-20.66,-54.82,-20.32,-54.43)"  # área urbana de Campo Grande (sul, oeste, norte, leste)
 RUAS = 'way["highway"~"^(motorway|trunk|primary|secondary|tertiary|unclassified|residential|living_street|service|track|road)(_link)?$"]["name"]' + BB + ';out tags geom;'
-BAIRROS = '(rel["boundary"="administrative"]["admin_level"~"^(9|10)$"]' + BB + ';rel["place"~"^(suburb|neighbourhood|quarter)$"]' + BB + ';way["place"~"^(suburb|neighbourhood|quarter)$"]' + BB + ';);out tags geom;'
+BAIRROS = '(rel["boundary"="administrative"]["admin_level"~"^(9|10)$"]' + BB + ';rel["place"~"^(suburb|neighbourhood|quarter)$"]' + BB + ';way["place"~"^(suburb|neighbourhood|quarter)$"]' + BB + ';node["place"~"^(suburb|neighbourhood|quarter)$"]' + BB + ';);out tags geom;'
 
 PAVIM = {"asphalt", "paved", "concrete", "concrete:plates", "concrete:lanes", "paving_stones", "sett", "cobblestone",
          "unhewn_cobblestone", "metal", "wood", "chipseal"}
@@ -64,10 +64,12 @@ def dentro(x, y, anel):
     return d
 
 def main():
-    bairros = []
+    bairros = []; pontos = []
     for el in overpass(BAIRROS):
         nome = el.get("tags", {}).get("name")
         if not nome: continue
+        if el["type"] == "node":
+            pontos.append((nome, el["lon"], el["lat"])); continue
         # junta segmentos soltos num só polígono (aproximação suficiente para teste de ponto)
         pts = [p for a in aneis(el) for p in a]
         if len(pts) < 3: continue
@@ -82,7 +84,12 @@ def main():
             x0, y0, x1, y1 = b["bbox"]
             if x0 <= lon <= x1 and y0 <= lat <= y1 and any(dentro(lon, lat, a) for a in b["aneis"] if len(a) > 2):
                 return b["nome"]
-        return None
+        # sem polígono: bairro marcado como ponto mais próximo (até 1,8 km)
+        melhor, dmin = None, 1.8
+        for nome, x, y in pontos:
+            d = km([{"lat": lat, "lon": lon}, {"lat": y, "lon": x}])
+            if d < dmin: melhor, dmin = nome, d
+        return melhor
 
     ruas = {}
     for el in overpass(RUAS):
@@ -114,9 +121,9 @@ def main():
     json.dump({"versao": 1, "cidade": "Campo Grande - MS",
                "gerado_em": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
                "fonte": "© colaboradores do OpenStreetMap (ODbL)", "resumo": {"ruas": len(saida), **resumo},
-               "bairros": sorted({b["nome"] for b in bairros if b["nivel"] != "9"} or {b["nome"] for b in bairros}),
+               "bairros": sorted({b["nome"] for b in bairros if b["nivel"] != "9"} | {p[0] for p in pontos}),
                "ruas": saida}, open("dados/campo-grande-ruas.json", "w"), ensure_ascii=False, indent=0)
-    print("::notice::" + json.dumps({"ruas": len(saida), **resumo, "bairros": len(bairros)}))
+    print("::notice::" + json.dumps({"ruas": len(saida), **resumo, "bairros_poligono": len(bairros), "bairros_ponto": len(pontos), "ruas_com_bairro": sum(1 for x in saida if x["bairros"])}))
 
 if __name__ == "__main__":
     try:
