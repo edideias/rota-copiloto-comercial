@@ -423,7 +423,8 @@ object OverlayCard {
                 return v
             }
             val br = java.util.Locale("pt", "BR")
-            val km = pill("KM TOTAL", String.format(br, "%.1f km", a.totalKm), null, Color.parseColor("#1B2430"), Color.WHITE)
+            val preto = Color.parseColor("#111418")
+            val km = pill("KM TOTAL", String.format(br, "%.1f km", a.totalKm), preto, Color.WHITE, preto)
             val valueFill = if (top) neon else if (theme == 2) verdict else verdict
             val valueTxt = if (top || a.verdict == Verdict.YELLOW) ink else Color.WHITE
             val vl = pill("VALOR", String.format(br, "R$ %.2f", a.offer.value), valueFill, valueTxt, valueFill)
