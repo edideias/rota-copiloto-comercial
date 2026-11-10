@@ -1,0 +1,10 @@
+name: Sondar mapas da Prefeitura
+on:
+  push:
+    paths: ["scripts/sondar_mapas.py"]
+jobs:
+  sondar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 scripts/sondar_mapas.py
