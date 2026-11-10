@@ -12,10 +12,15 @@ def get(u, n=60000000):
     except Exception as e:
         return 0, u, repr(e)
 st, fim, js = get("https://sisgran.campogrande.ms.gov.br/sisgran/assets/index-B_Eqb3qG.js")
-for pat in [r'.{0,200}(?:geoserver|/ows|/wms|wfs).{0,200}', r'.{0,120}mobilidade-pavimentacao.{0,900}']:
+for pat in [r'async function ED.{0,700}', r'function DD.{0,500}', r'.{0,300}wmsUrl.{0,300}', r'.{0,200}`/api/[^`]{0,120}`.{0,100}', r'.{0,200}VITE_[A-Z_]+.{0,200}']:
     for t in re.findall(pat, js, re.I)[:12]: note("JS: " + t)
-cands = set(re.findall(r'["\'`]((?:https?:)?/[^"\'`\s]*(?:geoserver|ows|wms|wfs)[^"\'`\s]*)["\'`]', js, re.I))
+cands = set(re.findall(r'`(/api/[^`]+)`', js)) | set(re.findall(r'["\'`]((?:https?:)?/[^"\'`\s]*(?:geoserver|ows|wms|wfs)[^"\'`\s]*)["\'`]', js, re.I))
 note("CANDS " + repr(cands))
+for c in sorted(cands):
+    if c.startswith('/api'):
+        st, f2, txt = get(urllib.parse.urljoin("https://sisgran.campogrande.ms.gov.br/", c))
+        note(f"API {st} {c}: {txt[:600]}")
+        for w in re.findall(r'"wmsUrl"\s*:\s*"([^"]+)"', txt): cands.add(w)
 bases = {urllib.parse.urljoin("https://sisgran.campogrande.ms.gov.br/", c.split("?")[0]) for c in cands}
 bases |= {"https://sisgran.campogrande.ms.gov.br/geoserver/ows", "https://sisgran.campogrande.ms.gov.br/geoserver/sisgran/ows",
           "https://sisgran.campogrande.ms.gov.br/geoserver/wfs", "https://sisgran.campogrande.ms.gov.br/sisgran/geoserver/ows",
