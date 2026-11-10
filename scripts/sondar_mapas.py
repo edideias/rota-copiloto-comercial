@@ -33,3 +33,4 @@ for b in sorted(bases):
         note("PROPS " + json.dumps(fs[0]["properties"], ensure_ascii=False) if fs else "vazio")
         note("SITUACAO " + repr(Counter(str(f["properties"].get("situacao")) for f in fs).most_common(20)))
         break
+# v2
