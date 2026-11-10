@@ -11,7 +11,7 @@ import json, sys, time, unicodedata, re, urllib.request, urllib.parse, math, dat
 SERVIDORES = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter",
               "https://maps.mail.ru/osm/tools/overpass/api/interpreter"]
 BB = "(-20.66,-54.82,-20.32,-54.43)"  # área urbana de Campo Grande (sul, oeste, norte, leste)
-RUAS = 'way'["highway"~"^(motorway|trunk|primary|secondary|tertiary|unclassified|residential|living_street|service|track|road)(_link)?$"]["name"]' + BB + ';out tags geom;'
+RUAS = 'way["highway"~"^(motorway|trunk|primary|secondary|tertiary|unclassified|residential|living_street|service|track|road)(_link)?$"]["name"]' + BB + ';out tags geom;'
 BAIRROS = '(rel["boundary"="administrative"]["admin_level"~"^(9|10)$"]' + BB + ';rel["place"~"^(suburb|neighbourhood|quarter)$"]' + BB + ';way["place"~"^(suburb|neighbourhood|quarter)$"]' + BB + ';);out tags geom;'
 
 PAVIM = {"asphalt", "paved", "concrete", "concrete:plates", "concrete:lanes", "paving_stones", "sett", "cobblestone",
