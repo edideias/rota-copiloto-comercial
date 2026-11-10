@@ -61,6 +61,7 @@ class MainActivity : Activity() {
         prefs.template = i
         Templates.apply(i)
         ui = Ui(this)
+        Destino.iniciar(this)
         applyChrome()
         render()
     }
@@ -465,6 +466,7 @@ class MainActivity : Activity() {
         item("Apps de trabalho", "Uber, 99 e leitura por imagem") { openConfig("Apps de trabalho") { appsContent(it) } }
         item("Metas e custo", "Ganho por km, por hora e custo do carro") { openConfig("Metas e custo") { goalsContent(it) } }
         item("Aparência do quadro", "Métricas, posição, tema e fonte") { openConfig("Aparência do quadro") { cardContent(it) } }
+        item("Destino da corrida", "Bairro, rua de terra, bairros evitados e lista negra") { openConfig("Destino da corrida") { destinoContent(it) } }
         item("Destaque corrida TOP", "Verde neon piscando e km total/valor") { openConfig("Destaque corrida TOP") { topContent(it) } }
         item("Tempo na tela", "Quanto tempo o quadro fica visível") { openConfig("Tempo na tela") { timeContent(it) } }
         item("Captura de tela", "Salvar cada oferta na galeria") { openConfig("Captura de tela") { captureContent(it) } }
@@ -765,6 +767,110 @@ class MainActivity : Activity() {
             cornerRadius = ui.dpf(12f)
             setStroke(ui.dp(2), Color.parseColor("#C9C4D8"), ui.dpf(5f), ui.dpf(4f))
         }
+    }
+
+    private fun campo(hint: String): EditText = EditText(this).apply {
+        this.hint = hint
+        setSingleLine(true)
+        typeface = ui.font(1)
+        setTextColor(C.TEXT)
+        textSize = 15f
+        background = ui.round(C.BG, 14)
+        setPadding(dp(14), dp(12), dp(14), dp(12))
+    }
+
+    private fun destinoContent(p: Prefs): View {
+        val box = ui.vbox()
+        box.addView(pageHeader("Destino da corrida", "Veja o bairro de destino logo de cara e seja avisado dos lugares que você não quer"))
+
+        // estilos e chaves
+        val c1 = ui.card()
+        c1.addView(switchRow("Mostrar card do bairro", p.bairroOn) { p.bairroOn = it; render() })
+        c1.addView(ui.tv("Modelo do card", 14f, C.TEXT, 2), ui.lp(top = 14))
+        c1.addView(ui.segmented(listOf("A · Faixa", "B · Pílula", "C · Placa"), p.bairroStyle) { p.bairroStyle = it; render() }, ui.lp(top = 8))
+        c1.addView(switchRow("Avisar rua de terra", p.avisarTerra) { p.avisarTerra = it; render() }, ui.lp(top = 14))
+        c1.addView(ui.tv(
+            if (Destino.pronto) "Pavimentação oficial da Agetran (Sisgran) · banco de ${Destino.dataBanco}"
+            else "Carregando o banco de ruas…", 11f, C.MUTED, 0), ui.lp(top = 4))
+        c1.addView(ui.button("Atualizar banco de ruas agora", false) {
+            Thread {
+                val ok = Destino.atualizar(this)
+                runOnUiThread {
+                    android.widget.Toast.makeText(this, if (ok) "Banco atualizado (${Destino.dataBanco})" else "Sem internet ou servidor fora do ar", android.widget.Toast.LENGTH_LONG).show()
+                    render()
+                }
+            }.start()
+        }, ui.lp(top = 10))
+        box.addView(c1, ui.lp(top = 20))
+
+        // bairros evitados
+        val c2 = ui.card()
+        c2.addView(ui.tv("Bairros que eu evito", 16f, C.TEXT, 2))
+        c2.addView(ui.tv("O card do bairro pisca em vermelho quando o destino é um deles.", 12f, C.MUTED, 0), ui.lp(top = 4))
+        val auto = android.widget.AutoCompleteTextView(this).apply {
+            hint = "Digite o bairro"
+            setSingleLine(true); threshold = 2
+            typeface = ui.font(1); setTextColor(C.TEXT); textSize = 15f
+            background = ui.round(C.BG, 14)
+            setPadding(dp(14), dp(12), dp(14), dp(12))
+            setAdapter(android.widget.ArrayAdapter(this@MainActivity, android.R.layout.simple_dropdown_item_1line, Destino.nomesBairros))
+        }
+        val addB = {
+            val t = auto.text.toString().trim()
+            if (t.length >= 2) { p.bairrosEvitados = p.bairrosEvitados + t; render() }
+        }
+        auto.setOnItemClickListener { _, _, _, _ -> addB() }
+        val linhaB = ui.hbox().apply { gravity = Gravity.CENTER_VERTICAL }
+        linhaB.addView(auto, ui.lp(0, weight = 1f))
+        linhaB.addView(ui.button("Adicionar") { addB() }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).also { it.marginStart = dp(8) })
+        c2.addView(linhaB, ui.lp(top = 10))
+        val lista = p.bairrosEvitados
+        if (lista.isEmpty()) c2.addView(ui.tv("Nenhum bairro na lista.", 13f, C.MUTED, 0), ui.lp(top = 10))
+        lista.forEach { b ->
+            val r = ui.hbox().apply { gravity = Gravity.CENTER_VERTICAL; background = ui.round(Color.parseColor("#FDE2E2"), 14); setPadding(dp(14), dp(6), dp(6), dp(6)) }
+            r.addView(ui.tv(b, 14f, Color.parseColor("#8A1414"), 2), ui.lp(0, weight = 1f))
+            r.addView(ui.tv("✕", 16f, Color.parseColor("#8A1414"), 2, true).apply {
+                contentDescription = "Remover $b"
+                layoutParams = LinearLayout.LayoutParams(dp(44), dp(44))
+                gravity = Gravity.CENTER
+                setOnClickListener { p.bairrosEvitados = p.bairrosEvitados - b; render() }
+            })
+            c2.addView(r, ui.lp(top = 8))
+        }
+        box.addView(c2, ui.lp(top = 16))
+
+        // lista negra
+        val c3 = ui.card()
+        c3.addView(ui.tv("Lista negra · locais sem futuro", 16f, C.TEXT, 2))
+        c3.addView(ui.tv("Se o destino tiver um destes nomes, aparece o aviso grande. Use o nome como o 99/Uber mostra (ex.: Condomínio Lagoa Park).", 12f, C.MUTED, 0), ui.lp(top = 4))
+        val nome = campo("Nome do local ou rua e número")
+        val motivo = campo("Motivo (opcional)")
+        c3.addView(nome, ui.lp(top = 10))
+        c3.addView(motivo, ui.lp(top = 8))
+        c3.addView(ui.button("Adicionar à lista negra") {
+            val n = nome.text.toString().trim()
+            if (n.length >= 4) { p.listaNegra = p.listaNegra + Destino.Negra(n, motivo.text.toString().trim()); render() }
+            else android.widget.Toast.makeText(this, "Digite pelo menos 4 letras", android.widget.Toast.LENGTH_SHORT).show()
+        }, ui.lp(top = 10))
+        p.listaNegra.forEach { n ->
+            val r = ui.hbox().apply { gravity = Gravity.CENTER_VERTICAL }
+            val col = ui.vbox()
+            col.addView(ui.tv("⛔  " + n.nome, 14f, C.TEXT, 2))
+            if (n.motivo.isNotBlank()) col.addView(ui.tv(n.motivo, 12f, C.MUTED, 0))
+            r.addView(col, ui.lp(0, weight = 1f))
+            r.addView(ui.tv("✕", 16f, C.MUTED, 2, true).apply {
+                contentDescription = "Remover ${n.nome}"
+                layoutParams = LinearLayout.LayoutParams(dp(44), dp(44))
+                gravity = Gravity.CENTER
+                setOnClickListener { p.listaNegra = p.listaNegra.filter { it != n }; render() }
+            })
+            c3.addView(r, ui.lp(top = 10))
+        }
+        c3.addView(ui.tv("Estilo do aviso", 14f, C.TEXT, 2), ui.lp(top = 16))
+        c3.addView(ui.segmented(listOf("Painel ao lado", "Cartaz por cima"), p.avisoStyle) { p.avisoStyle = it; render() }, ui.lp(top = 8))
+        c3.addView(switchRow("Vibrar forte no aviso e no bairro evitado", p.avisoVibrar) { p.avisoVibrar = it; render() }, ui.lp(top = 14))
+        box.addView(c3, ui.lp(top = 16))
+        return box
     }
 
     private fun topContent(p: Prefs): View {

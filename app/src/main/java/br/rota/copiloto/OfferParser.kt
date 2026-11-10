@@ -48,7 +48,18 @@ object OfferParser {
     fun parse(platform: String, text: String): Offer? {
         val o = parseBase(platform, text) ?: return null
         val s = readStops(text)
-        return if (s > 0) o.copy(stops = s) else o
+        return o.copy(stops = if (s > 0) s else o.stops, destText = readDest(text))
+    }
+
+    private val fimDest = Regex("""(?i)aceitar|recusar|tentando|selecionar|confirmar|R\$|\bvoltar\b""")
+
+    /** Texto logo depois do último "x min (y km)": é o endereço de destino. */
+    fun readDest(text: String): String {
+        val ultimo = (minKmRx.findAll(text) + kmMinRx.findAll(text)).maxByOrNull { it.range.last } ?: return ""
+        var d = text.substring(ultimo.range.last + 1)
+        fimDest.find(d)?.let { d = d.substring(0, it.range.first) }
+        d = d.replace(Regex("""\s*\|\s*"""), ", ").replace(Regex("""^[\s,)•·]+|[\s,•·]+$"""), "")
+        return d.replace(Regex("""\s+"""), " ").take(180)
     }
 
     private fun parseBase(platform: String, text: String): Offer? {

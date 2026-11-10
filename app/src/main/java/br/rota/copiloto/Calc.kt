@@ -11,7 +11,8 @@ data class Offer(
     val pickupMin: Double,
     val tripKm: Double,
     val tripMin: Double,
-    val stops: Int = 0          // paradas no caminho (0 = nenhuma)
+    val stops: Int = 0,         // paradas no caminho (0 = nenhuma)
+    val destText: String = ""  // endereço de destino como aparece na tela
 )
 
 data class Analysis(
@@ -161,6 +162,40 @@ class Prefs(ctx: Context, override_: android.content.SharedPreferences? = null) 
     var cardPos: Int
         get() = sp.getInt("cardPos", 1)
         set(v) { sp.edit().putInt("cardPos", v).apply() }
+    // ---- Destino: card do bairro, rua de terra e lista negra
+    var bairroOn: Boolean
+        get() = sp.getBoolean("bairroOn", true)
+        set(v) { sp.edit().putBoolean("bairroOn", v).apply() }
+    var avisarTerra: Boolean
+        get() = sp.getBoolean("avisarTerra", true)
+        set(v) { sp.edit().putBoolean("avisarTerra", v).apply() }
+    /** 0 faixa larga, 1 pílula fina, 2 placa com status */
+    var bairroStyle: Int
+        get() = sp.getInt("bairroStyle", 0)
+        set(v) { sp.edit().putInt("bairroStyle", v).apply() }
+    /** 0 painel ao lado, 1 cartaz por cima */
+    var avisoStyle: Int
+        get() = sp.getInt("avisoStyle", 0)
+        set(v) { sp.edit().putInt("avisoStyle", v).apply() }
+    var avisoVibrar: Boolean
+        get() = sp.getBoolean("avisoVibrar", true)
+        set(v) { sp.edit().putBoolean("avisoVibrar", v).apply() }
+    var bairrosEvitados: List<String>
+        get() = try {
+            val a = org.json.JSONArray(sp.getString("bairrosEvitados", "[]")); List(a.length()) { a.getString(it) }
+        } catch (_: Exception) { emptyList() }
+        set(v) { sp.edit().putString("bairrosEvitados", org.json.JSONArray(v.distinct()).toString()).apply() }
+    var listaNegra: List<Destino.Negra>
+        get() = try {
+            val a = org.json.JSONArray(sp.getString("listaNegra", "[]"))
+            List(a.length()) { val o = a.getJSONObject(it); Destino.Negra(o.getString("n"), o.optString("m")) }
+        } catch (_: Exception) { emptyList() }
+        set(v) {
+            val a = org.json.JSONArray()
+            v.forEach { a.put(org.json.JSONObject().put("n", it.nome).put("m", it.motivo)) }
+            sp.edit().putString("listaNegra", a.toString()).apply()
+        }
+
     // ---- Destaque "corrida TOP" (verde neon piscando) + km total/valor abaixo do quadro
     var topOn: Boolean
         get() = sp.getBoolean("topOn", true)

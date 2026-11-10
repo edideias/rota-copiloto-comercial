@@ -63,6 +63,7 @@ class CopilotService : AccessibilityService() {
         prefs = Prefs(this)
         wm = getSystemService(WINDOW_SERVICE) as WindowManager
         DebugLog.add("Serviço conectado.")
+        Destino.iniciar(this)
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -467,6 +468,10 @@ class CopilotService : AccessibilityService() {
         lastOfferAt = now
         notifyOffer(a)
         if (prefs.topVibrate && prefs.isTop(a)) vibrateTop()
+        if (prefs.avisoVibrar) {
+            val d = Destino.analisar(o.destText, prefs)
+            if (d.negra != null || d.evitado) vibrateAlert()
+        }
         if (o.platform != "Simulação") saveShot(o.platform)
     }
 
@@ -475,6 +480,14 @@ class CopilotService : AccessibilityService() {
         try {
             val v = getSystemService(android.content.Context.VIBRATOR_SERVICE) as android.os.Vibrator
             v.vibrate(android.os.VibrationEffect.createWaveform(longArrayOf(0, 120, 90, 120, 90, 120), -1))
+        } catch (_: Exception) {}
+    }
+
+    /** Vibração longa: destino na lista negra ou bairro evitado. */
+    private fun vibrateAlert() {
+        try {
+            val v = getSystemService(android.content.Context.VIBRATOR_SERVICE) as android.os.Vibrator
+            v.vibrate(android.os.VibrationEffect.createWaveform(longArrayOf(0, 450, 150, 450), -1))
         } catch (_: Exception) {}
     }
 

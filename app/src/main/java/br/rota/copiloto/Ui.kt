@@ -400,7 +400,9 @@ object OverlayCard {
         }
         outer.addView(foot, ui.lp(top = 4))
 
-        if (!p.showTotals && !top) return outer
+        val dest = Destino.analisar(a.offer.destText, p)
+        val comBairro = p.bairroOn && !dest.vazio
+        if (!p.showTotals && !top && !comBairro && dest.negra == null) return outer
 
         // Envoltório: quadro + (km total e valor) em pílulas + brilho neon quando é corrida TOP
         val box = ui.vbox().apply { setPadding(ui.dp(8), ui.dp(8), ui.dp(8), ui.dp(8)) }
@@ -432,6 +434,8 @@ object OverlayCard {
             box.addView(pills, ui.lp(top = 8))
         }
 
+        if (comBairro) box.addView(bairroCard(ctx, ui, dest, p.bairroStyle, size), ui.lp(top = 8))
+
         if (top) {
             val period = when (p.topSpeed) { 0 -> 1500L; 2 -> 480L; else -> 950L }
             val halo = GradientDrawable().apply {
@@ -456,7 +460,140 @@ object OverlayCard {
             })
             anim.start()
         }
-        return box
+        val negra = dest.negra ?: return box
+        return if (p.avisoStyle == 1) cartazNegra(ctx, ui, box, negra, size) else painelNegra(ctx, ui, box, negra, size)
+    }
+
+    private val AZUL = Color.parseColor("#1D4ED8")
+    private val VERMELHO = Color.parseColor("#DC2626")
+    private val AMBAR = Color.parseColor("#F59E0B")
+
+    /** Pisca entre duas cores no fundo de [bg] (e na borda, se pedido) enquanto a view estiver na tela. */
+    private fun piscar(v: View, bg: GradientDrawable, de: Int, para: Int, borda: Boolean, ui: Ui) {
+        val anim = android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 500
+            repeatMode = android.animation.ValueAnimator.REVERSE
+            repeatCount = android.animation.ValueAnimator.INFINITE
+            addUpdateListener {
+                val f = it.animatedValue as Float
+                val c = android.animation.ArgbEvaluator().evaluate(f, de, para) as Int
+                bg.setColor(c)
+                if (borda) bg.setStroke(ui.dp(3), Color.argb((255 * f).toInt(), 255, 90, 90))
+            }
+        }
+        v.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(x: View) { if (!anim.isStarted) anim.start() }
+            override fun onViewDetachedFromWindow(x: View) { anim.cancel() }
+        })
+        anim.start()
+    }
+
+    private fun selo(ui: Ui, txt: String, fundo: Int, cor: Int, size: Float): TextView =
+        ui.tv(txt, size * 0.45f, cor, 3).apply {
+            background = ui.round(fundo, 20)
+            setPadding(ui.dp(8), ui.dp(2), ui.dp(8), ui.dp(2))
+            setSingleLine(true)
+        }
+
+    /** Card azul do bairro de destino nos 3 modelos (A faixa larga, B pílula fina, C placa com status). */
+    private fun bairroCard(ctx: Context, ui: Ui, d: Destino.Info, estilo: Int, size: Float): View {
+        val nome = d.bairro ?: d.rua ?: ""
+        val terraTxt = when (d.pavimento) { "terra" -> "TERRA"; "misto" -> "PARTE TERRA"; else -> null }
+        val bg = GradientDrawable().apply { setColor(AZUL) }
+        val wrap = ViewGroup.LayoutParams.WRAP_CONTENT
+        val nomeTv = ui.tv(nome, size * 0.95f, Color.WHITE, 3).apply { setSingleLine(true); ellipsize = null }
+        when (estilo) {
+            1 -> {
+                bg.cornerRadius = ui.dpf(40f)
+                val r = ui.hbox().apply { background = bg; setPadding(ui.dp(16), ui.dp(6), ui.dp(16), ui.dp(6)); gravity = Gravity.CENTER_VERTICAL }
+                r.addView(ui.tv(if (d.evitado) "⚠ EVITAR" else "Bairro", size * 0.5f, Color.WHITE, 2).apply { alpha = 0.9f })
+                r.addView(nomeTv, LinearLayout.LayoutParams(wrap, wrap).also { it.marginStart = ui.dp(8) })
+                if (terraTxt != null) r.addView(selo(ui, terraTxt, AMBAR, Color.parseColor("#2A1600"), size), LinearLayout.LayoutParams(wrap, wrap).also { it.marginStart = ui.dp(8) })
+                if (d.evitado) piscar(r, bg, AZUL, VERMELHO, true, ui)
+                return r
+            }
+            2 -> {
+                bg.cornerRadius = ui.dpf(20f)
+                val r = ui.hbox().apply { background = bg; clipToOutline = true }
+                val esq = ui.vbox().apply { setPadding(ui.dp(14), ui.dp(6), ui.dp(12), ui.dp(6)) }
+                esq.addView(ui.tv("BAIRRO DE DESTINO", size * 0.42f, Color.WHITE, 2).apply { alpha = 0.85f })
+                esq.addView(nomeTv)
+                if (d.bairro != null && d.rua != null) esq.addView(ui.tv(d.rua, size * 0.48f, Color.WHITE, 0).apply { alpha = 0.9f; setSingleLine(true) })
+                r.addView(esq, LinearLayout.LayoutParams(wrap, wrap, 1f))
+                val (tag, cor) = when { d.evitado -> "EVITAR" to VERMELHO; terraTxt != null -> terraTxt to AMBAR; else -> "OK" to Color.parseColor("#60A5FA") }
+                val ladoBg = GradientDrawable().apply { setColor(cor); cornerRadii = floatArrayOf(0f, 0f, ui.dpf(20f), ui.dpf(20f), ui.dpf(20f), ui.dpf(20f), 0f, 0f) }
+                val lado = ui.tv(tag, size * 0.55f, if (cor == AMBAR) Color.parseColor("#2A1600") else Color.WHITE, 3, true).apply {
+                    background = ladoBg; gravity = Gravity.CENTER; setPadding(ui.dp(12), 0, ui.dp(12), 0); setSingleLine(true)
+                }
+                r.addView(lado, LinearLayout.LayoutParams(wrap, ViewGroup.LayoutParams.MATCH_PARENT))
+                if (d.evitado) piscar(lado, ladoBg, VERMELHO, Color.parseColor("#7F1D1D"), false, ui)
+                if (d.evitado) bg.setStroke(ui.dp(3), Color.parseColor("#FF5A5A"))
+                return r
+            }
+            else -> {
+                bg.cornerRadius = ui.dpf(22f)
+                val r = ui.hbox().apply { background = bg; setPadding(ui.dp(14), ui.dp(8), ui.dp(16), ui.dp(8)); gravity = Gravity.CENTER_VERTICAL }
+                r.addView(ui.tv(if (d.evitado) "⚠" else "📍", size * 0.8f, Color.WHITE, 2, true).apply {
+                    background = ui.round(Color.argb(46, 255, 255, 255), 30)
+                    layoutParams = LinearLayout.LayoutParams(ui.dp(38), ui.dp(38))
+                })
+                val col = ui.vbox().apply { setPadding(ui.dp(10), 0, 0, 0) }
+                col.addView(ui.tv(if (d.evitado) "BAIRRO QUE VOCÊ EVITA" else "DESTINO", size * 0.42f, Color.WHITE, 3).apply { alpha = 0.9f })
+                col.addView(nomeTv)
+                val linha = ui.hbox().apply { gravity = Gravity.CENTER_VERTICAL }
+                if (d.bairro != null && d.rua != null) linha.addView(ui.tv(d.rua, size * 0.48f, Color.WHITE, 0).apply { setSingleLine(true) })
+                if (terraTxt != null) linha.addView(selo(ui, terraTxt, AMBAR, Color.parseColor("#2A1600"), size), LinearLayout.LayoutParams(wrap, wrap).also { it.marginStart = ui.dp(6) })
+                if (linha.childCount > 0) col.addView(linha)
+                r.addView(col, LinearLayout.LayoutParams(wrap, wrap, 1f))
+                if (d.evitado) piscar(r, bg, AZUL, VERMELHO, true, ui)
+                return r
+            }
+        }
+    }
+
+    private fun conteudoNegra(ui: Ui, n: Destino.Negra, size: Float, grande: Boolean): LinearLayout {
+        val c = ui.vbox().apply { gravity = Gravity.CENTER_HORIZONTAL }
+        c.addView(ui.tv("⛔", size * (if (grande) 2.2f else 1.6f), Color.WHITE, 3, true))
+        c.addView(ui.tv("LOCAL SEM FUTURO", size * (if (grande) 1.1f else 0.75f), Color.WHITE, 3, true), ui.lp(top = 4))
+        c.addView(ui.tv(n.nome, size * 0.55f, Color.WHITE, 2, true), ui.lp(top = 4))
+        if (n.motivo.isNotBlank()) c.addView(ui.tv("“${n.motivo}”", size * 0.48f, Color.WHITE, 0, true).apply { alpha = 0.9f }, ui.lp(top = 2))
+        return c
+    }
+
+    /** Opção 1: painel vermelho grande ao lado do quadro. */
+    private fun painelNegra(ctx: Context, ui: Ui, box: View, n: Destino.Negra, size: Float): View {
+        val row = ui.hbox().apply { gravity = Gravity.CENTER_VERTICAL }
+        row.addView(box)
+        val bg = GradientDrawable().apply { setColor(Color.parseColor("#B91C1C")); cornerRadius = ui.dpf(22f) }
+        val painel = conteudoNegra(ui, n, size, false).apply {
+            background = bg; gravity = Gravity.CENTER
+            setPadding(ui.dp(10), ui.dp(14), ui.dp(10), ui.dp(14))
+        }
+        row.addView(painel, LinearLayout.LayoutParams(ui.dp(140), ViewGroup.LayoutParams.MATCH_PARENT).also { it.marginStart = ui.dp(4); it.topMargin = ui.dp(8); it.bottomMargin = ui.dp(8) })
+        piscar(painel, bg, Color.parseColor("#B91C1C"), Color.parseColor("#EF4444"), true, ui)
+        return row
+    }
+
+    /** Opção 2: cartaz vermelho por cima do quadro; some ao tocar em "Entendi" ou depois de 6 s. */
+    private fun cartazNegra(ctx: Context, ui: Ui, box: View, n: Destino.Negra, size: Float): View {
+        val fr = android.widget.FrameLayout(ctx)
+        fr.addView(box)
+        val bg = GradientDrawable().apply { setColor(Color.parseColor("#B91C1C")); cornerRadius = ui.dpf(28f) }
+        val cartaz = conteudoNegra(ui, n, size, true).apply {
+            background = bg; gravity = Gravity.CENTER
+            setPadding(ui.dp(16), ui.dp(16), ui.dp(16), ui.dp(16))
+        }
+        val ok = ui.tv("Entendi", size * 0.6f, Color.parseColor("#B91C1C"), 3, true).apply {
+            background = ui.round(Color.WHITE, 30)
+            setPadding(ui.dp(22), ui.dp(8), ui.dp(22), ui.dp(8))
+            setOnClickListener { cartaz.visibility = View.GONE }
+        }
+        cartaz.addView(ok, ui.lp(top = 10))
+        cartaz.setOnClickListener { /* não fecha o quadro por baixo */ }
+        fr.addView(cartaz, android.widget.FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        piscar(cartaz, bg, Color.parseColor("#B91C1C"), Color.parseColor("#EF4444"), true, ui)
+        cartaz.postDelayed({ cartaz.visibility = View.GONE }, 6000)
+        return fr
     }
 
     /** Verde neon, turquesa, lima, ciano. */

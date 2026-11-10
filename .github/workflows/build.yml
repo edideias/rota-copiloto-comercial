@@ -26,6 +26,7 @@ jobs:
       - name: Compilar
         run: |
           set -o pipefail
+          mkdir -p app/src/main/assets && cp dados/campo-grande-ruas.json app/src/main/assets/ruas.json
           gradle assembleDebug --no-daemon --stacktrace 2>&1 | tee build.log
 
       - name: Mostrar erros de compilação
