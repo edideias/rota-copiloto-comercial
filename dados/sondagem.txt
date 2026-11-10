@@ -1,7 +1,0 @@
-CONFIG 200: {"enabled":true,"wmsUrl":"/sisgran/api/v1/maps/wms","workspace":"sisgran","initialLayer":"","centerLongitude":-54.6464,"centerLatitude":-20.4697,"initialZoom":11}
-FEAT 400 sisgran:vw_mobilidade_pavimentacao 43b :: Camada não habilitada para consulta tabular
-FEAT 200 mobilidade-pavimentacao 4641635b :: {"type":"FeatureCollection","features":[{"type":"Feature","id":"vw_mobilidade_pavimentacao.fid-7d8395d2_1a1c3e6c9e9_-7e3f","geometry":{"type":"LineString","coordinates":[[-54.6256,-20.4688],[-54.6241,-20.47]]},"geometry_name":"geom","properties":{"gid":1,"n_logra":"TV. PIRES DE MATOS","situacao":"PAVIMENTADA","extensao":210.3,"id":0,"sisgran_id":1},"bbox":[-54.6256,-20.47,-54.6241,-20.4688]},{"type":"Feature","id":"vw_mobilidade_pavimentacao.fid-7d8395d2_1a1c3e6c9e9_-7e3e","geometry":{"type":"Li
-OK features=9313 chaves=['type', 'features', 'totalFeatures', 'numberMatched', 'numberReturned', 'timeStamp', 'crs', 'bbox'] numberMatched=9313
-EXEMPLO {"type": "Feature", "id": "vw_mobilidade_pavimentacao.fid-7d8395d2_1a1c3e6c9e9_-7e3f", "geometry": {"type": "LineString", "coordinates": [[-54.6256, -20.4688], [-54.6241, -20.47]]}, "geometry_name": "geom", "properties": {"gid": 1, "n_logra": "TV. PIRES DE MATOS", "situacao": "PAVIMENTADA", "extensao": 210.3, "id": 0, "sisgran_id": 1}, "bbox": [-54.6256, -20.47, -54.6241, -20.4688]}
-SITUACAO [('PAVIMENTADA', 6504), ('NAO PAVIMENTADA', 2809)]
-WFS 400 https://sisgran.campogrande.ms.gov.br/sisgran/api/v1/maps/wms :: Somente o serviço WMS é permitido

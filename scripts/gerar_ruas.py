@@ -1,4 +1,7 @@
-"""Gera o banco de ruas de Campo Grande (MS) a partir do OpenStreetMap.
+"""Gera o banco de ruas de Campo Grande (MS).
+
+Pavimentação: camada oficial "Pavimentação viária" da Agetran, publicada no Sisgran (Prefeitura).
+Nomes, bairros e ruas que faltarem: OpenStreetMap.
 
 Saída: dados/campo-grande-ruas.json
   - ruas: nome, bairros por onde passa, pavimentação (pavimentada / terra / misto / sem informação) e km
@@ -63,6 +66,21 @@ def dentro(x, y, anel):
         if (y1 > y) != (y2 > y) and x < (x2-x1)*(y-y1)/(y2-y1+1e-15)+x1: d = not d
     return d
 
+SISGRAN = "https://sisgran.campogrande.ms.gov.br/sisgran/api/v1/maps/features/mobilidade-pavimentacao?limit=50000"
+
+def oficial():
+    import ssl
+    ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
+    for tent in range(3):
+        try:
+            req = urllib.request.Request(SISGRAN, headers={"User-Agent": "Mozilla/5.0", "Accept": "application/json",
+                                                           "Referer": "https://sisgran.campogrande.ms.gov.br/mapas"})
+            with urllib.request.urlopen(req, timeout=300, context=ctx) as r:
+                return json.load(r)["features"]
+        except Exception as e:
+            print(f"::warning::Sisgran: {e}"); time.sleep(20)
+    print("::warning::Sisgran indisponível: pavimentação só do OpenStreetMap"); return []
+
 def main():
     bairros = []; pontos = []
     for el in overpass(BAIRROS):
@@ -106,6 +124,29 @@ def main():
         else: r["km_sem"] += comp
         r["tipos"].add(t.get("highway"))
 
+    # pavimentação oficial (Agetran/Sisgran) por cima da do OpenStreetMap
+    ofi = {}
+    for f in oficial():
+        pr = f.get("properties", {}); nome = (pr.get("n_logra") or "").strip()
+        if not nome: continue
+        chave = norm(nome); g = f.get("geometry") or {}
+        o = ofi.setdefault(chave, {"nome": nome, "pav": 0.0, "terra": 0.0, "meio": None})
+        ext = (pr.get("extensao") or 0) / 1000.0
+        if pr.get("situacao") == "PAVIMENTADA": o["pav"] += ext
+        else: o["terra"] += ext
+        cs = g.get("coordinates") or []
+        if g.get("type") == "MultiLineString" and cs: cs = cs[0]
+        if cs and not o["meio"]: o["meio"] = cs[len(cs)//2]
+    for chave, o in ofi.items():
+        r = ruas.get(chave)
+        if r is None:
+            r = ruas[chave] = {"nome": o["nome"].title(), "bairros": {}, "km_pav": 0.0, "km_terra": 0.0, "km_sem": 0.0, "tipos": set()}
+            if o["meio"]:
+                b = bairro_de(o["meio"][0], o["meio"][1])
+                if b: r["bairros"][b] = 1
+        r["km_pav"], r["km_terra"], r["km_sem"] = o["pav"], o["terra"], 0.0
+        r["oficial"] = True
+
     saida = []
     for chave, r in sorted(ruas.items()):
         conhecido = r["km_pav"] + r["km_terra"]
@@ -115,15 +156,16 @@ def main():
         else: pav = "misto"
         saida.append({"nome": r["nome"], "chave": chave, "pavimento": pav,
                       "km_pavimentado": round(r["km_pav"], 2), "km_terra": round(r["km_terra"], 2), "km_sem_info": round(r["km_sem"], 2),
-                      "bairros": [b for b, _ in sorted(r["bairros"].items(), key=lambda x: -x[1])]})
+                      "bairros": [b for b, _ in sorted(r["bairros"].items(), key=lambda x: -x[1])],
+                      "fonte": "agetran" if r.get("oficial") else "osm"})
     resumo = {p: sum(1 for s in saida if s["pavimento"] == p) for p in ("pavimentada", "terra", "misto", "sem_info")}
     import os; os.makedirs("dados", exist_ok=True)
-    json.dump({"versao": 1, "cidade": "Campo Grande - MS",
+    json.dump({"versao": 2, "cidade": "Campo Grande - MS",
                "gerado_em": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-               "fonte": "© colaboradores do OpenStreetMap (ODbL)", "resumo": {"ruas": len(saida), **resumo},
+               "fonte": "Pavimentação: Agetran/Sisgran - Prefeitura de Campo Grande. Ruas e bairros: © colaboradores do OpenStreetMap (ODbL)", "resumo": {"ruas": len(saida), **resumo},
                "bairros": sorted({b["nome"] for b in bairros if b["nivel"] != "9"} | {p[0] for p in pontos}),
                "ruas": saida}, open("dados/campo-grande-ruas.json", "w"), ensure_ascii=False, indent=0)
-    print("::notice::" + json.dumps({"ruas": len(saida), **resumo, "bairros_poligono": len(bairros), "bairros_ponto": len(pontos), "ruas_com_bairro": sum(1 for x in saida if x["bairros"])}))
+    print("::notice::" + json.dumps({"ruas": len(saida), **resumo, "bairros_poligono": len(bairros), "bairros_ponto": len(pontos), "ruas_com_bairro": sum(1 for x in saida if x["bairros"]), "ruas_oficiais": len(ofi)}))
 
 if __name__ == "__main__":
     try:
