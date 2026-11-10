@@ -842,7 +842,7 @@ class MainActivity : Activity() {
         // lista negra
         val c3 = ui.card()
         c3.addView(ui.tv("Lista negra · locais sem futuro", 16f, C.TEXT, 2))
-        c3.addView(ui.tv("Se o destino tiver um destes nomes, aparece o aviso grande. Use o nome como o 99/Uber mostra. Para mais de um jeito de escrever, separe com "/" (ex.: Dama / Damha).", 12f, C.MUTED, 0), ui.lp(top = 4))
+        c3.addView(ui.tv("Se o destino tiver um destes nomes, aparece o aviso grande. Use o nome como o 99/Uber mostra. Para mais de um jeito de escrever, separe com uma barra (ex.: Dama / Damha).", 12f, C.MUTED, 0), ui.lp(top = 4))
         val nome = campo("Nome do local ou rua e número")
         val motivo = campo("Motivo (opcional)")
         c3.addView(nome, ui.lp(top = 10))
