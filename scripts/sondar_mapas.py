@@ -1,47 +1,33 @@
-"""Procura nos mapas oficiais da Prefeitura de Campo Grande uma camada de pavimentação que possa ser baixada."""
-import re, urllib.request, ssl, json
+"""Procura no Sisgran (Planurb) as camadas de mapa e se alguma traz pavimentação."""
+import re, urllib.request, urllib.parse, ssl, json
 ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
-def get(u, n=400000):
+SAIDA = open("dados/sondagem.txt", "w")
+def note(m): SAIDA.write(str(m)[:3000] + "\n"); SAIDA.flush()
+def get(u, n=8000000):
     try:
-        r = urllib.request.urlopen(urllib.request.Request(u, headers={"User-Agent": "Mozilla/5.0"}), timeout=40, context=ctx)
+        r = urllib.request.urlopen(urllib.request.Request(u, headers={"User-Agent": "Mozilla/5.0"}), timeout=60, context=ctx)
         return r.status, r.geturl(), r.read(n).decode("utf-8", "replace")
     except Exception as e:
         return 0, u, repr(e)
-SAIDA = open("dados/sondagem.txt", "w")
-def note(m): SAIDA.write(m.replace("\n", " ")[:1500] + "\n"); SAIDA.flush()
-INICIO = ["https://sisgran.campogrande.ms.gov.br/", "https://www.campogrande.ms.gov.br/agetran/mapas-interativos/",
-          "https://www.campogrande.ms.gov.br/agetran/", "https://www.campogrande.ms.gov.br/semadur/simgeo/",
-          "https://simgeo.campogrande.ms.gov.br/", "https://geo.campogrande.ms.gov.br/", "https://mapas.campogrande.ms.gov.br/",
-          "https://geoserver.campogrande.ms.gov.br/geoserver/web/", "https://sisgran.campogrande.ms.gov.br/geoserver/ows?service=WMS&request=GetCapabilities"]
-achados = set()
-fila = list(INICIO); vistos = set()
-while fila and len(vistos) < 70:
-    u = fila.pop(0)
-    if u in vistos: continue
-    vistos.add(u)
-    st, fim, txt = get(u)
-    note(f"{st} {u} -> {fim} ({len(txt)} bytes) titulo={re.search(r'<title>(.*?)</title>', txt, re.S).group(1).strip()[:80] if '<title>' in txt else '-'}")
-    for m in re.findall(r'https?://[^\s"\'<>)]+', txt):
-        if re.search(r'geoserver|arcgis|/wms|/wfs|MapServer|FeatureServer|\.kml|\.kmz|\.shp|\.geojson|\.zip|mapas?-interativ|simgeo|qgis|lizmap|i3geo|umap|mymaps|google\.com/maps/d', m, re.I):
-            achados.add(m.rstrip('.,;'))
-        if ('campogrande.ms.gov.br' in m) and re.search(r'mapa|geo|simgeo|sisgran|agetran', m, re.I) and len(fila) < 60:
-            fila.append(m.rstrip('.,;'))
-    for m in re.findall(r'(?:href|src)=["\']([^"\']+)["\']', txt):
-        if re.search(r'geoserver|arcgis|wms|wfs|kml|kmz|shp|geojson|mapa|simgeo|i3geo|lizmap', m, re.I):
-            achados.add(urllib.parse.urljoin(fim, m))
-    if 'mapas-interativos' in fim:
-        for m in re.findall(r'<(?:iframe|a|embed)[^>]+(?:src|href)=["\']([^"\']+)', txt): note("MAPAINT " + m)
-    if re.search(r'pavimenta', txt, re.I):
-        for t in re.findall(r'.{0,120}pavimenta.{0,120}', txt, re.I)[:5]: note("PAVIMENTA em " + u + ": " + t)
-import urllib.parse
-for a in sorted(achados)[:80]: note("LINK " + a)
-# tenta GetCapabilities em qualquer servidor de mapas achado
-for a in sorted(achados):
-    m = re.match(r'(https?://[^?#]*?(geoserver|arcgis/rest/services|cgi-bin/mapserv|i3geo)[^?#]*)', a, re.I)
+st, fim, html = get("https://sisgran.campogrande.ms.gov.br/")
+note("HTML: " + html)
+urls = set()
+for s in re.findall(r'(?:src|href)=["\']([^"\']+)', html):
+    full = urllib.parse.urljoin(fim, s)
+    st, f2, js = get(full)
+    note(f"ASSET {st} {full} {len(js)}")
+    for u in re.findall(r'https?://[A-Za-z0-9._:/%?&=+\-#~]+', js): urls.add(u)
+    for u in re.findall(r'["\'](/[A-Za-z0-9_\-/]*(?:api|geoserver|wms|wfs|ows|camada|layer|mapa)[A-Za-z0-9_\-/.?=&]*)["\']', js, re.I): urls.add(urllib.parse.urljoin(fim, u))
+    for t in re.findall(r'.{0,150}pavim.{0,150}', js, re.I)[:30]: note("PAVIM: " + t)
+for u in sorted(urls):
+    if not re.search(r'w3\.org|reactjs|github|npmjs|mozilla|googleapis\.com/css|fonts\.', u): note("URL " + u)
+# tenta servidores de mapa achados
+for u in sorted(urls):
+    m = re.match(r'(https?://[^?#]*?(?:geoserver[^?#]*?/(?:ows|wms|wfs)|arcgis/rest/services[^?#]*|/api/[^?#]*))', u, re.I)
     if not m: continue
     base = m.group(1)
-    for q in ["?service=WFS&request=GetCapabilities", "?service=WMS&request=GetCapabilities", "?f=json"]:
-        st, fim, txt = get(base + q, 2000000)
-        if st == 200:
-            nomes = re.findall(r'<(?:Name|wfs:Name)>([^<]+)</', txt) or re.findall(r'"name"\s*:\s*"([^"]+)"', txt)
-            note(f"SERVICO {base+q}: {len(nomes)} camadas; com pavimento: {[n for n in nomes if re.search('pav|asfal|via|logradouro|eixo', n, re.I)][:40]}")
+    for q in (["?service=WFS&version=2.0.0&request=GetCapabilities", "?service=WMS&request=GetCapabilities"] if 'geoserver' in base else ["?f=json", ""]):
+        st, f2, txt = get(base + q, 3000000)
+        nomes = re.findall(r'<(?:Name|wfs:Name)>([^<]+)</', txt)
+        note(f"SERVICO {st} {base+q} {len(txt)}b camadas={len(nomes)}")
+        note("  " + ", ".join(nomes)[:2500] if nomes else "  " + txt[:800])
