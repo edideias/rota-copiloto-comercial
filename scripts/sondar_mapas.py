@@ -1,41 +1,36 @@
-"""Baixa a camada oficial de pavimentação do Sisgran (sisgran:vw_mobilidade_pavimentacao)."""
-import re, urllib.request, urllib.parse, ssl, json
+"""Baixa a camada oficial de pavimentação viária (Agetran) pelo Sisgran."""
+import urllib.request, urllib.parse, ssl, json
+from collections import Counter
 ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
 SAIDA = open("dados/sondagem.txt", "w")
 def note(m): SAIDA.write(str(m)[:4000] + "\n"); SAIDA.flush()
-def get(u, n=60000000):
+def get(u):
     try:
-        r = urllib.request.urlopen(urllib.request.Request(u, headers={"User-Agent": "Mozilla/5.0", "Referer": "https://sisgran.campogrande.ms.gov.br/"}), timeout=120, context=ctx)
-        return r.status, r.geturl(), r.read(n).decode("utf-8", "replace")
+        r = urllib.request.urlopen(urllib.request.Request(u, headers={"User-Agent": "Mozilla/5.0", "Accept": "application/json", "Referer": "https://sisgran.campogrande.ms.gov.br/mapas"}), timeout=300, context=ctx)
+        return r.status, r.read().decode("utf-8", "replace")
     except urllib.error.HTTPError as e:
-        return e.code, u, e.read(2000).decode("utf-8", "replace")
+        return e.code, e.read(3000).decode("utf-8", "replace")
     except Exception as e:
-        return 0, u, repr(e)
-st, fim, js = get("https://sisgran.campogrande.ms.gov.br/sisgran/assets/index-B_Eqb3qG.js")
-for pat in [r'async function ED.{0,700}', r'function DD.{0,500}', r'.{0,300}wmsUrl.{0,300}', r'.{0,200}`/api/[^`]{0,120}`.{0,100}', r'.{0,200}VITE_[A-Z_]+.{0,200}']:
-    for t in re.findall(pat, js, re.I)[:12]: note("JS: " + t)
-cands = set(re.findall(r'`(/api/[^`]+)`', js)) | set(re.findall(r'["\'`]((?:https?:)?/[^"\'`\s]*(?:geoserver|ows|wms|wfs)[^"\'`\s]*)["\'`]', js, re.I))
-note("CANDS " + repr(cands))
-for c in sorted(cands):
-    if c.startswith('/api'):
-        st, f2, txt = get(urllib.parse.urljoin("https://sisgran.campogrande.ms.gov.br/", c))
-        note(f"API {st} {c}: {txt[:600]}")
-        for w in re.findall(r'"wmsUrl"\s*:\s*"([^"]+)"', txt): cands.add(w)
-bases = {urllib.parse.urljoin("https://sisgran.campogrande.ms.gov.br/", c.split("?")[0]) for c in cands}
-bases |= {"https://sisgran.campogrande.ms.gov.br/geoserver/ows", "https://sisgran.campogrande.ms.gov.br/geoserver/sisgran/ows",
-          "https://sisgran.campogrande.ms.gov.br/geoserver/wfs", "https://sisgran.campogrande.ms.gov.br/sisgran/geoserver/ows",
-          "https://sisgran.campogrande.ms.gov.br/api/geoserver/ows"}
-for b in sorted(bases):
-    b = re.sub(r'/(wms|wfs)$', '/ows', b) if not b.endswith('ows') and re.search('(wms|wfs)$', b) else b
-    q = "?service=WFS&version=2.0.0&request=GetFeature&typeNames=sisgran:vw_mobilidade_pavimentacao&outputFormat=application/json&srsName=EPSG:4326"
-    st, f2, txt = get(b + q)
-    note(f"TRY {st} {b+q} {len(txt)}b :: {txt[:300]}")
+        return 0, repr(e)
+B = "https://sisgran.campogrande.ms.gov.br/sisgran/api/v1/maps/"
+st, cfg = get(B + "config"); note(f"CONFIG {st}: {cfg[:1500]}")
+for nome in ["sisgran:vw_mobilidade_pavimentacao", "mobilidade-pavimentacao", "vw_mobilidade_pavimentacao"]:
+    st, txt = get(B + "features/" + urllib.parse.quote(nome) + "?limit=20000")
+    note(f"FEAT {st} {nome} {len(txt)}b :: {txt[:500]}")
     if st == 200 and txt.lstrip().startswith("{"):
-        open("dados/pavimentacao-oficial.geojson", "w").write(txt)
         d = json.loads(txt); fs = d.get("features", [])
-        note(f"OK features={len(fs)}")
-        from collections import Counter
-        note("PROPS " + json.dumps(fs[0]["properties"], ensure_ascii=False) if fs else "vazio")
-        note("SITUACAO " + repr(Counter(str(f["properties"].get("situacao")) for f in fs).most_common(20)))
+        note(f"OK features={len(fs)} chaves={list(d.keys())} numberMatched={d.get('numberMatched')}")
+        if fs:
+            note("EXEMPLO " + json.dumps(fs[0], ensure_ascii=False)[:1200])
+            note("SITUACAO " + repr(Counter(str(f['properties'].get('situacao')) for f in fs).most_common(20)))
+            json.dump(d, open("dados/pavimentacao-oficial.geojson", "w"), ensure_ascii=False)
         break
-# v2
+try:
+    import re
+    cj = json.loads(cfg); w = cj.get("wmsUrl", "")
+    if w:
+        base = urllib.parse.urljoin("https://sisgran.campogrande.ms.gov.br/", w)
+        q = "service=WFS&version=2.0.0&request=GetFeature&typeNames=sisgran:vw_mobilidade_pavimentacao&outputFormat=application/json&srsName=EPSG:4326&count=5"
+        st, txt = get(base + ("&" if "?" in base else "?") + q); note(f"WFS {st} {base} :: {txt[:800]}")
+except Exception as e:
+    note("cfg err " + repr(e))
