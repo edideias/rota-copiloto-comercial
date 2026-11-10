@@ -10,9 +10,9 @@ import json, sys, time, unicodedata, re, urllib.request, urllib.parse, math, dat
 
 SERVIDORES = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter",
               "https://maps.mail.ru/osm/tools/overpass/api/interpreter"]
-AREA = 'rel["name"="Campo Grande"]["admin_level"="8"]["boundary"="administrative"](-21.5,-55.5,-19.5,-53.5);map_to_area->.cg;'
-RUAS = AREA + 'way(area.cg)["highway"~"^(motorway|trunk|primary|secondary|tertiary|unclassified|residential|living_street|service|track|road)(_link)?$"]["name"];out tags geom;'
-BAIRROS = AREA + '(rel(area.cg)["boundary"="administrative"]["admin_level"~"^(9|10)$"];rel(area.cg)["place"~"^(suburb|neighbourhood|quarter)$"];way(area.cg)["place"~"^(suburb|neighbourhood|quarter)$"];);out tags geom;'
+BB = "(-20.66,-54.82,-20.32,-54.43)"  # área urbana de Campo Grande (sul, oeste, norte, leste)
+RUAS = 'way'["highway"~"^(motorway|trunk|primary|secondary|tertiary|unclassified|residential|living_street|service|track|road)(_link)?$"]["name"]' + BB + ';out tags geom;'
+BAIRROS = '(rel["boundary"="administrative"]["admin_level"~"^(9|10)$"]' + BB + ';rel["place"~"^(suburb|neighbourhood|quarter)$"]' + BB + ';way["place"~"^(suburb|neighbourhood|quarter)$"]' + BB + ';);out tags geom;'
 
 PAVIM = {"asphalt", "paved", "concrete", "concrete:plates", "concrete:lanes", "paving_stones", "sett", "cobblestone",
          "unhewn_cobblestone", "metal", "wood", "chipseal"}
@@ -28,8 +28,8 @@ def overpass(q):
                 with urllib.request.urlopen(req, timeout=360) as r:
                     return json.load(r)["elements"]
             except Exception as e:
-                erro = e; print("falhou", url, e, file=sys.stderr); time.sleep(20)
-    raise SystemExit(f"Overpass indisponível: {erro}")
+                erro = e; print(f"::warning::Overpass {url}: {e}"); time.sleep(20)
+    print(f"::error::Overpass indisponível: {erro}"); raise SystemExit(1)
 
 def norm(s):
     s = unicodedata.normalize("NFD", s.lower())
@@ -115,7 +115,14 @@ def main():
                "fonte": "© colaboradores do OpenStreetMap (ODbL)", "resumo": {"ruas": len(saida), **resumo},
                "bairros": sorted({b["nome"] for b in bairros if b["nivel"] != "9"} or {b["nome"] for b in bairros}),
                "ruas": saida}, open("dados/campo-grande-ruas.json", "w"), ensure_ascii=False, indent=0)
-    print(json.dumps({"ruas": len(saida), **resumo, "bairros": len(bairros)}))
+    print("::notice::" + json.dumps({"ruas": len(saida), **resumo, "bairros": len(bairros)}))
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except SystemExit:
+        raise
+    except Exception as e:
+        import traceback
+        print("::error::" + repr(e) + " | " + traceback.format_exc().replace("\n", " / ")[-600:])
+        raise
