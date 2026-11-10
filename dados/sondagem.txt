@@ -1,78 +1,44 @@
-HTML: <!doctype html>
-<html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#071d45" />
-    <meta
-      name="description"
-      content="SISGRAN 2026 — mapas, dados e informações territoriais oficiais de Campo Grande."
-    />
-    <title>SISGRAN 2026 | Informações Territoriais</title>
-    <script type="module" crossorigin src="/sisgran/assets/index-B_Eqb3qG.js"></script>
-    <link rel="stylesheet" crossorigin href="/sisgran/assets/index-dPc9oJse.css">
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
-</html>
-
-
-ASSET 200 https://sisgran.campogrande.ms.gov.br/sisgran/assets/index-B_Eqb3qG.js 1424333
-PAVIM: ios`]},{label:`Área (ha)`,keys:[`area_ha_calculada`]},{label:`Fonte`,keys:[`fonte_arquivo`,`fonte`]}]},capabilities:{...$,search:!0}},{id:`mobilidade-pavimentacao`,wmsName:`sisgran:vw_mobilidade_pavimentacao`,title:`Pavimentação viária`,description:`Pavimentação das vias — AGETRAN, atualização AGETRAN 20
-PAVIM: raestrutura`,subgroup:{id:`mobilidade-transito`,title:`Mobilidade e Trânsito`,accent:`#16834A`},geometryType:`line`,sourceView:`sisgran.vw_mobilidade_pavimentacao`,srid:31981,zIndex:100,defaultOpacity:.92,style:`sisgran:sisgran_mobilidade_pavimentacao`,info:{titleKeys:[`n_logra`,`situacao`,`id`],fields:[
-ASSET 200 https://sisgran.campogrande.ms.gov.br/sisgran/assets/index-dPc9oJse.css 283974
-URL http://earth.google.com/kml/2.0
-URL http://earth.google.com/kml/2.1
-URL http://earth.google.com/kml/2.2
-URL http://localhost/
-URL http://www.apache.org/licenses/LICENSE-2.0
-URL http://www.google.com/kml/ext/2.2
-URL http://www.opengis.net/def/crs/EPSG/0/3857
-URL http://www.opengis.net/def/crs/EPSG/0/4326
-URL http://www.opengis.net/def/crs/OGC/1.3/CRS84
-URL http://www.opengis.net/gml/srs/epsg.xml#3857
-URL http://www.opengis.net/gml/srs/epsg.xml#4326
-URL http://www.opengis.net/kml/2.2
-URL https://cdn.campogrande.ms.gov.br/portal/prod/uploads/sites/18/2026/08/PERFIL-SOCIOECONOMICO-DE-CAMPO-GRANDE-EDICAO-2026.pdf
-URL https://cloudless.eox.at/
-URL https://data.inpe.br/
-URL https://data.inpe.br/dados/topodata/
-URL https://developers.google.com/kml/schema/kml22gx.xsd
-URL https://idsc.cidadessustentaveis.org.br/#/cidade/5002704
-URL https://maps.google.com/mapfiles/kml/pushpin/ylw-pushpin.png
-URL https://opentopomap.org/
-URL https://qap.campogrande.ms.gov.br:444/extensions/sisgran/sisgran.html
-URL https://react.dev/errors/
-URL https://reviva.campogrande.ms.gov.br/
-URL https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/
-URL https://sisgran.campogrande.ms.gov.br/mapas
-URL https://spatialreference.org/ref/
-URL https://tile.openstreetmap.org/
-URL https://tile.opentopomap.org/
-URL https://tiles.maps.eox.at/
-URL https://www.campogrande.ms.gov.br/
-URL https://www.campogrande.ms.gov.br/cgnoticias/noticia/publicada-33a-edicao-do-raio-x-economico-e-social-da-capital/
-URL https://www.campogrande.ms.gov.br/fale-conosco/
-URL https://www.campogrande.ms.gov.br/noticias/
-URL https://www.campogrande.ms.gov.br/ouvidoria/
-URL https://www.campogrande.ms.gov.br/planurb/
-URL https://www.campogrande.ms.gov.br/planurb/audiencias-publicas-estudo-de-impacto-ambiental/
-URL https://www.campogrande.ms.gov.br/planurb/audiencias-publicas-estudos-de-impacto-de-vizinhanca/
-URL https://www.campogrande.ms.gov.br/planurb/audiencias-publicas-ja-realizadas/
-URL https://www.campogrande.ms.gov.br/planurb/patrimonio-cultural/
-URL https://www.campogrande.ms.gov.br/planurb/perfil-socioeconomico-de-campo-grande-edicoes/
-URL https://www.campogrande.ms.gov.br/planurb/vulnerabilidade
-URL https://www.campogrande.ms.gov.br/secretarias/
-URL https://www.campogrande.ms.gov.br/semadur/mapoteca/
-URL https://www.campogrande.ms.gov.br/servicos/
-URL https://www.campogrande.ms.gov.br/sisgran/plano-diretor/
-URL https://www.campogrande.ms.gov.br/transparencia/
-URL https://www.esri.com/
-URL https://www.hotosm.org/
-URL https://www.openstreetmap.org/copyright
-URL https://www.youtube.com/
-SERVICO 200 https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/?f=json 59b camadas=0
-  {"error":{"code":400,"message":"Invalid URL","details":[]}}
-SERVICO 0 https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/ 30b camadas=0
-  <HTTPError 400: 'Bad Request'>
+JS: ]]),Pe=M(`file-check-corner`,[[`path`,{d:`M10.5 22H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.706.706l3.588 3.588A2.4 2.4 0 0 1 20 8v6`,key:`g5mvt7`}],[`path`,{d:`M14 2v5a1 1 0 0 0 1 1h5`,key:`wfsgrz`}],[`path`,{d:`m14 20 2 2 4-4`,key:`15kota`}]]),Fe=M(`file-spreadsheet`,[[`path`,{d:`M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z`
+JS: ,key:`1oefj6`}],[`path`,{d:`M14 2v5a1 1 0 0 0 1 1h5`,key:`wfsgrz`}],[`path`,{d:`M8 13h2`,key:`yr2amv`}],[`path`,{d:`M14 13h2`,key:`un5t4a`}],[`path`,{d:`M8 17h2`,key:`2yhykz`}],[`path`,{d:`M14 17h2`,key:`10kma7`}]]),Ie=M(`file-text`,[[`path`,{d:`M6 22a2 2 0 0 1
+JS: -2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z`,key:`1oefj6`}],[`path`,{d:`M14 2v5a1 1 0 0 0 1 1h5`,key:`wfsgrz`}],[`path`,{d:`M10 9H8`,key:`b1mrlr`}],[`path`,{d:`M16 13H8`,key:`t4e002`}],[`path`,{d:`M16 17H8`,key:`z1uh3a`}]]),Le=M(`fingerprint-pattern`,[[`path`,{d:`M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4
+JS: ,title:`Mapas interativos`,description:`Camadas oficiais, consultas espaciais e leitura integrada do território.`,href:`/mapas`,icon:`map`,status:`INTEGRATION`,featured:!0,keywords:[`mapa`,`camadas`,`geoserver`,`território`,`wms`,`wfs`]},{id:`catalogo`,title:`Catálogo`,description:`Dados, documentos, serviços, aplicações, downloads e fichas de metadados.`,href:`/catalogo`,icon:`database`,status:`AVAILABLE`
+JS: BBOX=(o&&a.startsWith(`ne`)?[t[1],t[0],t[3],t[2]]:t).join(`,`),BS(e,i)}function hC(e,t,n,r,i,a,o){a=Object.assign({REQUEST:`GetMap`},a);let s=t/n,c=[Vi(B(e)/s,4),Vi(xa(e)/s,4)];if(n!=1)switch(o){case`geoserver`:let e=90*n+.5|0;`FORMAT_OPTIONS`in a?a.FORMAT_OPTIONS+=`;dpi:`+e:a.FORMAT_OPTIONS=`dpi:`+e;break;case`mapserver`:a.MAP_RESOLUTION=90*n;break;case`carmentaserver`:case`qgis`:a.DPI=90*n;break;default:
+JS: 3Jvd3RoAAADJyYDAAMACAQJBQEHBwADBgoLBAQDBAEABgUMBQ0OAQEBDxAREgYAEwQFAXABAgIFBwEBggKAgAIGCAF/AUGgnwQLB9MBCgZtZW1vcnkCAAxaU1REX2lzRXJyb3IADRlaU1REX2ZpbmREZWNvbXByZXNzZWRTaXplABkPWlNURF9kZWNvbXByZXNzACQGbWFsbG9jAAEEZnJlZQACGV9faW5kaXJlY3RfZnVuY3Rpb25fdGFibGUBABlfZW1zY3JpcHRlbl9zdGFja19yZXN0b3JlAAQcZW1zY3JpcHRlbl9zdGFja19nZXRfY3VycmVudAAFIl9fY3hhX2luY3JlbWVudF9leGNlcHRpb25fcmVmY291bnQAJQkHAQBBAQsBJgwBCgqt
+JS: gAPWlNURF9jcmVhdGVEQ3R4ABYNWlNURF9mcmVlREN0eAAZGVpTVERfZmluZERlY29tcHJlc3NlZFNpemUAHQ9aU1REX2RlY29tcHJlc3MANBJaU1REX0RTdHJlYW1JblNpemUANxNaU1REX0RTdHJlYW1PdXRTaXplADgVWlNURF9kZWNvbXByZXNzU3RyZWFtADkGbWFsbG9jAAEEZnJlZQACGV9faW5kaXJlY3RfZnVuY3Rpb25fdGFibGUBABlfZW1zY3JpcHRlbl9zdGFja19yZXN0b3JlAAQcZW1zY3JpcHRlbl9zdGFja19nZXRfY3VycmVudAAFIl9fY3hhX2luY3JlbWVudF9leGNlcHRpb25fcmVmY291bnQAOwkHAQBBAQsBPAwBCgrx
+JS: s.set(`legend_options`,`fontAntiAliasing:true;fontSize:10`),i.toString()}async function kD(e,t,n){let r=await fetch(DD(e),{headers:{Accept:`application/xml,text/xml`},signal:n});if(!r.ok)throw Error(`GeoServer respondeu HTTP ${r.status}`);let i=new DOMParser().parseFromString(await r.text(),`application/xml`);if(i.querySelector(`parsererror`))throw Error(`O GeoServer retornou um documento GetCapabilities i
+JS: áginas: ${e}. Exportação cancelada.`);i.add(e)}r.push(t)}if(r.length>n)throw Error(`Exportação excede ${n} feições; use a exportação no servidor.`);if(a+=p.length,o!==null){if(r.length>o)throw Error(`WFS retornou mais feições que numberMatched.`);if(r.length===o)break}else if(p.length<t)break}return{...s,type:`FeatureCollection`,features:r,numberReturned:r.length,...o===null?{}:{numberMatched:o}}}fun
+JS: ata-hillshade`,group:`relief`,title:`Topodata — Relevo sombreado`,shortTitle:`Topodata`,description:`Hillshade brasileiro do INPE, sem ruas; folhas RS materializadas uma vez como ImageMosaic local no GeoServer (~30 m).`,provider:`INPE / TOPODATA / SRTM`,kind:`topodata-local`,maxZoom:14,attribution:`© <a href="https://data.inpe.br/dados/topodata/" target="_blank">INPE</a> · TOPODATA / SRTM · CC BY 4.0`,exte
+JS: ilter(e=>er.has(e.wmsName)),[er]),nr=(0,_.useCallback)(async e=>{re(`loading`),ae(`Conectando ao catálogo cartográfico…`);try{let t=await ED(e);if(b(t),!t.enabled){S([]),re(`disabled`),ae(`Integração GeoServer desativada neste ambiente.`);return}let r=Bk();!r.center&&r.zoom==null&&(n.current?.getView().setCenter(bs([t.centerLongitude,t.centerLatitude])),n.current?.getView().setZoom(t.initialZoom));let i=aw
+JS: ait kD(t.wmsUrl,t.workspace,e);if(S(i),i.length===0){re(`empty`),ae(`GeoServer conectado; workspace “${t.workspace}” ainda sem camadas disponíveis.`);return}let a=new Set(i.map(e=>e.name)),o=Ok.filter(e=>a.has(e.wmsName)).length;re(`ready`),ae(`${o} de ${Ok.length} camadas do c
+JS:  (ha)`,keys:[`area_ha_calculada`]},{label:`Fonte`,keys:[`fonte_arquivo`,`fonte`]}]},capabilities:{...$,search:!0}},{id:`mobilidade-pavimentacao`,wmsName:`sisgran:vw_mobilidade_pavimentacao`,title:`Pavimentação viária`,description:`Pavimentação das vias — AGETRAN, atualização AGETRAN 2026.`,group:`infraestrutura`,subgroup:{id:`mobilidade-transito`,title:`Mobilidade e Trânsito`,accent:`#16834A`},geometryType:`line`,sourceView:`sisgran.vw_mobilidade_pavimentacao`,srid:31981,zIndex:100,defaultOpacity:.92,style:`sisgran:sisgran_mobilidade_pavimentacao`,info:{titleKeys:[`n_logra`,`situacao`,`id`],fields:[{label:`Logradouro`,keys:[`n_logra`]},{label:`Situação`,keys:[`situacao`]},{label:`Extensão`,keys:[`extensao`]}]},capabilities:{...$}},{id:`mobilidade-sentido-vias`,wmsName:`sisgran:vw_mobilidade_sentido_vias`,title:`Sentido das vias`,description:`Sentidos de circulação — AGETRAN, atualização AGETRAN 2026.`,group:`infraestrutura`,subgroup:{id:`mobilidade-transito`,title:`Mobilidade e Trânsito`,accent:`#16834A`},geometryType:`line`,so
+CANDS set()
+TRY 404 https://sisgran.campogrande.ms.gov.br/api/geoserver/ows?service=WFS&version=2.0.0&request=GetFeature&typeNames=sisgran:vw_mobilidade_pavimentacao&outputFormat=application/json&srsName=EPSG:4326 1084b :: 
+<html>
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.4.1/css/all.css" integrity="sha384-5sAR7xN1Nv6T6+dT2mhtzEpVJvfS3NScPQTrOxhwjIuvcA67KV2R5Jz6kr4abQsz" crossorigin="anonymous">
+    
+    
+    <meta charset="utf-8"><body style="text-align: center; background-color: #00558
+TRY 404 https://sisgran.campogrande.ms.gov.br/geoserver/ows?service=WFS&version=2.0.0&request=GetFeature&typeNames=sisgran:vw_mobilidade_pavimentacao&outputFormat=application/json&srsName=EPSG:4326 1084b :: 
+<html>
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.4.1/css/all.css" integrity="sha384-5sAR7xN1Nv6T6+dT2mhtzEpVJvfS3NScPQTrOxhwjIuvcA67KV2R5Jz6kr4abQsz" crossorigin="anonymous">
+    
+    
+    <meta charset="utf-8"><body style="text-align: center; background-color: #00558
+TRY 404 https://sisgran.campogrande.ms.gov.br/geoserver/sisgran/ows?service=WFS&version=2.0.0&request=GetFeature&typeNames=sisgran:vw_mobilidade_pavimentacao&outputFormat=application/json&srsName=EPSG:4326 1084b :: 
+<html>
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.4.1/css/all.css" integrity="sha384-5sAR7xN1Nv6T6+dT2mhtzEpVJvfS3NScPQTrOxhwjIuvcA67KV2R5Jz6kr4abQsz" crossorigin="anonymous">
+    
+    
+    <meta charset="utf-8"><body style="text-align: center; background-color: #00558
+TRY 404 https://sisgran.campogrande.ms.gov.br/geoserver/ows?service=WFS&version=2.0.0&request=GetFeature&typeNames=sisgran:vw_mobilidade_pavimentacao&outputFormat=application/json&srsName=EPSG:4326 1084b :: 
+<html>
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.4.1/css/all.css" integrity="sha384-5sAR7xN1Nv6T6+dT2mhtzEpVJvfS3NScPQTrOxhwjIuvcA67KV2R5Jz6kr4abQsz" crossorigin="anonymous">
+    
+    
+    <meta charset="utf-8"><body style="text-align: center; background-color: #00558
+TRY 404 https://sisgran.campogrande.ms.gov.br/sisgran/geoserver/ows?service=WFS&version=2.0.0&request=GetFeature&typeNames=sisgran:vw_mobilidade_pavimentacao&outputFormat=application/json&srsName=EPSG:4326 1084b :: 
+<html>
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.4.1/css/all.css" integrity="sha384-5sAR7xN1Nv6T6+dT2mhtzEpVJvfS3NScPQTrOxhwjIuvcA67KV2R5Jz6kr4abQsz" crossorigin="anonymous">
+    
+    
+    <meta charset="utf-8"><body style="text-align: center; background-color: #00558
