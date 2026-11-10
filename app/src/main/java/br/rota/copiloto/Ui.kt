@@ -498,7 +498,9 @@ object OverlayCard {
 
     /** Card azul do bairro de destino nos 3 modelos (A faixa larga, B pílula fina, C placa com status). */
     private fun bairroCard(ctx: Context, ui: Ui, d: Destino.Info, estilo: Int, size: Float): View {
-        val nome = d.bairro ?: d.rua ?: ""
+        val nome = d.condominio ?: d.bairro ?: d.rua ?: ""
+        val condo = d.condominio != null
+        val roxo = Color.parseColor("#7C3AED")
         val terraTxt = when (d.pavimento) { "terra" -> "TERRA"; "misto" -> "PARTE TERRA"; else -> null }
         val bg = GradientDrawable().apply { setColor(AZUL) }
         val wrap = ViewGroup.LayoutParams.WRAP_CONTENT
@@ -507,21 +509,22 @@ object OverlayCard {
             1 -> {
                 bg.cornerRadius = ui.dpf(40f)
                 val r = ui.hbox().apply { background = bg; setPadding(ui.dp(16), ui.dp(6), ui.dp(16), ui.dp(6)); gravity = Gravity.CENTER_VERTICAL }
-                r.addView(ui.tv(if (d.evitado) "⚠ EVITAR" else "Bairro", size * 0.5f, Color.WHITE, 2).apply { alpha = 0.9f })
+                r.addView(ui.tv(if (d.evitado) "⚠ EVITAR" else if (condo) "Condomínio" else "Bairro", size * 0.5f, Color.WHITE, 2).apply { alpha = 0.9f })
                 r.addView(nomeTv, LinearLayout.LayoutParams(wrap, wrap).also { it.marginStart = ui.dp(8) })
                 if (terraTxt != null) r.addView(selo(ui, terraTxt, AMBAR, Color.parseColor("#2A1600"), size), LinearLayout.LayoutParams(wrap, wrap).also { it.marginStart = ui.dp(8) })
-                if (d.evitado) piscar(r, bg, AZUL, VERMELHO, true, ui)
+                if (d.evitado) piscar(r, bg, AZUL, VERMELHO, true, ui) else if (condo) bg.setStroke(ui.dp(3), roxo)
                 return r
             }
             2 -> {
                 bg.cornerRadius = ui.dpf(20f)
                 val r = ui.hbox().apply { background = bg; clipToOutline = true }
                 val esq = ui.vbox().apply { setPadding(ui.dp(14), ui.dp(6), ui.dp(12), ui.dp(6)) }
-                esq.addView(ui.tv("BAIRRO DE DESTINO", size * 0.42f, Color.WHITE, 2).apply { alpha = 0.85f })
+                esq.addView(ui.tv(if (condo) "CONDOMÍNIO FECHADO" else "BAIRRO DE DESTINO", size * 0.42f, Color.WHITE, 2).apply { alpha = 0.85f })
                 esq.addView(nomeTv)
-                if (d.bairro != null && d.rua != null) esq.addView(ui.tv(d.rua, size * 0.48f, Color.WHITE, 0).apply { alpha = 0.9f; setSingleLine(true) })
+                val sub2 = if (condo) listOfNotNull(d.rua, d.bairro?.takeIf { it != d.condominio }).joinToString(" · ") else if (d.bairro != null) d.rua ?: "" else ""
+                if (sub2.isNotBlank()) esq.addView(ui.tv(sub2, size * 0.48f, Color.WHITE, 0).apply { alpha = 0.9f; setSingleLine(true) })
                 r.addView(esq, LinearLayout.LayoutParams(wrap, wrap, 1f))
-                val (tag, cor) = when { d.evitado -> "EVITAR" to VERMELHO; terraTxt != null -> terraTxt to AMBAR; else -> "OK" to Color.parseColor("#60A5FA") }
+                val (tag, cor) = when { d.evitado -> "EVITAR" to VERMELHO; condo -> "CONDOM." to roxo; terraTxt != null -> terraTxt to AMBAR; else -> "OK" to Color.parseColor("#60A5FA") }
                 val ladoBg = GradientDrawable().apply { setColor(cor); cornerRadii = floatArrayOf(0f, 0f, ui.dpf(20f), ui.dpf(20f), ui.dpf(20f), ui.dpf(20f), 0f, 0f) }
                 val lado = ui.tv(tag, size * 0.55f, if (cor == AMBAR) Color.parseColor("#2A1600") else Color.WHITE, 3, true).apply {
                     background = ladoBg; gravity = Gravity.CENTER; setPadding(ui.dp(12), 0, ui.dp(12), 0); setSingleLine(true)
@@ -539,11 +542,13 @@ object OverlayCard {
                     layoutParams = LinearLayout.LayoutParams(ui.dp(38), ui.dp(38))
                 })
                 val col = ui.vbox().apply { setPadding(ui.dp(10), 0, 0, 0) }
-                col.addView(ui.tv(if (d.evitado) "BAIRRO QUE VOCÊ EVITA" else "DESTINO", size * 0.42f, Color.WHITE, 3).apply { alpha = 0.9f })
+                col.addView(ui.tv(if (d.evitado) "BAIRRO QUE VOCÊ EVITA" else if (condo) "CONDOMÍNIO FECHADO" else "DESTINO", size * 0.42f, Color.WHITE, 3).apply { alpha = 0.9f })
                 col.addView(nomeTv)
                 val linha = ui.hbox().apply { gravity = Gravity.CENTER_VERTICAL }
-                if (d.bairro != null && d.rua != null) linha.addView(ui.tv(d.rua, size * 0.48f, Color.WHITE, 0).apply { setSingleLine(true) })
+                val sub3 = if (condo) listOfNotNull(d.rua, d.bairro?.takeIf { it != d.condominio }).joinToString(" · ") else if (d.bairro != null) d.rua ?: "" else ""
+                if (sub3.isNotBlank()) linha.addView(ui.tv(sub3, size * 0.48f, Color.WHITE, 0).apply { setSingleLine(true) })
                 if (terraTxt != null) linha.addView(selo(ui, terraTxt, AMBAR, Color.parseColor("#2A1600"), size), LinearLayout.LayoutParams(wrap, wrap).also { it.marginStart = ui.dp(6) })
+                if (condo && !d.evitado) bg.setStroke(ui.dp(3), roxo)
                 if (linha.childCount > 0) col.addView(linha)
                 r.addView(col, LinearLayout.LayoutParams(wrap, wrap, 1f))
                 if (d.evitado) piscar(r, bg, AZUL, VERMELHO, true, ui)
@@ -555,7 +560,7 @@ object OverlayCard {
     private fun conteudoNegra(ui: Ui, n: Destino.Negra, size: Float, grande: Boolean): LinearLayout {
         val c = ui.vbox().apply { gravity = Gravity.CENTER_HORIZONTAL }
         c.addView(ui.tv("⛔", size * (if (grande) 2.2f else 1.6f), Color.WHITE, 3, true))
-        c.addView(ui.tv("LOCAL SEM FUTURO", size * (if (grande) 1.1f else 0.75f), Color.WHITE, 3, true), ui.lp(top = 4))
+        c.addView(ui.tv("PURA BUCHA", size * (if (grande) 1.1f else 0.75f), Color.WHITE, 3, true), ui.lp(top = 4))
         c.addView(ui.tv(n.nome, size * 0.55f, Color.WHITE, 2, true), ui.lp(top = 4))
         if (n.motivo.isNotBlank()) c.addView(ui.tv("“${n.motivo}”", size * 0.48f, Color.WHITE, 0, true).apply { alpha = 0.9f }, ui.lp(top = 2))
         return c

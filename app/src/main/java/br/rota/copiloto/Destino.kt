@@ -17,25 +17,26 @@ import java.text.Normalizer
  */
 object Destino {
 
-    data class Rua(val nome: String, val pavimento: String, val bairro: String?)
+    data class Rua(val nome: String, val pavimento: String, val bairro: String?, val condominio: String?)
     data class Negra(val nome: String, val motivo: String)
     data class Info(
         val bairro: String?,
         val rua: String?,
         val pavimento: String?,      // terra, misto (parte terra) ou null quando é asfalto/sem aviso
         val evitado: Boolean,
-        val negra: Negra?
+        val negra: Negra?,
+        val condominio: String? = null   // destino dentro de condomínio fechado
     ) {
         val vazio get() = bairro == null && rua == null
     }
 
     /** Locais que já vêm na lista negra (dá para apagar na configuração). "/" separa outros jeitos de escrever. */
     val PADRAO = listOf(
-        Negra("Condomínio Dama / Damha", "Não vou de jeito nenhum"),
+        Negra("Condomínio Dama / Damha / Villas Damha", "Não vou de jeito nenhum"),
         Negra("Dama 1 / Damha 1 / Damha I", "Não vou de jeito nenhum"),
         Negra("Dama 2 / Damha 2 / Damha II", "Não vou de jeito nenhum"),
         Negra("Dama 3 / Damha 3 / Damha III", "Não vou de jeito nenhum"),
-        Negra("Village Paraty / Vilage Paraty", "Não vou de jeito nenhum"),
+        Negra("Village Paraty / Village Parati / Vilage Paraty", "Não vou de jeito nenhum"),
         Negra("Alphaville / Alphavile", "Não vou de jeito nenhum")
     )
 
@@ -55,6 +56,7 @@ object Destino {
 
     @Volatile private var ruas: Map<String, Rua> = emptyMap()
     @Volatile private var bairros: Map<String, String> = emptyMap()   // normalizado -> nome
+    @Volatile private var condominios: Map<String, String> = emptyMap()   // normalizado -> nome
     @Volatile var dataBanco: String = ""
         private set
     @Volatile private var carregando = false
@@ -105,12 +107,16 @@ object Destino {
             val r = arr.getJSONObject(i)
             val bs = r.optJSONArray("bairros")
             val nome = r.getString("nome")
-            m[norm(nome)] = Rua(nome, r.optString("pavimento"), if (bs != null && bs.length() > 0) bs.getString(0) else null)
+            val cd = if (r.isNull("condominio")) null else r.optString("condominio").takeIf { it.isNotBlank() }
+            m[norm(nome)] = Rua(nome, r.optString("pavimento"), if (bs != null && bs.length() > 0) bs.getString(0) else null, cd)
         }
         val bm = HashMap<String, String>()
         val ba = o.optJSONArray("bairros") ?: JSONArray()
         for (i in 0 until ba.length()) ba.getString(i).let { bm[norm(it)] = it }
-        ruas = m; bairros = bm
+        val cs = HashMap<String, String>()
+        val ca = o.optJSONArray("condominios") ?: JSONArray()
+        for (i in 0 until ca.length()) ca.getString(i).let { cs[norm(it)] = it }
+        ruas = m; bairros = bm; condominios = cs
         dataBanco = o.optString("gerado_em").take(10)
     }
 
@@ -134,7 +140,7 @@ object Destino {
         return t.replace(Regex("\\s+"), " ").trim()
     }
 
-    private val ruaRx = Regex("""(?i)\b(rua|r\.|avenida|av\.?|travessa|tv\.?|alameda|al\.|estrada|rodovia)\s+[^,|\-]{2,60}""")
+    private val ruaRx = Regex("""(?i)\b(rua|r\.|avenida|av\.?|travessa|tv\.?|alameda|al\.|estrada|rodovia|via)\s+[^,|\-]{2,60}""")
     private val soNumero = Regex("""^\s*(n[º°o.]*\s*)?\d+[a-zA-Z]?\s*$""")
 
     /** Palavras de botão e de tela que nunca são bairro. */
@@ -161,6 +167,8 @@ object Destino {
         return null
     }
 
+    private val CARA_DE_CONDO = Regex("""(?i)condom|damha|alphavil|terras alpha|village|vilage|resid""")
+
     fun analisar(dest: String, p: Prefs): Info {
         if (dest.isBlank()) return Info(null, null, null, false, null)
         val ruaTxt = ruaRx.find(dest)?.value?.trim()
@@ -172,8 +180,14 @@ object Destino {
             val ne = norm(e)
             ne.isNotEmpty() && (nb == ne || (nb.isNotEmpty() && nb.startsWith("$ne ")) || (nb.isEmpty() && nd.contains(ne)))
         }
-        val negra = p.listaNegra.firstOrNull { bate(it.nome, nd) }
+        // condomínio: pela rua (banco), pelo bairro com nome de condomínio, ou por um condomínio citado no texto
+        val condominio = rua?.condominio
+            ?: bairro?.takeIf { b -> condominios.containsKey(norm(b)) || CARA_DE_CONDO.containsMatchIn(b) }
+            ?: condominios.entries.firstOrNull { it.key.length >= 6 && " $nd ".contains(" ${it.key} ") }?.value
+        // lista negra olha o texto do destino, o bairro e o condomínio onde a rua fica
+        val tudo = norm(listOfNotNull(dest, bairro, condominio, rua?.bairro).joinToString(" "))
+        val negra = p.listaNegra.firstOrNull { bate(it.nome, tudo) }
         val pav = if (p.avisarTerra && (rua?.pavimento == "terra" || rua?.pavimento == "misto")) rua.pavimento else null
-        return Info(bairro, rua?.nome ?: ruaTxt, pav, evitado, negra)
+        return Info(bairro, rua?.nome ?: ruaTxt, pav, evitado, negra, condominio)
     }
 }

@@ -192,10 +192,15 @@ class Prefs(ctx: Context, override_: android.content.SharedPreferences? = null) 
                 List(a.length()) { val o = a.getJSONObject(it); Destino.Negra(o.getString("n"), o.optString("m")) }
             } catch (_: Exception) { emptyList() }
             // Lista padrão entra uma vez só; depois o que você apagar fica apagado.
-            if (!sp.getBoolean("negraPadrao1", false)) {
-                val nomes = lida.map { Destino.norm(it.nome) }.toSet()
-                val junta = lida + Destino.PADRAO.filter { Destino.norm(it.nome) !in nomes }
-                sp.edit().putBoolean("negraPadrao1", true).apply()
+            if (!sp.getBoolean("negraPadrao2", false)) {
+                // atualiza os itens padrão (novos jeitos de escrever) sem mexer nos seus
+                val chave = { n: Destino.Negra -> Destino.norm(n.nome.substringBefore("/")) }
+                val padrao = Destino.PADRAO.associateBy(chave)
+                val ja = sp.getBoolean("negraPadrao1", false)
+                val atual = lida.map { n -> padrao[chave(n)]?.let { it.copy(motivo = n.motivo) } ?: n }
+                val chaves = atual.map(chave).toSet()
+                val junta = if (ja) atual else atual + Destino.PADRAO.filter { chave(it) !in chaves }
+                sp.edit().putBoolean("negraPadrao1", true).putBoolean("negraPadrao2", true).apply()
                 listaNegra = junta
                 return junta
             }
