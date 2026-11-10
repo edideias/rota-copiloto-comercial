@@ -137,21 +137,26 @@ object Destino {
     private val ruaRx = Regex("""(?i)\b(rua|r\.|avenida|av\.?|travessa|tv\.?|alameda|al\.|estrada|rodovia)\s+[^,|\-]{2,60}""")
     private val soNumero = Regex("""^\s*(n[º°o.]*\s*)?\d+[a-zA-Z]?\s*$""")
 
-    /** Bairro escrito no próprio destino: "Rua Igarapé, 92 , Guanandi" ou "..., 5089 - Centro". */
+    /** Palavras de botão e de tela que nunca são bairro. */
+    private val NAO_BAIRRO = Regex("""(?i)interesse|aceitar|recusar|verificad|corrida|passageiro|selecionar|confirmar|minuto|\bmin\b|\bkm\b|uberx|comfort|black|flash|negocia|pgto|dinheiro|cart[aã]o|pix|parada|campo grande|\bms\b|brasil|cep""")
+
+    /** Bairro escrito no próprio destino: "Rua Igarapé, 92 , Guanandi", "..., 4747, Vila Planalto, Campo Grande" ou "..., 5089 - Centro". */
     private fun bairroDoTexto(dest: String): String? {
-        val partes = ArrayList<String>()
-        if (dest.contains(" - ")) partes.add(dest.substringAfterLast(" - ").substringBefore(","))
-        partes.addAll(dest.split(",").reversed())
-        for (raw in partes) {
-            val p = raw.trim().trimEnd('.', '…').trim()
-            if (p.length < 3 || soNumero.matches(p) || ruaRx.containsMatchIn(p)) continue
-            if (p.contains("CEP", true) || p.matches(Regex("(?i).*\\b(MS|Campo Grande|Brasil)\\b.*"))) continue
+        val limpo = (Regex("""\s+-\s+""").find(dest)?.let { m -> dest.substring(0, m.range.first) + ", " + dest.substring(m.range.last + 1) } ?: dest)
+        val partes = limpo.split(",").map { it.trim().trimEnd('.', '…').trim() }
+        // 1) qualquer parte que seja um bairro conhecido no banco (de trás para frente)
+        for (p in partes.reversed()) {
+            if (p.length < 3 || NAO_BAIRRO.containsMatchIn(p) || ruaRx.containsMatchIn(p)) continue
             val n = norm(p)
             bairros[n]?.let { return it }
-            bairros.entries.firstOrNull { n.startsWith(it.key) && it.key.length >= 4 }?.let { return it.value }
-            // não está no banco, mas o próprio app mostrou depois do número: confia no texto
-            if (raw === partes.firstOrNull() && dest.contains(" - ")) return p
-            if (Regex("""\d""").containsMatchIn(dest.substringBefore(raw)) && p.split(" ").size <= 4) return p
+            bairros.entries.firstOrNull { it.key.length >= 4 && (n == it.key || n.startsWith(it.key + " ")) }?.let { return it.value }
+        }
+        // 2) não está no banco: só confia no texto que vem logo depois do número da casa
+        for (i in 1 until partes.size) {
+            val p = partes[i]
+            if (!soNumero.matches(partes[i - 1])) continue
+            if (p.length < 3 || NAO_BAIRRO.containsMatchIn(p) || ruaRx.containsMatchIn(p) || soNumero.matches(p)) continue
+            if (p.split(" ").size <= 4) return p
         }
         return null
     }

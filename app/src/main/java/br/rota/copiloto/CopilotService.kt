@@ -69,6 +69,13 @@ class CopilotService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         val pkg = event?.packageName?.toString() ?: return
         DebugLog.seen(pkg)
+        // Qual app está na frente: o 99 fica "mudo" enquanto espera corrida, então a leitura
+        // por imagem continua enquanto ele estiver aberto, e para quando você troca de app.
+        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && pkg != packageName &&
+            !pkg.startsWith("com.android.systemui") && !pkg.contains("inputmethod", true) && !pkg.contains("keyboard", true)) {
+            fgPkg = pkg
+            if (platformOf(pkg) == "99" && prefs.use99 && prefs.useOcr) { lastTargetEvent = SystemClock.uptimeMillis(); ensureOcrLoop() }
+        }
         val platform = platformOf(pkg) ?: return
         if (!prefs.enabled || !prefs.calcEnabled) return
         if (platform == "Uber" && !prefs.useUber) return
@@ -107,11 +114,13 @@ class CopilotService : AccessibilityService() {
     // O 99 não avisa a acessibilidade quando a oferta aparece. Por isso, enquanto o 99
     // estiver ativo, a leitura por imagem roda por tempo (a cada ~1,5 s), não por evento.
     private var lastTargetEvent = 0L
+    private var fgPkg = ""
     private var ocrLoopRunning = false
     private val ocrLoop = object : Runnable {
         override fun run() {
             val now = SystemClock.uptimeMillis()
-            if (prefs.enabled && prefs.calcEnabled && prefs.use99 && prefs.useOcr && now - lastTargetEvent < 20000) {
+            val noNoventaENove = platformOf(fgPkg) == "99"
+            if (prefs.enabled && prefs.calcEnabled && prefs.use99 && prefs.useOcr && (noNoventaENove || now - lastTargetEvent < 20000)) {
                 tryOcr("99")
                 handler.postDelayed(this, 450)
             } else {

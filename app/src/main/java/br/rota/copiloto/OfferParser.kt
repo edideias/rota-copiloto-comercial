@@ -51,14 +51,15 @@ object OfferParser {
         return o.copy(stops = if (s > 0) s else o.stops, destText = readDest(text))
     }
 
-    private val fimDest = Regex("""(?i)aceitar|recusar|tentando|selecionar|confirmar|R\$|\bvoltar\b""")
+    private val fimDest = Regex("""(?i)aceitar|recusar|tenho interesse|n[aã]o tenho|tentando|selecionar|confirmar|R\$|\bvoltar\b|\bverificad|corridas|\buberx\b|\bcomfort\b|★""")
 
     /** Texto logo depois do último "x min (y km)": é o endereço de destino. */
     fun readDest(text: String): String {
         val ultimo = (minKmRx.findAll(text) + kmMinRx.findAll(text)).maxByOrNull { it.range.last } ?: return ""
         var d = text.substring(ultimo.range.last + 1)
         fimDest.find(d)?.let { d = d.substring(0, it.range.first) }
-        d = d.replace(Regex("""\s*\|\s*"""), ", ").replace(Regex("""^[\s,)•·]+|[\s,•·]+$"""), "")
+        // linhas do mesmo endereço ("..., 4747, Vila" + "Planalto, Campo Grande") voltam a ser uma frase
+        d = d.replace(Regex("""\s*\|\s*"""), " ").replace(Regex("""^[\s,)•·]+|[\s,•·]+$"""), "")
         return d.replace(Regex("""\s+"""), " ").take(180)
     }
 
