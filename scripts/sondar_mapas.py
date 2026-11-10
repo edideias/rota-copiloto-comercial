@@ -7,14 +7,15 @@ def get(u, n=400000):
         return r.status, r.geturl(), r.read(n).decode("utf-8", "replace")
     except Exception as e:
         return 0, u, repr(e)
-def note(m): print("::notice::" + m.replace("\n", " ")[:900])
+SAIDA = open("dados/sondagem.txt", "w")
+def note(m): SAIDA.write(m.replace("\n", " ")[:1500] + "\n"); SAIDA.flush()
 INICIO = ["https://sisgran.campogrande.ms.gov.br/", "https://www.campogrande.ms.gov.br/agetran/mapas-interativos/",
           "https://www.campogrande.ms.gov.br/agetran/", "https://www.campogrande.ms.gov.br/semadur/simgeo/",
           "https://simgeo.campogrande.ms.gov.br/", "https://geo.campogrande.ms.gov.br/", "https://mapas.campogrande.ms.gov.br/",
           "https://geoserver.campogrande.ms.gov.br/geoserver/web/", "https://sisgran.campogrande.ms.gov.br/geoserver/ows?service=WMS&request=GetCapabilities"]
 achados = set()
 fila = list(INICIO); vistos = set()
-while fila and len(vistos) < 40:
+while fila and len(vistos) < 70:
     u = fila.pop(0)
     if u in vistos: continue
     vistos.add(u)
@@ -28,6 +29,8 @@ while fila and len(vistos) < 40:
     for m in re.findall(r'(?:href|src)=["\']([^"\']+)["\']', txt):
         if re.search(r'geoserver|arcgis|wms|wfs|kml|kmz|shp|geojson|mapa|simgeo|i3geo|lizmap', m, re.I):
             achados.add(urllib.parse.urljoin(fim, m))
+    if 'mapas-interativos' in fim:
+        for m in re.findall(r'<(?:iframe|a|embed)[^>]+(?:src|href)=["\']([^"\']+)', txt): note("MAPAINT " + m)
     if re.search(r'pavimenta', txt, re.I):
         for t in re.findall(r'.{0,120}pavimenta.{0,120}', txt, re.I)[:5]: note("PAVIMENTA em " + u + ": " + t)
 import urllib.parse
