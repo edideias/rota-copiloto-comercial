@@ -1,175 +1,78 @@
-200 https://sisgran.campogrande.ms.gov.br/ -> https://sisgran.campogrande.ms.gov.br/ (633 bytes) titulo=SISGRAN 2026 | Informações Territoriais
-200 https://www.campogrande.ms.gov.br/agetran/mapas-interativos/ -> https://www.campogrande.ms.gov.br/agetran/mapas-interativos-agetran/ (210849 bytes) titulo=Mapas Interativos &#8211; AGETRAN
-MAPAINT https://www.campogrande.ms.gov.br/
-MAPAINT https://www.campogrande.ms.gov.br
-MAPAINT https://www.campogrande.ms.gov.br/sites-institucionais/
-MAPAINT https://transparencia.campogrande.ms.gov.br/
-MAPAINT https://cartadeservicos.campogrande.ms.gov.br/
-MAPAINT https://www.campogrande.ms.gov.br/cgnoticias
-MAPAINT https://www.campogrande.ms.gov.br/fale-conosco/
-MAPAINT https://www.campogrande.ms.gov.br/
-MAPAINT javascript:void(0)
-MAPAINT https://www.campogrande.ms.gov.br/acessibilidade
-MAPAINT https://www.campogrande.ms.gov.br/mapa-do-site
-MAPAINT /
-MAPAINT https://www.campogrande.ms.gov.br/sites-institucionais/
-MAPAINT https://transparencia.campogrande.ms.gov.br/
-MAPAINT https://www.campogrande.ms.gov.br/
-MAPAINT https://cartadeservicos.campogrande.ms.gov.br/
-MAPAINT https://www.campogrande.ms.gov.br/cgnoticias/noticias
-MAPAINT https://www.campogrande.ms.gov.br/fale-conosco
-MAPAINT https://www.campogrande.ms.gov.br/
-MAPAINT https://www.campogrande.ms.gov.br/iptu/
-MAPAINT https://diogrande.campogrande.ms.gov.br/
-MAPAINT http://nfse.pmcg.ms.gov.br/NotaFiscal/index.php
-MAPAINT http://cartadeservicos.campogrande.ms.gov.br/
-MAPAINT javascript:void(0)
-MAPAINT https://www.campogrande.ms.gov.br/acessibilidade
-MAPAINT https://www.campogrande.ms.gov.br/mapa-do-site
-MAPAINT #
-MAPAINT https://www.campogrande.ms.gov.br/agetran
-MAPAINT https://www.campogrande.ms.gov.br/agetran/mapas-interativos-agetran/
-MAPAINT /agetran
-MAPAINT #
-MAPAINT https://www.campogrande.ms.gov.br/agetran/secretaria/diretor-presidente/
-MAPAINT https://www.campogrande.ms.gov.br/agetran/estrutura-organizacional/
-MAPAINT https://www.campogrande.ms.gov.br/agetran/legislacao/
-MAPAINT https://www.campogrande.ms.gov.br/agetran/credenciamento/
-MAPAINT https://www.campogrande.ms.gov.br/agetran/orgaos-colegiados/
-MAPAINT https://www.campogrande.ms.gov.br/agetran/convenios/
-MAPAINT https://www.campogrande.ms.gov.br/agetran/links/
-MAPAINT https://www.campogrande.ms.gov.br/agetran/quem-somos/
-MAPAINT #
-MAPAINT https://www.campogrande.ms.gov.br/agetran/orientacoes-e-documentos-necessarios-para-identificacao-de-condutor-infrator-guia-azul/
-MAPAINT https://www.campogrande.ms.gov.br/agetran/defesa-de-autuacao/
-MAPAINT https://www.campogrande.ms.gov.br/agetran/defesa-de-penalidade-1a-instancia/
-MAPAINT https://www.campogrande.ms.gov.br/agetran/recurso-de-2a-instancia-cetran-ms/
-MAPAINT https://www.campogrande.ms.gov.br/agetran/ressarcimento-de-multas/
-MAPAINT https://www.campogrande.ms.gov.br/agetran/formularios/
-MAPAINT https://www.campogrande.ms.gov.br/agetran/estatisticas/
-MAPAINT https://www.campogrande.ms.gov.br/agetran/agetran-educacao/
-MAPAINT https://www.campogrande.ms.gov.br/agetran/chamamento-publico-2/
-MAPAINT https://www.campogrande.ms.gov.br/agetran/telefones-uteis/
-MAPAINT https://www.campogrande.ms.gov.br/agetran/fale-conosco/
-MAPAINT /agetran
-MAPAINT #
-MAPAINT https://www.campogrande.ms.gov.br/agetran/secretaria/diretor-presidente/
-MAPAINT https://www.campogrande.ms.gov.br/agetran/estrutura-organizacional/
-MAPAINT https://www.campogrande.ms.gov.br/agetran/legislacao/
-MAPAINT https://www.campogrande.ms.gov.br/agetran/credenciamento/
-MAPAINT https://www.campogrande.ms.gov.br/agetran/orgaos-colegiados/
-MAPAINT https://www.campogrande.ms.gov.br/agetran/convenios/
-MAPAINT https://www.campogrande.ms.gov.br/agetran/links/
-MAPAINT https://www.campogrande.ms.gov.br/agetran/quem-somos/
-MAPAINT #
-MAPAINT https://www.campogrande.ms.gov.br/agetran/orientacoes-e-documentos-necessarios-para-identificacao-de-condutor-infrator-guia-azul/
-MAPAINT https://www.campogrande.ms.gov.br/agetran/defesa-de-autuacao/
-MAPAINT https://www.campogrande.ms.gov.br/agetran/defesa-de-penalidade-1a-instancia/
-MAPAINT https://www.campogrande.ms.gov.br/agetran/recurso-de-2a-instancia-cetran-ms/
-MAPAINT https://www.campogrande.ms.gov.br/agetran/ressarcimento-de-multas/
-MAPAINT https://www.campogrande.ms.gov.br/agetran/formularios/
-MAPAINT https://www.campogrande.ms.gov.br/agetran/estatisticas/
-MAPAINT https://www.campogrande.ms.gov.br/agetran/agetran-educacao/
-MAPAINT https://www.campogrande.ms.gov.br/agetran/chamamento-publico-2/
-MAPAINT https://www.campogrande.ms.gov.br/agetran/telefones-uteis/
-MAPAINT https://www.campogrande.ms.gov.br/agetran/fale-conosco/
-MAPAINT https://felt.com/map/INTERDICOES-15-05-26-ATE-18-05-26-Ob5xaiZ3SIWieYqhg5zE2B?loc=-20.45802,-54.64662,13.16z
-MAPAINT /sites-institucionais
-MAPAINT https://www.campogrande.ms.gov.br/sites-institucionais/
-MAPAINT /sites-institucionais
-MAPAINT https://www.campogrande.ms.gov.br/links-faq/
-MAPAINT /sites-institucionais
-MAPAINT https://cartadeservicos.campogrande.ms.gov.br/servicos/?tax=perfil%3D6
-MAPAINT http://Empresa
-MAPAINT https://cartadeservicos.campogrande.ms.gov.br/servicos/?tax=perfil%3D5
-MAPAINT https://cartadeservicos.campogrande.ms.gov.br/
-MAPAINT https://sic.campogrande.ms.gov.br/home
-MAPAINT https://transparenciacovid.campogrande.ms.gov.br/
-MAPAINT https://transparencia.campogrande.ms.gov.br/
-MAPAINT https://transparencia.campogrande.ms.gov.br/
-MAPAINT https://transparencia.campogrande.ms.gov.br/
-MAPAINT https://biblioteca.campogrande.ms.gov.br/?_gl=1*msc2iv*_ga*NDU0MjIyNDEuMTc2MjM3MzgzNw..*_ga_5GSFXRRENZ*czE3NjUyOTY1MzMkbzQxJGcxJHQxNzY1Mjk3MTE5JGo2MCRsMCRoMA..
-MAPAINT /servidor
-MAPAINT https://intranet.campogrande.ms.gov.br
-MAPAINT https://webmail.campogrande.ms.gov.br/
-MAPAINT https://apl04.pmcg.ms.gov.br/ergonzkweb/zk/index?sistema=67
-MAPAINT /ouvidoria
-MAPAINT /fale-conosco
-MAPAINT https://www.campogrande.ms.gov.br/ouvidoria/faca-sua-manifestacao/
-MAPAINT https://ouvecg.campogrande.ms.gov.br/
-MAPAINT https://www.facebook.com/Prefcg/
-MAPAINT https://www.instagram.com/prefcg/
-MAPAINT https://twitter.com/prefcg
-MAPAINT https://userway.org
-200 https://www.campogrande.ms.gov.br/agetran/ -> https://www.campogrande.ms.gov.br/agetran/ (241344 bytes) titulo=AGETRAN &#8211; Agência Municipal de Transporte e Trânsito | PMCG
-0 https://www.campogrande.ms.gov.br/semadur/simgeo/ -> https://www.campogrande.ms.gov.br/semadur/simgeo/ (28 bytes) titulo=-
-0 https://simgeo.campogrande.ms.gov.br/ -> https://simgeo.campogrande.ms.gov.br/ (35 bytes) titulo=-
-0 https://geo.campogrande.ms.gov.br/ -> https://geo.campogrande.ms.gov.br/ (51 bytes) titulo=-
-0 https://mapas.campogrande.ms.gov.br/ -> https://mapas.campogrande.ms.gov.br/ (51 bytes) titulo=-
-0 https://geoserver.campogrande.ms.gov.br/geoserver/web/ -> https://geoserver.campogrande.ms.gov.br/geoserver/web/ (137 bytes) titulo=-
-0 https://sisgran.campogrande.ms.gov.br/geoserver/ows?service=WMS&request=GetCapabilities -> https://sisgran.campogrande.ms.gov.br/geoserver/ows?service=WMS&request=GetCapabilities (28 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/feed/ -> https://www.campogrande.ms.gov.br/agetran/feed/ (20309 bytes) titulo=AGETRAN
-200 https://www.campogrande.ms.gov.br/agetran/comments/feed/ -> https://www.campogrande.ms.gov.br/agetran/comments/feed/ (752 bytes) titulo=Comentários sobre AGETRAN
-200 https://www.campogrande.ms.gov.br/agetran/wp-includes/blocks/navigation/style.min.css?ver=6.6.2 -> https://www.campogrande.ms.gov.br/agetran/wp-includes/blocks/navigation/style.min.css?ver=6.6.2 (16384 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-includes/blocks/cover/style.min.css?ver=6.6.2 -> https://www.campogrande.ms.gov.br/agetran/wp-includes/blocks/cover/style.min.css?ver=6.6.2 (17950 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-content/plugins/contact-form-7/includes/css/styles.css?ver=6.0.4 -> https://www.campogrande.ms.gov.br/agetran/wp-content/plugins/contact-form-7/includes/css/styles.css?ver=6.0.4 (2894 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-content/plugins/nucleoweb-essentials/bundle/public.css?ver=1.3.17 -> https://www.campogrande.ms.gov.br/agetran/wp-content/plugins/nucleoweb-essentials/bundle/public.css?ver=1.3.17 (47397 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-content/plugins/nucleoweb-essentials/assets/fonts/nucleoweb-essentials/styles.css?ver=1.3.17 -> https://www.campogrande.ms.gov.br/agetran/wp-content/plugins/nucleoweb-essentials/assets/fonts/nucleoweb-essentials/styles.css?ver=1.3.17 (1426 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-content/plugins/nucleoweb-essentials/assets/fonts/design-kit-icons/styles.css?ver=1.3.17 -> https://www.campogrande.ms.gov.br/agetran/wp-content/plugins/nucleoweb-essentials/assets/fonts/design-kit-icons/styles.css?ver=1.3.17 (7979 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-content/plugins/nucleoweb-essentials/assets/fonts/nucleoweb-material-icons/styles.css?ver=1.3.17 -> https://www.campogrande.ms.gov.br/agetran/wp-content/plugins/nucleoweb-essentials/assets/fonts/nucleoweb-material-icons/styles.css?ver=1.3.17 (5880 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-content/plugins/nucleoweb-essentials/assets/fonts/nucleoweb-material-icons/css/normal.css?ver=1.3.17 -> https://www.campogrande.ms.gov.br/agetran/wp-content/plugins/nucleoweb-essentials/assets/fonts/nucleoweb-material-icons/css/normal.css?ver=1.3.17 (127244 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-content/plugins/nucleoweb-essentials/assets/fonts/nucleoweb-material-icons/css/outlined.css?ver=1.3.17 -> https://www.campogrande.ms.gov.br/agetran/wp-content/plugins/nucleoweb-essentials/assets/fonts/nucleoweb-material-icons/css/outlined.css?ver=1.3.17 (129908 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-content/plugins/nucleoweb-essentials/assets/fonts/nucleoweb-material-icons/css/round.css?ver=1.3.17 -> https://www.campogrande.ms.gov.br/agetran/wp-content/plugins/nucleoweb-essentials/assets/fonts/nucleoweb-material-icons/css/round.css?ver=1.3.17 (123745 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-content/plugins/nucleoweb-essentials/assets/fonts/nucleoweb-material-icons/css/sharp.css?ver=1.3.17 -> https://www.campogrande.ms.gov.br/agetran/wp-content/plugins/nucleoweb-essentials/assets/fonts/nucleoweb-material-icons/css/sharp.css?ver=1.3.17 (123795 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-content/plugins/nucleoweb-essentials/assets/fonts/nucleoweb-material-icons/css/default.css?ver=1.3.17 -> https://www.campogrande.ms.gov.br/agetran/wp-content/plugins/nucleoweb-essentials/assets/fonts/nucleoweb-material-icons/css/default.css?ver=1.3.17 (1696 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/assets/fonts/prefeitura-campogrande/styles.css?ver=1.0.0.98 -> https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/assets/fonts/prefeitura-campogrande/styles.css?ver=1.0.0.98 (7382 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/bundle/public.css?ver=1.0.0.98 -> https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/bundle/public.css?ver=1.0.0.98 (54176 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/bundle/blocks-variants/core-navigation.css?ver=1.0.0.98 -> https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/bundle/blocks-variants/core-navigation.css?ver=1.0.0.98 (11506 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/bundle/blocks-variants/core-search.css?ver=1.0.0.98 -> https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/bundle/blocks-variants/core-search.css?ver=1.0.0.98 (2046 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/bundle/blocks-variants/core-query-pagination.css?ver=1.0.0.98 -> https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/bundle/blocks-variants/core-query-pagination.css?ver=1.0.0.98 (803 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/bundle/blocks-variants/core-paragraph.css?ver=1.0.0.98 -> https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/bundle/blocks-variants/core-paragraph.css?ver=1.0.0.98 (49 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/bundle/blocks-variants/core-post-template.css?ver=1.0.0.98 -> https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/bundle/blocks-variants/core-post-template.css?ver=1.0.0.98 (406 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/bundle/blocks-variants/core-cover.css?ver=1.0.0.98 -> https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/bundle/blocks-variants/core-cover.css?ver=1.0.0.98 (167 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-content/plugins/nucleoweb-essentials//bundle/blocks/svg-icons.css?ver=1.0.0 -> https://www.campogrande.ms.gov.br/agetran/wp-content/plugins/nucleoweb-essentials//bundle/blocks/svg-icons.css?ver=1.0.0 (122 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/bundle/blocks/accessibility.css?ver=1.0.0 -> https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/bundle/blocks/accessibility.css?ver=1.0.0 (19260 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/bundle/blocks/download-relationship.css?ver=1.0.0 -> https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/bundle/blocks/download-relationship.css?ver=1.0.0 (7467 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/bundle/blocks/mobile-menu.css?ver=1.0.0 -> https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/bundle/blocks/mobile-menu.css?ver=1.0.0 (13571 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/bundle/blocks/quick-access.css?ver=1.0.0 -> https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/bundle/blocks/quick-access.css?ver=1.0.0 (50049 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/bundle/blocks/quick-access-grid.css?ver=1.0.0 -> https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/bundle/blocks/quick-access-grid.css?ver=1.0.0 (68168 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/bundle/blocks-variants/core-quote.css?ver=1.0.0.98 -> https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/bundle/blocks-variants/core-quote.css?ver=1.0.0.98 (3619 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-content/plugins/wp-pagenavi/pagenavi-css.css?ver=2.70 -> https://www.campogrande.ms.gov.br/agetran/wp-content/plugins/wp-pagenavi/pagenavi-css.css?ver=2.70 (374 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-content/plugins/cf7-conditional-fields/style.css?ver=2.5.9 -> https://www.campogrande.ms.gov.br/agetran/wp-content/plugins/cf7-conditional-fields/style.css?ver=2.5.9 (1617 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-includes/js/dist/hooks.min.js?ver=2810c76e705dd1a53b18 -> https://www.campogrande.ms.gov.br/agetran/wp-includes/js/dist/hooks.min.js?ver=2810c76e705dd1a53b18 (4307 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-includes/js/dist/i18n.min.js?ver=5e580eb46a90c2b997e6 -> https://www.campogrande.ms.gov.br/agetran/wp-includes/js/dist/i18n.min.js?ver=5e580eb46a90c2b997e6 (9141 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 -> https://www.campogrande.ms.gov.br/agetran/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 (87553 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-includes/js/jquery/jquery-migrate.min.js?ver=3.4.1 -> https://www.campogrande.ms.gov.br/agetran/wp-includes/js/jquery/jquery-migrate.min.js?ver=3.4.1 (13577 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-includes/js/underscore.min.js?ver=1.13.4 -> https://www.campogrande.ms.gov.br/agetran/wp-includes/js/underscore.min.js?ver=1.13.4 (18833 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-content/plugins/nucleoweb-essentials/bundle/public.js?ver=1.3.17 -> https://www.campogrande.ms.gov.br/agetran/wp-content/plugins/nucleoweb-essentials/bundle/public.js?ver=1.3.17 (104240 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/bundle/blocks/accessibility.js?ver=1.0.0 -> https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/bundle/blocks/accessibility.js?ver=1.0.0 (5879 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-includes/js/dist/dom-ready.min.js?ver=f77871ff7694fffea381 -> https://www.campogrande.ms.gov.br/agetran/wp-includes/js/dist/dom-ready.min.js?ver=f77871ff7694fffea381 (457 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/bundle/blocks/download-relationship.js?ver=1.0.0 -> https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/bundle/blocks/download-relationship.js?ver=1.0.0 (758 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/bundle/blocks/mobile-menu.js?ver=1.0.0 -> https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/bundle/blocks/mobile-menu.js?ver=1.0.0 (2070 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-includes/js/dist/vendor/react.min.js?ver=18.3.1 -> https://www.campogrande.ms.gov.br/agetran/wp-includes/js/dist/vendor/react.min.js?ver=18.3.1 (6682 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-includes/js/dist/vendor/react-jsx-runtime.min.js?ver=18.3.1 -> https://www.campogrande.ms.gov.br/agetran/wp-includes/js/dist/vendor/react-jsx-runtime.min.js?ver=18.3.1 (900 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-includes/js/dist/deprecated.min.js?ver=e1f84915c5e8ae38964c -> https://www.campogrande.ms.gov.br/agetran/wp-includes/js/dist/deprecated.min.js?ver=e1f84915c5e8ae38964c (684 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-includes/js/dist/dom.min.js?ver=4ecffbffba91b10c5c7a -> https://www.campogrande.ms.gov.br/agetran/wp-includes/js/dist/dom.min.js?ver=4ecffbffba91b10c5c7a (12485 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-includes/js/dist/vendor/react-dom.min.js?ver=18.3.1 -> https://www.campogrande.ms.gov.br/agetran/wp-includes/js/dist/vendor/react-dom.min.js?ver=18.3.1 (133233 bytes) titulo=-
-0 https://www.campogrande.ms.gov.br/agetran/wp-includes/js/dist/escape-html.min.js?ver=6561a406d2d232a6fbd2 -> https://www.campogrande.ms.gov.br/agetran/wp-includes/js/dist/escape-html.min.js?ver=6561a406d2d232a6fbd2 (59 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-includes/js/dist/element.min.js?ver=cb762d190aebbec25b27 -> https://www.campogrande.ms.gov.br/agetran/wp-includes/js/dist/element.min.js?ver=cb762d190aebbec25b27 (11978 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-includes/js/dist/is-shallow-equal.min.js?ver=e0f9f1d78d83f5196979 -> https://www.campogrande.ms.gov.br/agetran/wp-includes/js/dist/is-shallow-equal.min.js?ver=e0f9f1d78d83f5196979 (1018 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-includes/js/dist/keycodes.min.js?ver=034ff647a54b018581d3 -> https://www.campogrande.ms.gov.br/agetran/wp-includes/js/dist/keycodes.min.js?ver=034ff647a54b018581d3 (2634 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-includes/js/dist/priority-queue.min.js?ver=9c21c957c7e50ffdbf48 -> https://www.campogrande.ms.gov.br/agetran/wp-includes/js/dist/priority-queue.min.js?ver=9c21c957c7e50ffdbf48 (3378 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-includes/js/dist/compose.min.js?ver=b8d54449305350b51869 -> https://www.campogrande.ms.gov.br/agetran/wp-includes/js/dist/compose.min.js?ver=b8d54449305350b51869 (37488 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-includes/js/dist/private-apis.min.js?ver=17a2e640b653d742da6e -> https://www.campogrande.ms.gov.br/agetran/wp-includes/js/dist/private-apis.min.js?ver=17a2e640b653d742da6e (2786 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran -> https://www.campogrande.ms.gov.br/agetran/ (241344 bytes) titulo=AGETRAN &#8211; Agência Municipal de Transporte e Trânsito | PMCG
-0 https://www.campogrande.ms.gov.br/agetran/?p=518 -> https://www.campogrande.ms.gov.br/agetran/?p=518 (28 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/?post_type=sec-noticias&#038;p=518 -> https://www.campogrande.ms.gov.br/agetran/?post_type=sec-noticias (241344 bytes) titulo=AGETRAN &#8211; Agência Municipal de Transporte e Trânsito | PMCG
-0 https://www.campogrande.ms.gov.br/agetran/?p=521 -> https://www.campogrande.ms.gov.br/agetran/?p=521 (28 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/?post_type=sec-noticias&#038;p=521 -> https://www.campogrande.ms.gov.br/agetran/?post_type=sec-noticias (241344 bytes) titulo=AGETRAN &#8211; Agência Municipal de Transporte e Trânsito | PMCG
-0 https://www.campogrande.ms.gov.br/agetran/?p=522 -> https://www.campogrande.ms.gov.br/agetran/?p=522 (28 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/bundle/blocks/banner.css?ver=1.0.0 -> https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/bundle/blocks/banner.css?ver=1.0.0 (32640 bytes) titulo=-
-200 https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/bundle/blocks/last-posts.css?ver=1.0.0 -> https://www.campogrande.ms.gov.br/agetran/wp-content/themes/nucleoweb-prefeitura-campogrande/bundle/blocks/last-posts.css?ver=1.0.0 (21032 bytes) titulo=-
-LINK https://www.campogrande.ms.gov.br/agetran/mapas-interativos-agetran/
-LINK https://www.campogrande.ms.gov.br/agetran/wp-json/oembed/1.0/embed?url=https%3A%2F%2Fwww.campogrande.ms.gov.br%2Fagetran%2Fmapas-interativos-agetran%2F
-LINK https://www.campogrande.ms.gov.br/agetran/wp-json/oembed/1.0/embed?url=https%3A%2F%2Fwww.campogrande.ms.gov.br%2Fagetran%2Fmapas-interativos-agetran%2F&#038;format=xml
-LINK https://www.campogrande.ms.gov.br/mapa-do-site
+HTML: <!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#071d45" />
+    <meta
+      name="description"
+      content="SISGRAN 2026 — mapas, dados e informações territoriais oficiais de Campo Grande."
+    />
+    <title>SISGRAN 2026 | Informações Territoriais</title>
+    <script type="module" crossorigin src="/sisgran/assets/index-B_Eqb3qG.js"></script>
+    <link rel="stylesheet" crossorigin href="/sisgran/assets/index-dPc9oJse.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
+
+
+ASSET 200 https://sisgran.campogrande.ms.gov.br/sisgran/assets/index-B_Eqb3qG.js 1424333
+PAVIM: ios`]},{label:`Área (ha)`,keys:[`area_ha_calculada`]},{label:`Fonte`,keys:[`fonte_arquivo`,`fonte`]}]},capabilities:{...$,search:!0}},{id:`mobilidade-pavimentacao`,wmsName:`sisgran:vw_mobilidade_pavimentacao`,title:`Pavimentação viária`,description:`Pavimentação das vias — AGETRAN, atualização AGETRAN 20
+PAVIM: raestrutura`,subgroup:{id:`mobilidade-transito`,title:`Mobilidade e Trânsito`,accent:`#16834A`},geometryType:`line`,sourceView:`sisgran.vw_mobilidade_pavimentacao`,srid:31981,zIndex:100,defaultOpacity:.92,style:`sisgran:sisgran_mobilidade_pavimentacao`,info:{titleKeys:[`n_logra`,`situacao`,`id`],fields:[
+ASSET 200 https://sisgran.campogrande.ms.gov.br/sisgran/assets/index-dPc9oJse.css 283974
+URL http://earth.google.com/kml/2.0
+URL http://earth.google.com/kml/2.1
+URL http://earth.google.com/kml/2.2
+URL http://localhost/
+URL http://www.apache.org/licenses/LICENSE-2.0
+URL http://www.google.com/kml/ext/2.2
+URL http://www.opengis.net/def/crs/EPSG/0/3857
+URL http://www.opengis.net/def/crs/EPSG/0/4326
+URL http://www.opengis.net/def/crs/OGC/1.3/CRS84
+URL http://www.opengis.net/gml/srs/epsg.xml#3857
+URL http://www.opengis.net/gml/srs/epsg.xml#4326
+URL http://www.opengis.net/kml/2.2
+URL https://cdn.campogrande.ms.gov.br/portal/prod/uploads/sites/18/2026/08/PERFIL-SOCIOECONOMICO-DE-CAMPO-GRANDE-EDICAO-2026.pdf
+URL https://cloudless.eox.at/
+URL https://data.inpe.br/
+URL https://data.inpe.br/dados/topodata/
+URL https://developers.google.com/kml/schema/kml22gx.xsd
+URL https://idsc.cidadessustentaveis.org.br/#/cidade/5002704
+URL https://maps.google.com/mapfiles/kml/pushpin/ylw-pushpin.png
+URL https://opentopomap.org/
+URL https://qap.campogrande.ms.gov.br:444/extensions/sisgran/sisgran.html
+URL https://react.dev/errors/
+URL https://reviva.campogrande.ms.gov.br/
+URL https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/
+URL https://sisgran.campogrande.ms.gov.br/mapas
+URL https://spatialreference.org/ref/
+URL https://tile.openstreetmap.org/
+URL https://tile.opentopomap.org/
+URL https://tiles.maps.eox.at/
+URL https://www.campogrande.ms.gov.br/
+URL https://www.campogrande.ms.gov.br/cgnoticias/noticia/publicada-33a-edicao-do-raio-x-economico-e-social-da-capital/
+URL https://www.campogrande.ms.gov.br/fale-conosco/
+URL https://www.campogrande.ms.gov.br/noticias/
+URL https://www.campogrande.ms.gov.br/ouvidoria/
+URL https://www.campogrande.ms.gov.br/planurb/
+URL https://www.campogrande.ms.gov.br/planurb/audiencias-publicas-estudo-de-impacto-ambiental/
+URL https://www.campogrande.ms.gov.br/planurb/audiencias-publicas-estudos-de-impacto-de-vizinhanca/
+URL https://www.campogrande.ms.gov.br/planurb/audiencias-publicas-ja-realizadas/
+URL https://www.campogrande.ms.gov.br/planurb/patrimonio-cultural/
+URL https://www.campogrande.ms.gov.br/planurb/perfil-socioeconomico-de-campo-grande-edicoes/
+URL https://www.campogrande.ms.gov.br/planurb/vulnerabilidade
+URL https://www.campogrande.ms.gov.br/secretarias/
+URL https://www.campogrande.ms.gov.br/semadur/mapoteca/
+URL https://www.campogrande.ms.gov.br/servicos/
+URL https://www.campogrande.ms.gov.br/sisgran/plano-diretor/
+URL https://www.campogrande.ms.gov.br/transparencia/
+URL https://www.esri.com/
+URL https://www.hotosm.org/
+URL https://www.openstreetmap.org/copyright
+URL https://www.youtube.com/
+SERVICO 200 https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/?f=json 59b camadas=0
+  {"error":{"code":400,"message":"Invalid URL","details":[]}}
+SERVICO 0 https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/ 30b camadas=0
+  <HTTPError 400: 'Bad Request'>
