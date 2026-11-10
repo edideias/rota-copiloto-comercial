@@ -17,6 +17,12 @@ BB = "(-20.66,-54.82,-20.32,-54.43)"  # área urbana de Campo Grande (sul, oeste
 RUAS = 'way["highway"~"^(motorway|trunk|primary|secondary|tertiary|unclassified|residential|living_street|service|track|road)(_link)?$"]["name"]' + BB + ';out tags geom;'
 BAIRROS = '(rel["boundary"="administrative"]["admin_level"~"^(9|10)$"]' + BB + ';rel["place"~"^(suburb|neighbourhood|quarter)$"]' + BB + ';way["place"~"^(suburb|neighbourhood|quarter)$"]' + BB + ';node["place"~"^(suburb|neighbourhood|quarter)$"]' + BB + ';);out tags geom;'
 
+# Condomínios fechados / loteamentos com nome (áreas residenciais)
+CONDOS = ('(way["landuse"="residential"]["name"]' + BB + ';rel["landuse"="residential"]["name"]' + BB +
+          ';way["residential"="gated"]' + BB + ';way["place"~"^(neighbourhood|quarter)$"]["name"]' + BB +
+          ';way["landuse"="residential"]["access"="private"]' + BB + ';);out tags geom;')
+NOME_CONDO = re.compile(r"(?i)condom|resid|damha|dama|alphavil|village|vilage|ville|reserva|quinta|portal|terras|eco ?park|park|bosque|gardens?|green|lagoa|chac")
+
 PAVIM = {"asphalt", "paved", "concrete", "concrete:plates", "concrete:lanes", "paving_stones", "sett", "cobblestone",
          "unhewn_cobblestone", "metal", "wood", "chipseal"}
 TERRA = {"unpaved", "dirt", "earth", "ground", "gravel", "fine_gravel", "compacted", "sand", "grass", "mud", "pebblestone", "rock"}
@@ -109,13 +115,35 @@ def main():
             if d < dmin: melhor, dmin = nome, d
         return melhor
 
+    condos = []
+    for el in overpass(CONDOS):
+        t = el.get("tags", {}); nome = t.get("name")
+        fechado = t.get("residential") == "gated" or t.get("access") == "private"
+        if not nome or not (fechado or NOME_CONDO.search(nome)): continue
+        an = [a for a in aneis(el) if len(a) > 2]
+        if not an: continue
+        xs = [p[0] for a in an for p in a]; ys = [p[1] for a in an for p in a]
+        area = (max(xs)-min(xs))*(max(ys)-min(ys))
+        if area > 0.0016: continue   # maior que ~4x4 km: é bairro, não condomínio
+        condos.append({"nome": nome, "aneis": an, "bbox": (min(xs), min(ys), max(xs), max(ys))})
+
+    def condo_de(lon, lat):
+        for c in condos:
+            x0, y0, x1, y1 = c["bbox"]
+            if x0 <= lon <= x1 and y0 <= lat <= y1 and any(dentro(lon, lat, a) for a in c["aneis"]):
+                return c["nome"]
+        return None
+
     ruas = {}
     for el in overpass(RUAS):
         t = el.get("tags", {}); g = el.get("geometry") or []
         if len(g) < 2: continue
         nome = t["name"]; chave = norm(nome)
-        r = ruas.setdefault(chave, {"nome": nome, "bairros": {}, "km_pav": 0.0, "km_terra": 0.0, "km_sem": 0.0, "tipos": set()})
+        r = ruas.setdefault(chave, {"nome": nome, "bairros": {}, "km_pav": 0.0, "km_terra": 0.0, "km_sem": 0.0, "tipos": set(), "condo": {}, "km_osm": 0.0})
         comp = km(g); mid = g[len(g)//2]
+        r["km_osm"] += comp
+        cd = condo_de(mid["lon"], mid["lat"])
+        if cd: r["condo"][cd] = r["condo"].get(cd, 0) + comp
         b = bairro_de(mid["lon"], mid["lat"])
         if b: r["bairros"][b] = r["bairros"].get(b, 0) + comp
         sup = (t.get("surface") or "").split(";")[0]
@@ -140,10 +168,12 @@ def main():
     for chave, o in ofi.items():
         r = ruas.get(chave)
         if r is None:
-            r = ruas[chave] = {"nome": o["nome"].title(), "bairros": {}, "km_pav": 0.0, "km_terra": 0.0, "km_sem": 0.0, "tipos": set()}
+            r = ruas[chave] = {"nome": o["nome"].title(), "bairros": {}, "km_pav": 0.0, "km_terra": 0.0, "km_sem": 0.0, "tipos": set(), "condo": {}, "km_osm": 0.0}
             if o["meio"]:
                 b = bairro_de(o["meio"][0], o["meio"][1])
                 if b: r["bairros"][b] = 1
+                cd = condo_de(o["meio"][0], o["meio"][1])
+                if cd: r["condo"][cd] = 1.0; r["km_osm"] = 1.0
         r["km_pav"], r["km_terra"], r["km_sem"] = o["pav"], o["terra"], 0.0
         r["oficial"] = True
 
@@ -157,15 +187,18 @@ def main():
         saida.append({"nome": r["nome"], "chave": chave, "pavimento": pav,
                       "km_pavimentado": round(r["km_pav"], 2), "km_terra": round(r["km_terra"], 2), "km_sem_info": round(r["km_sem"], 2),
                       "bairros": [b for b, _ in sorted(r["bairros"].items(), key=lambda x: -x[1])],
-                      "fonte": "agetran" if r.get("oficial") else "osm"})
+                      "fonte": "agetran" if r.get("oficial") else "osm",
+                      # rua que fica (quase toda) dentro de um condomínio
+                      "condominio": next((c for c, k in sorted(r["condo"].items(), key=lambda x: -x[1]) if r["km_osm"] and k / r["km_osm"] >= 0.6), None)})
     resumo = {p: sum(1 for s in saida if s["pavimento"] == p) for p in ("pavimentada", "terra", "misto", "sem_info")}
     import os; os.makedirs("dados", exist_ok=True)
-    json.dump({"versao": 2, "cidade": "Campo Grande - MS",
+    json.dump({"versao": 3, "cidade": "Campo Grande - MS",
                "gerado_em": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
                "fonte": "Pavimentação: Agetran/Sisgran - Prefeitura de Campo Grande. Ruas e bairros: © colaboradores do OpenStreetMap (ODbL)", "resumo": {"ruas": len(saida), **resumo},
                "bairros": sorted({b["nome"] for b in bairros if b["nivel"] != "9"} | {p[0] for p in pontos}),
+               "condominios": sorted({c["nome"] for c in condos}),
                "ruas": saida}, open("dados/campo-grande-ruas.json", "w"), ensure_ascii=False, indent=0)
-    print("::notice::" + json.dumps({"ruas": len(saida), **resumo, "bairros_poligono": len(bairros), "bairros_ponto": len(pontos), "ruas_com_bairro": sum(1 for x in saida if x["bairros"]), "ruas_oficiais": len(ofi)}))
+    print("::notice::" + json.dumps({"ruas": len(saida), **resumo, "bairros_poligono": len(bairros), "bairros_ponto": len(pontos), "ruas_com_bairro": sum(1 for x in saida if x["bairros"]), "ruas_oficiais": len(ofi), "condominios": len(condos), "ruas_em_condominio": sum(1 for x in saida if x["condominio"])}))
 
 if __name__ == "__main__":
     try:
