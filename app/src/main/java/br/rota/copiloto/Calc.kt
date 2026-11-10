@@ -186,10 +186,21 @@ class Prefs(ctx: Context, override_: android.content.SharedPreferences? = null) 
         } catch (_: Exception) { emptyList() }
         set(v) { sp.edit().putString("bairrosEvitados", org.json.JSONArray(v.distinct()).toString()).apply() }
     var listaNegra: List<Destino.Negra>
-        get() = try {
-            val a = org.json.JSONArray(sp.getString("listaNegra", "[]"))
-            List(a.length()) { val o = a.getJSONObject(it); Destino.Negra(o.getString("n"), o.optString("m")) }
-        } catch (_: Exception) { emptyList() }
+        get() {
+            val lida = try {
+                val a = org.json.JSONArray(sp.getString("listaNegra", "[]"))
+                List(a.length()) { val o = a.getJSONObject(it); Destino.Negra(o.getString("n"), o.optString("m")) }
+            } catch (_: Exception) { emptyList() }
+            // Lista padrão entra uma vez só; depois o que você apagar fica apagado.
+            if (!sp.getBoolean("negraPadrao1", false)) {
+                val nomes = lida.map { Destino.norm(it.nome) }.toSet()
+                val junta = lida + Destino.PADRAO.filter { Destino.norm(it.nome) !in nomes }
+                sp.edit().putBoolean("negraPadrao1", true).apply()
+                listaNegra = junta
+                return junta
+            }
+            return lida
+        }
         set(v) {
             val a = org.json.JSONArray()
             v.forEach { a.put(org.json.JSONObject().put("n", it.nome).put("m", it.motivo)) }

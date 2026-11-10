@@ -29,6 +29,27 @@ object Destino {
         val vazio get() = bairro == null && rua == null
     }
 
+    /** Locais que já vêm na lista negra (dá para apagar na configuração). "/" separa outros jeitos de escrever. */
+    val PADRAO = listOf(
+        Negra("Condomínio Dama / Damha", "Não vou de jeito nenhum"),
+        Negra("Dama 1 / Damha 1 / Damha I", "Não vou de jeito nenhum"),
+        Negra("Dama 2 / Damha 2 / Damha II", "Não vou de jeito nenhum"),
+        Negra("Dama 3 / Damha 3 / Damha III", "Não vou de jeito nenhum"),
+        Negra("Village Paraty / Vilage Paraty", "Não vou de jeito nenhum"),
+        Negra("Alphaville / Alphavile", "Não vou de jeito nenhum")
+    )
+
+    private val GENERICO = Regex("""^(condominio|cond|residencial|resid|loteamento|parque|jardim|vila|conjunto)\s+""")
+
+    /** O local da lista aparece no destino? Compara palavra inteira, ignorando "Condomínio", "Residencial" etc. */
+    private fun bate(nomeLista: String, destNorm: String): Boolean {
+        val alvo = " $destNorm "
+        return nomeLista.split("/").any { alt ->
+            val k = norm(alt.substringBefore(",")).replace(GENERICO, "").trim()
+            k.length >= 4 && alvo.contains(" $k ")
+        }
+    }
+
     private const val URL_BANCO =
         "https://raw.githubusercontent.com/edideias/rota-copiloto-comercial/main/dados/campo-grande-ruas.json"
 
@@ -146,10 +167,7 @@ object Destino {
             val ne = norm(e)
             ne.isNotEmpty() && (nb == ne || (nb.isNotEmpty() && nb.startsWith("$ne ")) || (nb.isEmpty() && nd.contains(ne)))
         }
-        val negra = p.listaNegra.firstOrNull { n ->
-            val chave = norm(n.nome.substringBefore(","))
-            chave.length >= 4 && nd.contains(chave)
-        }
+        val negra = p.listaNegra.firstOrNull { bate(it.nome, nd) }
         val pav = if (p.avisarTerra && (rua?.pavimento == "terra" || rua?.pavimento == "misto")) rua.pavimento else null
         return Info(bairro, rua?.nome ?: ruaTxt, pav, evitado, negra)
     }
