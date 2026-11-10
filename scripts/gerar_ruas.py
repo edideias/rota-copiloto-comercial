@@ -110,6 +110,7 @@ def main():
                       "km_pavimentado": round(r["km_pav"], 2), "km_terra": round(r["km_terra"], 2), "km_sem_info": round(r["km_sem"], 2),
                       "bairros": [b for b, _ in sorted(r["bairros"].items(), key=lambda x: -x[1])]})
     resumo = {p: sum(1 for s in saida if s["pavimento"] == p) for p in ("pavimentada", "terra", "misto", "sem_info")}
+    import os; os.makedirs("dados", exist_ok=True)
     json.dump({"versao": 1, "cidade": "Campo Grande - MS",
                "gerado_em": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
                "fonte": "© colaboradores do OpenStreetMap (ODbL)", "resumo": {"ruas": len(saida), **resumo},
