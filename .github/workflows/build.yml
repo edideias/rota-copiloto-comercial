@@ -2,6 +2,7 @@ name: Compilar APK
 
 on:
   push:
+    paths-ignore: ["dados/**", "scripts/**", ".github/workflows/**"]
   workflow_dispatch:
 
 permissions:
