@@ -945,6 +945,8 @@ class MainActivity : Activity() {
         ce.addView(ui.tv("Igual equalizador de rádio: quanto mais a corrida paga por km, mais a barra sobe. O mínimo é o começo da barra e o máximo é o topo.", 12f, C.MUTED, 0), ui.lp(top = 4))
         ce.addView(stepperRow("Mínimo (R$/km)", String.format(java.util.Locale("pt", "BR"), "R$ %.2f", p.eqMinC / 100.0), { p.eqMinC = p.eqMinC - 10; render() }, { p.eqMinC = minOf(p.eqMinC + 10, p.eqMaxC - 10); render() }), ui.lp(top = 12))
         ce.addView(stepperRow("Máximo (R$/km)", String.format(java.util.Locale("pt", "BR"), "R$ %.2f", p.eqMaxC / 100.0), { p.eqMaxC = maxOf(p.eqMaxC - 10, p.eqMinC + 10); render() }, { p.eqMaxC = p.eqMaxC + 10; render() }), ui.lp(top = 12))
+        ce.addView(corRow("Cor do nível", p.eqCor) { p.eqCor = it }, ui.lp(top = 16))
+        ce.addView(velocidadeRow("Velocidade da piscada", p.eqMs) { p.eqMs = it }, ui.lp(top = 16))
         box.addView(ce, ui.lp(top = 16))
 
         val c3 = ui.card()

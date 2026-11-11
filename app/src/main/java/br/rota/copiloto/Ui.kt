@@ -423,7 +423,7 @@ object OverlayCard {
             outer.addView(inner, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
             val lo = p.eqMinC / 100.0; val hi = maxOf(p.eqMaxC / 100.0, lo + 0.01)
             val frac = ((a.perKm - lo) / (hi - lo)).coerceIn(0.0, 1.0)
-            outer.addView(Equalizador(ctx, frac, top), LinearLayout.LayoutParams(ui.dp(30), ViewGroup.LayoutParams.MATCH_PARENT).also {
+            outer.addView(Equalizador(ctx, frac, top, p.eqCor, p.eqMs.toLong()), LinearLayout.LayoutParams(ui.dp(34), ViewGroup.LayoutParams.MATCH_PARENT).also {
                 it.marginStart = ui.dp(12); it.topMargin = ui.dp(2); it.bottomMargin = ui.dp(2)
             })
         }
@@ -650,37 +650,58 @@ object OverlayCard {
         Calc.analyze(Offer("Uber", 36.0, 1.2, 4.0, 8.4, 22.0), p)
 }
 
-/** Barra vertical em blocos, como o equalizador de um rádio: acende de baixo para cima. */
-class Equalizador(ctx: Context, private val nivel: Double, private val noNeon: Boolean) : View(ctx) {
+/** Barra vertical em blocos, como o equalizador de um rádio: acende de baixo para cima, em neon piscante. */
+class Equalizador(ctx: Context, private val nivel: Double, private val noNeon: Boolean, private val neon: Int, private val ms: Long) : View(ctx) {
     private val n = 10
     private val p = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
     private val r = android.graphics.RectF()
     private val d = ctx.resources.displayMetrics.density
-    // do verde-escuro (pouco lucro) ao verde neon (muito lucro)
-    private val cores = IntArray(n) { i ->
-        val t = i / (n - 1f)
-        android.animation.ArgbEvaluator().evaluate(t, Color.parseColor("#0E7A35"), Color.parseColor("#7CFF4F")) as Int
-    }
     private val acesos = maxOf(1, Math.ceil(nivel * n).toInt())
+    private var brilho = 1f
+    private val anim = android.animation.ValueAnimator.ofFloat(1f, 0.35f).apply {
+        duration = ms
+        repeatMode = android.animation.ValueAnimator.REVERSE
+        repeatCount = android.animation.ValueAnimator.INFINITE
+        addUpdateListener { brilho = it.animatedValue as Float; invalidate() }
+    }
 
-    init { minimumHeight = (70 * d).toInt(); contentDescription = "Lucro ${Math.round(nivel * 100)}% da faixa" }
+    init {
+        minimumHeight = (80 * d).toInt()
+        setLayerType(LAYER_TYPE_SOFTWARE, null)   // necessário para o brilho (glow)
+        contentDescription = "Lucro ${Math.round(nivel * 100)}% da faixa"
+    }
+
+    override fun onAttachedToWindow() { super.onAttachedToWindow(); if (!anim.isStarted) anim.start() }
+    override fun onDetachedFromWindow() { anim.cancel(); super.onDetachedFromWindow() }
 
     override fun onDraw(c: android.graphics.Canvas) {
         val w = width.toFloat(); val h = height.toFloat()
-        val gap = 2.5f * d
-        // moldura branca para destacar em cima do verde
+        val gap = 3f * d
+        val pad = 4 * d
+        // fundo bem escuro para o neon saltar
+        p.clearShadowLayer(); p.style = android.graphics.Paint.Style.FILL
+        p.color = Color.parseColor("#05140A")
+        r.set(0f, 0f, w, h); c.drawRoundRect(r, 8 * d, 8 * d, p)
+        p.style = android.graphics.Paint.Style.STROKE; p.strokeWidth = 1.5f * d; p.color = Color.argb(160, 255, 255, 255)
+        c.drawRoundRect(r, 8 * d, 8 * d, p)
         p.style = android.graphics.Paint.Style.FILL
-        p.color = if (noNeon) Color.parseColor("#06210A") else Color.argb(90, 0, 0, 0)
-        r.set(0f, 0f, w, h); c.drawRoundRect(r, 6 * d, 6 * d, p)
-        val pad = 3 * d
         val seg = (h - 2 * pad - gap * (n - 1)) / n
         for (i in 0 until n) {
             val bottom = h - pad - i * (seg + gap)
-            val topY = bottom - seg
-            r.set(pad, topY, w - pad, bottom)
-            p.color = if (i < acesos) cores[i] else Color.argb(55, 255, 255, 255)
-            c.drawRoundRect(r, 3 * d, 3 * d, p)
+            r.set(pad, bottom - seg, w - pad, bottom)
+            if (i < acesos) {
+                // o bloco do topo do nível pisca mais forte; os de baixo pulsam junto, mais suave
+                val topo = i == acesos - 1
+                val a = if (topo) brilho else 0.65f + 0.35f * brilho
+                val cor = Color.argb((255 * a).toInt(), Color.red(neon), Color.green(neon), Color.blue(neon))
+                p.color = cor
+                p.setShadowLayer((if (topo) 10f else 6f) * d * a, 0f, 0f, cor)
+                c.drawRoundRect(r, 3 * d, 3 * d, p)
+                p.clearShadowLayer()
+            } else {
+                p.color = Color.argb(40, 255, 255, 255)
+                c.drawRoundRect(r, 3 * d, 3 * d, p)
+            }
         }
     }
 }
-

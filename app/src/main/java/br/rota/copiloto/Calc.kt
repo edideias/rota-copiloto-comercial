@@ -236,6 +236,13 @@ class Prefs(ctx: Context, override_: android.content.SharedPreferences? = null) 
         get() = sp.getInt("eqMaxC", maxOf(topMinC, eqMinC + 50))
         set(v) { sp.edit().putInt("eqMaxC", v.coerceIn(20, 2000)).apply() }
 
+    var eqCor: Int
+        get() = sp.getInt("eqCor", 0xFF39FF14.toInt())
+        set(v) { sp.edit().putInt("eqCor", v).apply() }
+    var eqMs: Int
+        get() = sp.getInt("eqMs", 350)
+        set(v) { sp.edit().putInt("eqMs", v.coerceIn(70, 1500)).apply() }
+
     // ---- Destino: card do bairro, rua de terra e lista negra
     var bairroOn: Boolean
         get() = sp.getBoolean("bairroOn", true)
