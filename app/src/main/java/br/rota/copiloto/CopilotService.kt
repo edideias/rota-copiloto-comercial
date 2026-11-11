@@ -43,6 +43,13 @@ class CopilotService : AccessibilityService() {
          */
         private const val REQUIRE_OFFER_BUTTON = true
         private val LISTA = Regex("""(?i)solicita[cç][oõ]es|buscando|radar de viagens""")
+        /** Página de lista de corridas (dentro do app): várias ofertas, etiqueta "Nova", aba Entregas, botão Escolher. */
+        private val PAGINA_LISTA = Regex("""(?i)\b(negocia|pop|comfort|top|moto|plus|entrega|corrida|econ[oô]mico)\s+nova\b|\bescolher\b|\bentregas\b|\bordenar\b""")
+        private val PAR_TEMPO_KM = Regex("""(?i)\d+\s*min[^\d]{0,12}?\d+(?:[.,]\d+)?\s*k?m(?![a-z])""")
+        private val BOTAO = Regex("""(?i)aceitar por|tenho interesse""")
+        /** Só a janela de oferta conta: lista de solicitações, abas do app e prints não. */
+        private fun naoEhJanelaDeOferta(t: String): Boolean =
+            PAGINA_LISTA.containsMatchIn(t) || BOTAO.findAll(t).count() >= 2 || PAR_TEMPO_KM.findAll(t).count() >= 3
         private val OFFER_BUTTON_WORDS = listOf("aceitar", "tenho interesse", "selecionar")
 
         private fun hasOfferButton(text: String): Boolean =
@@ -77,6 +84,8 @@ class CopilotService : AccessibilityService() {
             !pkg.startsWith("com.android.systemui") && !pkg.contains("inputmethod", true) && !pkg.contains("keyboard", true)) {
             fgPkg = pkg
             val pf = platformOf(pkg)
+            // saiu do Uber/99 (galeria, prints, outro app): nada de leitura e o quadro some
+            if (pf == null && attached && !shownSimulated) hide()
             if (pf != null && prefs.useOcr && ((pf == "99" && prefs.use99) || (pf == "Uber" && prefs.useUber))) { lastTargetEvent = SystemClock.uptimeMillis(); ensureOcrLoop() }
         }
         val platform = platformOf(pkg) ?: return
@@ -99,7 +108,7 @@ class CopilotService : AccessibilityService() {
             diag("[$platform] pkg=$pkg: nenhum texto legível nas janelas do app")
         } else {
             logSnapshot(platform, joined)
-            if ((!REQUIRE_OFFER_BUTTON || hasOfferButton(joined)) && !(LISTA.containsMatchIn(joined) && !hasOfferButton(joined))) {
+            if ((!REQUIRE_OFFER_BUTTON || hasOfferButton(joined)) && !(LISTA.containsMatchIn(joined) && !hasOfferButton(joined)) && !naoEhJanelaDeOferta(joined)) {
                 val offer = OfferParser.parse(OfferParser.platformOf(joined, platform), joined)
                 if (offer != null) {
                     show(Calc.analyze(offer, prefs), -1L)
@@ -129,7 +138,7 @@ class CopilotService : AccessibilityService() {
             val now = SystemClock.uptimeMillis()
             val fg = platformOf(fgPkg)
             val ligado = (fg == "99" && prefs.use99) || (fg == "Uber" && prefs.useUber)
-            if (prefs.enabled && prefs.calcEnabled && prefs.useOcr && (ligado || now - lastTargetEvent < 20000)) {
+            if (prefs.enabled && prefs.calcEnabled && prefs.useOcr && (ligado || (fgPkg.isEmpty() && now - lastTargetEvent < 20000))) {
                 tryOcr(fg ?: "99")
                 handler.postDelayed(this, 450)
             } else {
@@ -299,7 +308,7 @@ class CopilotService : AccessibilityService() {
         }
         // Oferta só conta quando está aberta (com botão Aceitar / Tenho interesse).
         // Na lista "Solicitações" do 99 (ou no "Radar de Viagens" do Uber) ela ainda não abriu.
-        val naLista = LISTA.containsMatchIn(joined) && !hasOfferButton(joined)
+        val naLista = (LISTA.containsMatchIn(joined) && !hasOfferButton(joined)) || naoEhJanelaDeOferta(joined)
         if (offer == null || naLista || !(hasOfferButton(joined) || offer.pickupKm > 0.0)) {
             // Sem oferta na tela: depois de alguns quadros seguidos, some com o painel antigo.
             pendingKey = ""; pendingCount = 0
