@@ -23,6 +23,10 @@ CONDOS = ('(way["landuse"="residential"]["name"]' + BB + ';rel["landuse"="reside
           ';way["landuse"="residential"]["access"="private"]' + BB + ';);out tags geom;')
 NOME_CONDO = re.compile(r"(?i)condom|resid|damha|dama|alphavil|village|vilage|ville|reserva|quinta|portal|terras|eco ?park|park|bosque|gardens?|green|lagoa|chac")
 
+# Mercados e supermercados (para o aviso "NÃO VOU")
+MERCADOS = ('(nwr["shop"~"^(supermarket|wholesale|convenience|greengrocer)$"]' + BB + ';);out tags center;')
+NOME_MERC = re.compile(r"(?i)merc|super|atacad|assa[ií]|comper|carrefour|p[aã]o de a[cç][uú]car|fort|hipe?r|empor|sacol|quitand|minimerc")
+
 PAVIM = {"asphalt", "paved", "concrete", "concrete:plates", "concrete:lanes", "paving_stones", "sett", "cobblestone",
          "unhewn_cobblestone", "metal", "wood", "chipseal"}
 TERRA = {"unpaved", "dirt", "earth", "ground", "gravel", "fine_gravel", "compacted", "sand", "grass", "mud", "pebblestone", "rock"}
@@ -177,6 +181,17 @@ def main():
         r["km_pav"], r["km_terra"], r["km_sem"] = o["pav"], o["terra"], 0.0
         r["oficial"] = True
 
+    mercados = []
+    for el in overpass(MERCADOS):
+        t = el.get("tags", {}); nome = t.get("name") or ""
+        if t.get("shop") != "supermarket" and not NOME_MERC.search(nome): continue
+        c = el.get("center") or {"lat": el.get("lat"), "lon": el.get("lon")}
+        if c.get("lat") is None: continue
+        rua = t.get("addr:street") or ""
+        num = re.sub(r"\D.*", "", t.get("addr:housenumber") or "")
+        mercados.append({"nome": nome or "Mercado", "rua": norm(rua) if rua else "", "num": int(num) if num else None,
+                         "lat": round(c["lat"], 6), "lon": round(c["lon"], 6)})
+
     saida = []
     for chave, r in sorted(ruas.items()):
         conhecido = r["km_pav"] + r["km_terra"]
@@ -192,13 +207,14 @@ def main():
                       "condominio": next((c for c, k in sorted(r["condo"].items(), key=lambda x: -x[1]) if r["km_osm"] and k / r["km_osm"] >= 0.6), None)})
     resumo = {p: sum(1 for s in saida if s["pavimento"] == p) for p in ("pavimentada", "terra", "misto", "sem_info")}
     import os; os.makedirs("dados", exist_ok=True)
-    json.dump({"versao": 3, "cidade": "Campo Grande - MS",
+    json.dump({"versao": 4, "cidade": "Campo Grande - MS",
                "gerado_em": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
                "fonte": "Pavimentação: Agetran/Sisgran - Prefeitura de Campo Grande. Ruas e bairros: © colaboradores do OpenStreetMap (ODbL)", "resumo": {"ruas": len(saida), **resumo},
                "bairros": sorted({b["nome"] for b in bairros if b["nivel"] != "9"} | {p[0] for p in pontos}),
                "condominios": sorted({c["nome"] for c in condos}),
+               "mercados": mercados,
                "ruas": saida}, open("dados/campo-grande-ruas.json", "w"), ensure_ascii=False, indent=0)
-    print("::notice::" + json.dumps({"ruas": len(saida), **resumo, "bairros_poligono": len(bairros), "bairros_ponto": len(pontos), "ruas_com_bairro": sum(1 for x in saida if x["bairros"]), "ruas_oficiais": len(ofi), "condominios": len(condos), "ruas_em_condominio": sum(1 for x in saida if x["condominio"])}))
+    print("::notice::" + json.dumps({"ruas": len(saida), **resumo, "bairros_poligono": len(bairros), "bairros_ponto": len(pontos), "ruas_com_bairro": sum(1 for x in saida if x["bairros"]), "ruas_oficiais": len(ofi), "condominios": len(condos), "ruas_em_condominio": sum(1 for x in saida if x["condominio"]), "mercados": len(mercados), "mercados_com_endereco": sum(1 for m in mercados if m["rua"] and m["num"])}))
 
 if __name__ == "__main__":
     try:
