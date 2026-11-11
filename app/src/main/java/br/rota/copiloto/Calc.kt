@@ -191,6 +191,27 @@ class Prefs(ctx: Context, override_: android.content.SharedPreferences? = null) 
         get() = sp.getBoolean("sumirJunto", true)
         set(v) { sp.edit().putBoolean("sumirJunto", v).apply() }
 
+    // cores livres (escolhidas no espectro) e piscadas por barra deslizante
+    var tagCorUber: Int
+        get() = sp.getInt("tagCorUber", 0xFF7C3AED.toInt())
+        set(v) { sp.edit().putInt("tagCorUber", v).apply() }
+    var tagCor99: Int
+        get() = sp.getInt("tagCor99", 0xFFEA580C.toInt())
+        set(v) { sp.edit().putInt("tagCor99", v).apply() }
+    var paradaCorInt: Int
+        get() = sp.getInt("paradaCorInt", intArrayOf(0xFFFF1F1F.toInt(), 0xFFFF7A00.toInt(), 0xFFFF2D95.toInt(), 0xFFFFD400.toInt())[paradaCor.coerceIn(0, 3)])
+        set(v) { sp.edit().putInt("paradaCorInt", v).apply() }
+    var topCorInt: Int
+        get() = sp.getInt("topCorInt", intArrayOf(0xFF39FF14.toInt(), 0xFF00F5D4.toInt(), 0xFFC6FF00.toInt(), 0xFF00E5FF.toInt())[topColor.coerceIn(0, 3)])
+        set(v) { sp.edit().putInt("topCorInt", v).apply() }
+    /** meia piscada em ms (menor = mais rápido); 70 ms é ultra rápido */
+    var paradaMs: Int
+        get() = sp.getInt("paradaMs", when (paradaVel) { 0 -> 900; 2 -> 250; else -> 450 })
+        set(v) { sp.edit().putInt("paradaMs", v.coerceIn(70, 1500)).apply() }
+    var topMs: Int
+        get() = sp.getInt("topMs", when (topSpeed) { 0 -> 1500; 2 -> 480; else -> 950 })
+        set(v) { sp.edit().putInt("topMs", v.coerceIn(70, 1500)).apply() }
+
     // ---- Destino: card do bairro, rua de terra e lista negra
     var bairroOn: Boolean
         get() = sp.getBoolean("bairroOn", true)

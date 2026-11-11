@@ -780,6 +780,125 @@ class MainActivity : Activity() {
         setPadding(dp(14), dp(12), dp(14), dp(12))
     }
 
+    // ---------- escolha de cor (espectro) e barra de velocidade ----------
+    private val PRESETS = intArrayOf(
+        0xFF7C3AED.toInt(), 0xFFEA580C.toInt(), 0xFF111418.toInt(), 0xFFFFFFFF.toInt(), 0xFF2563EB.toInt(), 0xFF16A34A.toInt(),
+        0xFFFF1F1F.toInt(), 0xFFFF2D95.toInt(), 0xFFFFD400.toInt(), 0xFF39FF14.toInt(), 0xFF00E5FF.toInt(), 0xFF8B5CF6.toInt()
+    )
+
+    private fun hex(c: Int) = String.format("#%06X", 0xFFFFFF and c)
+
+    private fun barra(cores: IntArray): android.graphics.drawable.GradientDrawable =
+        android.graphics.drawable.GradientDrawable(android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT, cores).apply { cornerRadius = dpf(10f) }
+
+    private fun dpf(v: Float) = v * resources.displayMetrics.density
+
+    /** Janela com o espectro: matiz, intensidade e brilho, mais cores prontas. */
+    private fun escolherCor(titulo: String, atual: Int, onOk: (Int) -> Unit) {
+        val hsv = FloatArray(3); Color.colorToHSV(atual, hsv)
+        val box = ui.vbox().apply { setPadding(dp(20), dp(12), dp(20), dp(4)) }
+        val amostra = ui.tv(hex(atual), 18f, Color.WHITE, 3, true).apply {
+            gravity = Gravity.CENTER; background = ui.round(atual, 16)
+        }
+        box.addView(amostra, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(64)))
+        val rainbow = IntArray(7) { Color.HSVToColor(floatArrayOf(it * 60f, 1f, 1f)) }
+        fun sb(max: Int, v: Int, fundo: android.graphics.drawable.GradientDrawable) = android.widget.SeekBar(this).apply {
+            this.max = max; progress = v
+            progressDrawable = fundo
+            minimumHeight = dp(28)
+            setPadding(dp(14), dp(10), dp(14), dp(10))
+        }
+        val gSat = barra(intArrayOf(Color.WHITE, Color.HSVToColor(floatArrayOf(hsv[0], 1f, 1f))))
+        val gVal = barra(intArrayOf(Color.BLACK, Color.HSVToColor(floatArrayOf(hsv[0], hsv[1], 1f))))
+        val sH = sb(360, hsv[0].toInt(), barra(rainbow))
+        val sS = sb(100, (hsv[1] * 100).toInt(), gSat)
+        val sV = sb(100, (hsv[2] * 100).toInt(), gVal)
+        fun atualiza() {
+            hsv[0] = sH.progress.toFloat(); hsv[1] = sS.progress / 100f; hsv[2] = sV.progress / 100f
+            gSat.colors = intArrayOf(Color.WHITE, Color.HSVToColor(floatArrayOf(hsv[0], 1f, 1f)))
+            gVal.colors = intArrayOf(Color.BLACK, Color.HSVToColor(floatArrayOf(hsv[0], hsv[1], 1f)))
+            val c = Color.HSVToColor(hsv)
+            amostra.background = ui.round(c, 16); amostra.text = hex(c)
+            amostra.setTextColor(if (hsv[2] > 0.75f && hsv[1] < 0.4f) Color.BLACK else Color.WHITE)
+        }
+        val ouvinte = object : android.widget.SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(s: android.widget.SeekBar?, v: Int, u: Boolean) { if (u) atualiza() }
+            override fun onStartTrackingTouch(s: android.widget.SeekBar?) {}
+            override fun onStopTrackingTouch(s: android.widget.SeekBar?) {}
+        }
+        listOf(sH, sS, sV).forEach { it.setOnSeekBarChangeListener(ouvinte) }
+        box.addView(ui.tv("Cor", 13f, C.MUTED, 2), ui.lp(top = 14)); box.addView(sH)
+        box.addView(ui.tv("Intensidade", 13f, C.MUTED, 2), ui.lp(top = 6)); box.addView(sS)
+        box.addView(ui.tv("Brilho", 13f, C.MUTED, 2), ui.lp(top = 6)); box.addView(sV)
+        val grade = android.widget.GridLayout(this).apply { columnCount = 6 }
+        PRESETS.forEach { pc ->
+            grade.addView(View(this).apply {
+                background = android.graphics.drawable.GradientDrawable().apply {
+                    shape = android.graphics.drawable.GradientDrawable.OVAL; setColor(pc); setStroke(dp(1), Color.parseColor("#C5CED7"))
+                }
+                contentDescription = hex(pc)
+                setOnClickListener {
+                    Color.colorToHSV(pc, hsv)
+                    sH.progress = hsv[0].toInt(); sS.progress = (hsv[1] * 100).toInt(); sV.progress = (hsv[2] * 100).toInt(); atualiza()
+                }
+            }, android.widget.GridLayout.LayoutParams().apply { width = dp(38); height = dp(38); setMargins(dp(4), dp(4), dp(4), dp(4)) })
+        }
+        box.addView(ui.tv("Cores prontas", 13f, C.MUTED, 2), ui.lp(top = 10))
+        box.addView(grade, ui.lp(top = 4))
+        AlertDialog.Builder(this)
+            .setTitle(titulo)
+            .setView(android.widget.ScrollView(this).apply { addView(box) })
+            .setPositiveButton("Usar esta cor") { _, _ -> onOk(Color.HSVToColor(hsv)); render() }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    /** Linha: nome, bolinha com a cor atual e botão que abre o espectro. */
+    private fun corRow(label: String, cor: Int, onPick: (Int) -> Unit): View {
+        val r = ui.hbox().apply { gravity = Gravity.CENTER_VERTICAL }
+        r.addView(ui.tv(label, 15f, C.TEXT, 2), ui.lp(0, weight = 1f))
+        r.addView(View(this).apply {
+            background = android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.OVAL; setColor(cor); setStroke(dp(2), Color.parseColor("#C5CED7"))
+            }
+            contentDescription = "Cor atual de $label"
+        }, LinearLayout.LayoutParams(dp(40), dp(40)).also { it.marginEnd = dp(10) })
+        r.addView(ui.button("Escolher cor", false) { escolherCor(label, cor, onPick) })
+        return r
+    }
+
+    /** Barra deslizante: da piscada lenta até a ultra rápida. */
+    private fun velocidadeRow(label: String, ms: Int, onSet: (Int) -> Unit): View {
+        val col = ui.vbox()
+        fun txt(v: Int): String {
+            val porSeg = 1000.0 / (2 * v)
+            val nome = when { v <= 120 -> "ultra rápida"; v <= 300 -> "rápida"; v <= 700 -> "normal"; else -> "lenta" }
+            return String.format(java.util.Locale("pt", "BR"), "%s · %.1f piscadas por segundo", nome, porSeg)
+        }
+        val topo = ui.hbox().apply { gravity = Gravity.CENTER_VERTICAL }
+        topo.addView(ui.tv(label, 15f, C.TEXT, 2), ui.lp(0, weight = 1f))
+        val valor = ui.tv(txt(ms), 12f, C.MUTED, 0)
+        col.addView(topo); col.addView(valor)
+        // posição 0 = lenta (1500 ms) ... 100 = ultra rápida (70 ms)
+        val sb = android.widget.SeekBar(this).apply {
+            max = 100
+            progress = ((1500 - ms) * 100 / 1430).coerceIn(0, 100)
+            setPadding(dp(14), dp(12), dp(14), dp(12))
+        }
+        val conv = { pr: Int -> 1500 - pr * 1430 / 100 }
+        sb.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(s: android.widget.SeekBar?, v: Int, u: Boolean) { valor.text = txt(conv(v)) }
+            override fun onStartTrackingTouch(s: android.widget.SeekBar?) {}
+            override fun onStopTrackingTouch(s: android.widget.SeekBar?) { onSet(conv(sb.progress)); render() }
+        })
+        col.addView(sb)
+        val leg = ui.hbox()
+        leg.addView(ui.tv("Lenta", 11f, C.MUTED, 0), ui.lp(0, weight = 1f))
+        leg.addView(ui.tv("Ultra rápida", 11f, C.MUTED, 0))
+        col.addView(leg)
+        return col
+    }
+
     private fun bolinhas(cores: IntArray, nomes: List<String>, sel: Int, onPick: (Int) -> Unit): View {
         val r = ui.hbox()
         cores.forEachIndexed { i, col ->
@@ -810,17 +929,15 @@ class MainActivity : Activity() {
         c1.addView(ui.tv("Nome do app (UBER / 99)", 16f, C.TEXT, 2))
         c1.addView(ui.tv("Tamanho", 14f, C.TEXT, 2), ui.lp(top = 12))
         c1.addView(ui.segmented(listOf("Pequeno", "Médio", "Grande"), p.appTagSize) { p.appTagSize = it; render() }, ui.lp(top = 8))
-        c1.addView(ui.tv("Cor", 14f, C.TEXT, 2), ui.lp(top = 14))
-        c1.addView(bolinhas(OverlayCard.TAG_CORES, OverlayCard.TAG_NOMES, p.appTagColor) { p.appTagColor = it; render() }, ui.lp(top = 8))
+        c1.addView(corRow("Cor do Uber", p.tagCorUber) { p.tagCorUber = it }, ui.lp(top = 16))
+        c1.addView(corRow("Cor do 99", p.tagCor99) { p.tagCor99 = it }, ui.lp(top = 12))
         box.addView(c1, ui.lp(top = 16))
 
         val c2 = ui.card()
         c2.addView(switchRow("Moldura piscante quando tem parada", p.paradaOn) { p.paradaOn = it; render() })
         c2.addView(stepperRow("Espessura da moldura", "${p.paradaEsp}", { p.paradaEsp = p.paradaEsp - 2; render() }, { p.paradaEsp = p.paradaEsp + 2; render() }), ui.lp(top = 14))
-        c2.addView(ui.tv("Cor da moldura", 14f, C.TEXT, 2), ui.lp(top = 14))
-        c2.addView(bolinhas(OverlayCard.PARADA_CORES, OverlayCard.PARADA_NOMES, p.paradaCor) { p.paradaCor = it; render() }, ui.lp(top = 8))
-        c2.addView(ui.tv("Velocidade da piscada", 14f, C.TEXT, 2), ui.lp(top = 14))
-        c2.addView(ui.segmented(listOf("Lenta", "Normal", "Rápida"), p.paradaVel) { p.paradaVel = it; render() }, ui.lp(top = 8))
+        c2.addView(corRow("Cor da moldura", p.paradaCorInt) { p.paradaCorInt = it }, ui.lp(top = 16))
+        c2.addView(velocidadeRow("Velocidade da piscada", p.paradaMs) { p.paradaMs = it }, ui.lp(top = 16))
         box.addView(c2, ui.lp(top = 16))
 
         val c3 = ui.card()
@@ -952,27 +1069,8 @@ class MainActivity : Activity() {
         )
         c.addView(ui.tv("Conta o km total: a busca até o passageiro mais a corrida. Só vale quando o quadro já está verde.", 11f, C.MUTED, 0), ui.lp(top = 4))
 
-        c.addView(ui.tv("Cor do destaque", 16f, C.TEXT, 2), ui.lp(top = 18))
-        val colors = ui.hbox()
-        OverlayCard.NEONS.forEachIndexed { i, col ->
-            val on = p.topColor == i
-            colors.addView(
-                View(this).apply {
-                    background = android.graphics.drawable.GradientDrawable().apply {
-                        shape = android.graphics.drawable.GradientDrawable.OVAL
-                        setColor(col)
-                        if (on) setStroke(dp(4), Color.parseColor("#1B2430"))
-                    }
-                    contentDescription = OverlayCard.NEON_NAMES[i]
-                    setOnClickListener { p.topColor = i; render() }
-                },
-                LinearLayout.LayoutParams(dp(46), dp(46)).also { it.marginEnd = dp(12) }
-            )
-        }
-        c.addView(colors, ui.lp(top = 8))
-
-        c.addView(ui.tv("Velocidade da piscada", 16f, C.TEXT, 2), ui.lp(top = 18))
-        c.addView(ui.segmented(listOf("Lenta", "Normal", "Rápida"), p.topSpeed) { p.topSpeed = it; render() }, ui.lp(top = 8))
+        c.addView(corRow("Cor do destaque", p.topCorInt) { p.topCorInt = it }, ui.lp(top = 18))
+        c.addView(velocidadeRow("Velocidade da piscada", p.topMs) { p.topMs = it }, ui.lp(top = 16))
 
         c.addView(switchRow("Vibrar ao detectar corrida TOP", p.topVibrate) { p.topVibrate = it; render() }, ui.lp(top = 18))
         c.addView(switchRow("Mostrar km total e valor abaixo do quadro", p.showTotals) { p.showTotals = it; render() }, ui.lp(top = 14))

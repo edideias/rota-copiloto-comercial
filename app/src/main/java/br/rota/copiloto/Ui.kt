@@ -294,12 +294,12 @@ object OverlayCard {
         if (a.offer.stops <= 0 || !p.paradaOn) return v
         val ui = Ui(ctx)
         val esp = ui.dp(p.paradaEsp)
-        val cor = PARADA_CORES[p.paradaCor.coerceIn(0, PARADA_CORES.size - 1)]
+        val cor = p.paradaCorInt
         val bg = GradientDrawable().apply { setColor(Color.TRANSPARENT); cornerRadius = ui.dpf(30f); setStroke(esp, cor) }
         val fr = android.widget.FrameLayout(ctx).apply { background = bg; setPadding(esp + ui.dp(2), esp + ui.dp(2), esp + ui.dp(2), esp + ui.dp(2)) }
         fr.addView(v)
         val anim = android.animation.ValueAnimator.ofFloat(1f, 0.15f).apply {
-            duration = when (p.paradaVel) { 0 -> 900L; 2 -> 250L; else -> 450L }
+            duration = p.paradaMs.toLong()
             repeatMode = android.animation.ValueAnimator.REVERSE
             repeatCount = android.animation.ValueAnimator.INFINITE
             addUpdateListener { bg.setStroke(esp, Color.argb((255 * (it.animatedValue as Float)).toInt(), Color.red(cor), Color.green(cor), Color.blue(cor))) }
@@ -328,7 +328,7 @@ object OverlayCard {
         }
         val theme = p.cardTheme
         val top = p.isTop(a)
-        val neon = NEONS[p.topColor.coerceIn(0, NEONS.size - 1)]
+        val neon = p.topCorInt
         val ink = Color.parseColor("#06210A")
         val bg = when {
             top -> neon
@@ -388,11 +388,12 @@ object OverlayCard {
             "99" -> "99"
             else -> "TESTE"
         }
-        val tagCor = TAG_CORES[p.appTagColor.coerceIn(0, TAG_CORES.size - 1)]
-        val tagTxt = if (tagCor == Color.WHITE) Color.parseColor("#1B1F24") else Color.WHITE
+        val tagCor = if (a.offer.platform == "Uber") p.tagCorUber else if (a.offer.platform == "99") p.tagCor99 else Color.GRAY
+        val clara = (Color.red(tagCor) * 299 + Color.green(tagCor) * 587 + Color.blue(tagCor) * 114) / 1000 > 160
+        val tagTxt = if (clara) Color.parseColor("#1B1F24") else Color.WHITE
         val tagEsc = when (p.appTagSize) { 0 -> 0.55f; 1 -> 0.75f; else -> 0.95f }
         foot.addView(ui.tv(badge, size * tagEsc, tagTxt, 3).apply {
-            background = ui.round(tagCor, 8, if (tagCor == Color.WHITE) 1 else 0, Color.parseColor("#1B1F24"))
+            background = ui.round(tagCor, 8, if (clara) 1 else 0, Color.parseColor("#1B1F24"))
             setPadding(ui.dp(10), ui.dp(2), ui.dp(10), ui.dp(2))
             setSingleLine(true)
         })
@@ -452,7 +453,7 @@ object OverlayCard {
         if (comBairro) box.addView(bairroCard(ctx, ui, dest, p.bairroStyle, size), ui.lp(top = 8))
 
         if (top) {
-            val period = when (p.topSpeed) { 0 -> 1500L; 2 -> 480L; else -> 950L }
+            val period = p.topMs.toLong()
             val halo = GradientDrawable().apply {
                 setColor(Color.TRANSPARENT)
                 cornerRadius = ui.dpf(30f)
