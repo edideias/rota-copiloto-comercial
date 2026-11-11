@@ -524,7 +524,7 @@ object OverlayCard {
             1 -> {
                 bg.cornerRadius = ui.dpf(40f)
                 val r = ui.hbox().apply { background = bg; setPadding(ui.dp(16), ui.dp(6), ui.dp(16), ui.dp(6)); gravity = Gravity.CENTER_VERTICAL }
-                r.addView(ui.tv(if (d.evitado) "⚠ EVITAR" else if (condo) "Condomínio" else "Bairro", size * 0.5f, Color.WHITE, 2).apply { alpha = 0.9f })
+                r.addView(ui.tv(if (d.evitado) "⚠ EVITAR" else if (condo) "Condomínio" else if (d.bairro == null) "Destino" else "Bairro", size * 0.5f, Color.WHITE, 2).apply { alpha = 0.9f })
                 r.addView(nomeTv, LinearLayout.LayoutParams(wrap, wrap).also { it.marginStart = ui.dp(8) })
                 if (terraTxt != null) r.addView(selo(ui, terraTxt, AMBAR, Color.parseColor("#2A1600"), size), LinearLayout.LayoutParams(wrap, wrap).also { it.marginStart = ui.dp(8) })
                 if (d.evitado) piscar(r, bg, AZUL, VERMELHO, true, ui) else if (condo) bg.setStroke(ui.dp(3), roxo)
