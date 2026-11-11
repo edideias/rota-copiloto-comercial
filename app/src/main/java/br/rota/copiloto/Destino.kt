@@ -25,7 +25,8 @@ object Destino {
         val pavimento: String?,      // terra, misto (parte terra) ou null quando é asfalto/sem aviso
         val evitado: Boolean,
         val negra: Negra?,
-        val condominio: String? = null   // destino dentro de condomínio fechado
+        val condominio: String? = null,  // destino dentro de condomínio fechado
+        val mercado: String? = null      // destino é mercado / supermercado
     ) {
         val vazio get() = bairro == null && rua == null
     }
@@ -57,6 +58,8 @@ object Destino {
     @Volatile private var ruas: Map<String, Rua> = emptyMap()
     @Volatile private var bairros: Map<String, String> = emptyMap()   // normalizado -> nome
     @Volatile private var condominios: Map<String, String> = emptyMap()   // normalizado -> nome
+    data class Mercado(val nome: String, val rua: String, val num: Int?)
+    @Volatile private var mercados: List<Mercado> = emptyList()
     @Volatile var dataBanco: String = ""
         private set
     @Volatile private var carregando = false
@@ -116,7 +119,12 @@ object Destino {
         val cs = HashMap<String, String>()
         val ca = o.optJSONArray("condominios") ?: JSONArray()
         for (i in 0 until ca.length()) ca.getString(i).let { cs[norm(it)] = it }
-        ruas = m; bairros = bm; condominios = cs
+        val ml = ArrayList<Mercado>()
+        val ma = o.optJSONArray("mercados") ?: JSONArray()
+        for (i in 0 until ma.length()) ma.getJSONObject(i).let { x ->
+            ml.add(Mercado(x.optString("nome"), x.optString("rua"), if (x.isNull("num")) null else x.optInt("num")))
+        }
+        ruas = m; bairros = bm; condominios = cs; mercados = ml
         dataBanco = o.optString("gerado_em").take(10)
     }
 
@@ -167,6 +175,25 @@ object Destino {
         return null
     }
 
+    /** Palavras que já dizem que o destino é mercado, mesmo sem estar no mapa. */
+    private val CARA_DE_MERCADO = Regex("""(?i)\b(super\s?mercado|supermerc|mercado|mercadinho|mercearia|minimercado|atacad[aã]o|atacadista|assa[ií]|comper|carrefour|p[aã]o de a[cç][uú]car|hipermercado|hiper)\b""")
+    private val MARCA_GENERICA = Regex("""(?i)^(mercado|supermercado|mercadinho|mercearia)$""")
+
+    /** O destino é um mercado? Pelo nome escrito, por um mercado conhecido do mapa, ou pelo endereço (mesma rua, número perto). */
+    private fun mercadoDe(dest: String, nd: String, ruaNorm: String?): String? {
+        CARA_DE_MERCADO.find(dest)?.let { return dest.substringBefore(",").trim().ifBlank { it.value } }
+        val alvo = " $nd "
+        mercados.firstOrNull { mk ->
+            val n = norm(mk.nome)
+            n.length >= 5 && !MARCA_GENERICA.matches(mk.nome) && alvo.contains(" $n ")
+        }?.let { return it.nome }
+        if (ruaNorm != null) {
+            val num = Regex("""(?:,|\s)\s*(\d{1,5})\b""").find(dest.substringAfter(ruaNorm.split(" ").last(), dest))?.groupValues?.get(1)?.toIntOrNull()
+            if (num != null) mercados.firstOrNull { it.rua == ruaNorm && it.num != null && Math.abs(it.num - num) <= 30 }?.let { return it.nome }
+        }
+        return null
+    }
+
     private val CARA_DE_CONDO = Regex("""(?i)condom|damha|alphavil|terras alpha|village|vilage|resid""")
 
     fun analisar(dest: String, p: Prefs): Info {
@@ -188,6 +215,7 @@ object Destino {
         val tudo = norm(listOfNotNull(dest, bairro, condominio, rua?.bairro).joinToString(" "))
         val negra = p.listaNegra.firstOrNull { bate(it.nome, tudo) }
         val pav = if (p.avisarTerra && (rua?.pavimento == "terra" || rua?.pavimento == "misto")) rua.pavimento else null
-        return Info(bairro, rua?.nome ?: ruaTxt, pav, evitado, negra, condominio)
+        val mercado = if (p.mercadoOn) mercadoDe(dest, nd, ruaTxt?.let { norm(it) }) else null
+        return Info(bairro, rua?.nome ?: ruaTxt, pav, evitado, negra, condominio, mercado)
     }
 }

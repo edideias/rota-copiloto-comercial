@@ -1060,6 +1060,14 @@ class MainActivity : Activity() {
         c3.addView(ui.segmented(listOf("Painel ao lado", "Cartaz por cima"), p.avisoStyle) { p.avisoStyle = it; render() }, ui.lp(top = 8))
         c3.addView(switchRow("Vibrar forte no aviso e no bairro evitado", p.avisoVibrar) { p.avisoVibrar = it; render() }, ui.lp(top = 14))
         box.addView(c3, ui.lp(top = 16))
+        val cm = ui.card()
+        cm.addView(switchRow("Mercado e supermercado: NÃO VOU", p.mercadoOn) { p.mercadoOn = it; render() })
+        cm.addView(ui.tv("Avisa quando o destino é mercado: pelo nome no endereço (mercado, supermercado, atacadão, Assaí, Comper...), pelos mercados conhecidos do mapa e pelo endereço deles. Mercado que o app não reconhecer, cadastre o endereço (rua e número) na lista negra.", 12f, C.MUTED, 0), ui.lp(top = 4))
+        val ml = campo("Primeira linha do aviso").apply { setText(p.mercadoLinha1) }
+        cm.addView(ml, ui.lp(top = 10))
+        cm.addView(ui.button("Salvar", false) { p.mercadoLinha1 = ml.text.toString().trim(); render() }, ui.lp(top = 8))
+        box.addView(cm, ui.lp(top = 16))
+
         val c4 = ui.card()
         c4.addView(switchRow("Avisar corrida com paradas demais", p.naoVouParadasOn) { p.naoVouParadasOn = it; render() })
         c4.addView(ui.tv("Mostra o mesmo aviso grande (com a segunda linha acima) quando a corrida tem paradas a partir do número escolhido.", 12f, C.MUTED, 0), ui.lp(top = 4))

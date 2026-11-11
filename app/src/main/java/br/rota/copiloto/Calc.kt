@@ -268,6 +268,13 @@ class Prefs(ctx: Context, override_: android.content.SharedPreferences? = null) 
         get() = sp.getInt("espacoCards", 3)
         set(v) { sp.edit().putInt("espacoCards", v.coerceIn(0, 20)).apply() }
 
+    var mercadoOn: Boolean
+        get() = sp.getBoolean("mercadoOn", true)
+        set(v) { sp.edit().putBoolean("mercadoOn", v).apply() }
+    var mercadoLinha1: String
+        get() = sp.getString("mercadoLinha1", "MERCADO") ?: "MERCADO"
+        set(v) { sp.edit().putString("mercadoLinha1", v).apply() }
+
     fun paradasDemais(stops: Int) = naoVouParadasOn && stops >= naoVouParadasMin
 
     // ---- Destino: card do bairro, rua de terra e lista negra

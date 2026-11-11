@@ -561,7 +561,7 @@ class CopilotService : AccessibilityService() {
         if (prefs.topVibrate && prefs.isTop(a)) vibrateTop()
         if (prefs.avisoVibrar) {
             val d = Destino.analisar(o.destText, prefs)
-            if (d.negra != null || d.evitado || prefs.paradasDemais(o.stops)) vibrateAlert()
+            if (d.negra != null || d.mercado != null || d.evitado || prefs.paradasDemais(o.stops)) vibrateAlert()
         }
         if (o.platform != "Simulação") saveShot(o.platform)
     }

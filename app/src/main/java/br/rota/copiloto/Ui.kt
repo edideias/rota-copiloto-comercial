@@ -430,7 +430,7 @@ object OverlayCard {
 
         val dest = Destino.analisar(a.offer.destText, p)
         val comBairro = p.bairroOn && !dest.vazio
-        if (!p.showTotals && !top && !comBairro && dest.negra == null && !p.paradasDemais(a.offer.stops)) return outer
+        if (!p.showTotals && !top && !comBairro && dest.negra == null && dest.mercado == null && !p.paradasDemais(a.offer.stops)) return outer
 
         // Envoltório: quadro + (km total e valor) em pílulas + brilho neon quando é corrida TOP
         val box = ui.vbox().apply { setPadding(ui.dp(p.espacoCards), ui.dp(p.espacoCards), ui.dp(p.espacoCards), ui.dp(p.espacoCards)) }
@@ -491,6 +491,7 @@ object OverlayCard {
         }
         val negra = when {
             dest.negra != null -> Destino.Negra(p.avisoLinha1, p.avisoLinha2)
+            dest.mercado != null -> Destino.Negra(p.mercadoLinha1, p.avisoLinha2)
             p.paradasDemais(a.offer.stops) -> Destino.Negra("${a.offer.stops} PARADAS", p.avisoLinha2)
             else -> return box
         }
