@@ -44,13 +44,13 @@ class CopilotService : AccessibilityService() {
         private const val REQUIRE_OFFER_BUTTON = true
         private val LISTA = Regex("""(?i)solicita[cç][oõ]es|buscando|radar de viagens""")
         /** Página de lista de corridas (dentro do app): várias ofertas, etiqueta "Nova", aba Entregas, botão Escolher. */
-        private val PAGINA_LISTA = Regex("""(?i)\b(negocia|pop|comfort|top|moto|plus|entrega|corrida|econ[oô]mico)\s+nova\b|\bescolher\b|\bentregas\b|\bordenar\b""")
+        private val PAGINA_LISTA = Regex("""(?i)\b(negocia|pop|comfort|top|moto|plus|entrega|corrida|econ[oô]mico)\s+nova\b|\bentregas\b|\bordenar\b""")
         private val PAR_TEMPO_KM = Regex("""(?i)\d+\s*min[^\d]{0,12}?\d+(?:[.,]\d+)?\s*k?m(?![a-z])""")
-        private val BOTAO = Regex("""(?i)aceitar por|tenho interesse""")
+        private val BOTAO = Regex("""(?i)aceitar por|tenho interesse|\bescolh""")
         /** Só a janela de oferta conta: lista de solicitações, abas do app e prints não. */
         private fun naoEhJanelaDeOferta(t: String): Boolean =
             PAGINA_LISTA.containsMatchIn(t) || BOTAO.findAll(t).count() >= 2 || PAR_TEMPO_KM.findAll(t).count() >= 3
-        private val OFFER_BUTTON_WORDS = listOf("aceitar", "tenho interesse", "selecionar")
+        private val OFFER_BUTTON_WORDS = listOf("aceitar", "tenho interesse", "selecionar", "escolher")
 
         private fun hasOfferButton(text: String): Boolean =
             OFFER_BUTTON_WORDS.any { text.contains(it, ignoreCase = true) }
