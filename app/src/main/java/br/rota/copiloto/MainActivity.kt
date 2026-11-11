@@ -1103,6 +1103,16 @@ class MainActivity : Activity() {
             ui.lp(top = 16)
         )
         c.addView(ui.tv("Conta o km total: a busca até o passageiro mais a corrida. Só vale quando o quadro já está verde.", 11f, C.MUTED, 0), ui.lp(top = 4))
+        c.addView(
+            stepperRow(
+                "Valor mínimo da corrida",
+                String.format(java.util.Locale("pt", "BR"), "R$ %.0f", p.topMinValorC / 100.0),
+                { p.topMinValorC = p.topMinValorC - 100; render() },
+                { p.topMinValorC = p.topMinValorC + 100; render() }
+            ),
+            ui.lp(top = 14)
+        )
+        c.addView(ui.tv("Corrida abaixo desse valor nunca é TOP, mesmo pagando bem por km.", 11f, C.MUTED, 0), ui.lp(top = 4))
 
         c.addView(corRow("Cor do destaque", p.topCorInt) { p.topCorInt = it }, ui.lp(top = 18))
         c.addView(velocidadeRow("Velocidade da piscada", p.topMs) { p.topMs = it }, ui.lp(top = 16))

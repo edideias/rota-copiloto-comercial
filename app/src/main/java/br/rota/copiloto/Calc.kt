@@ -352,7 +352,13 @@ class Prefs(ctx: Context, override_: android.content.SharedPreferences? = null) 
         set(v) { sp.edit().putBoolean("showTotals", v).apply() }
 
     /** A oferta é "TOP"? Só dentro do verde e a partir do mínimo por km. */
-    fun isTop(a: Analysis): Boolean = topOn && a.verdict == Verdict.GREEN && a.perKm >= topMinC / 100.0
+    /** valor mínimo da corrida para ser TOP (centavos); abaixo disso nunca é TOP */
+    var topMinValorC: Int
+        get() = sp.getInt("topMinValorC", 1000)
+        set(v) { sp.edit().putInt("topMinValorC", v.coerceIn(0, 20000)).apply() }
+
+    fun isTop(a: Analysis): Boolean = topOn && a.verdict == Verdict.GREEN && a.perKm >= topMinC / 100.0 &&
+        a.offer.value >= topMinValorC / 100.0
 
     /** Modelo visual do aplicativo (0 a 9). */
     var template: Int
