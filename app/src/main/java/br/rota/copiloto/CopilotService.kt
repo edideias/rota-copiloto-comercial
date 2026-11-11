@@ -106,6 +106,10 @@ class CopilotService : AccessibilityService() {
                     return
                 }
             }
+            // a oferta deste app saiu da tela: o quadro some na hora
+            if (attached && !shownSimulated && prefs.sumirJunto && shownKey.startsWith("$platform|") && !hasOfferButton(joined)) {
+                hide(); return
+            }
         }
 
         // 2) Plano B: lê a oferta por imagem (OCR no próprio aparelho).
@@ -299,7 +303,9 @@ class CopilotService : AccessibilityService() {
         if (offer == null || naLista || !(hasOfferButton(joined) || offer.pickupKm > 0.0)) {
             // Sem oferta na tela: depois de alguns quadros seguidos, some com o painel antigo.
             pendingKey = ""; pendingCount = 0
-            if (++noOfferFrames >= 3 && attached && !shownSimulated && prefs.sumirJunto) hide()
+            // sem nenhum "x min / y km" na tela a oferta já saiu: some na hora; se ainda há sinais dela, confirma com mais uma leitura
+            val restos = Regex("""(?i)\d+\s*min""").containsMatchIn(joined) && Regex("""(?i)\d\s*k?m\b""").containsMatchIn(joined)
+            if (++noOfferFrames >= (if (restos) 2 else 1) && attached && !shownSimulated && prefs.sumirJunto) hide()
             return
         }
         noOfferFrames = 0
