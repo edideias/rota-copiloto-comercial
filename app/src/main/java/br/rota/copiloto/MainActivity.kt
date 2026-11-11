@@ -920,7 +920,7 @@ class MainActivity : Activity() {
         box.addView(pageHeader("Aparência do quadro", "Ajuste como o quadro aparece em cima do Uber e do 99"))
 
         val prev = ui.vbox().apply { background = ui.round(C.BG, 14); setPadding(dp(14), dp(18), dp(14), dp(18)) }
-        val ex = Calc.analyze(Offer("99", 17.82, 2.7, 9.0, 13.3, 39.0, stops = 1, destText = "Rua Pio Rojas, 85 - Centro"), p)
+        val ex = Calc.analyze(Offer("99", 28.50, 2.7, 9.0, 13.3, 30.0, stops = 1, destText = "Rua Pio Rojas, 85 - Centro"), p)
         prev.addView(OverlayCard.build(this, ex, p), LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).also { it.gravity = Gravity.CENTER_HORIZONTAL })
         val c0 = ui.card(); c0.addView(ui.tv("Prévia (corrida de exemplo com parada)", 12f, C.MUTED, 0)); c0.addView(prev, ui.lp(top = 6))
         box.addView(c0, ui.lp(top = 20))
@@ -939,6 +939,13 @@ class MainActivity : Activity() {
         c2.addView(corRow("Cor da moldura", p.paradaCorInt) { p.paradaCorInt = it }, ui.lp(top = 16))
         c2.addView(velocidadeRow("Velocidade da piscada", p.paradaMs) { p.paradaMs = it }, ui.lp(top = 16))
         box.addView(c2, ui.lp(top = 16))
+
+        val ce = ui.card()
+        ce.addView(switchRow("Barra de lucro no quadro verde", p.eqOn) { p.eqOn = it; render() })
+        ce.addView(ui.tv("Igual equalizador de rádio: quanto mais a corrida paga por km, mais a barra sobe. O mínimo é o começo da barra e o máximo é o topo.", 12f, C.MUTED, 0), ui.lp(top = 4))
+        ce.addView(stepperRow("Mínimo (R$/km)", String.format(java.util.Locale("pt", "BR"), "R$ %.2f", p.eqMinC / 100.0), { p.eqMinC = p.eqMinC - 10; render() }, { p.eqMinC = minOf(p.eqMinC + 10, p.eqMaxC - 10); render() }), ui.lp(top = 12))
+        ce.addView(stepperRow("Máximo (R$/km)", String.format(java.util.Locale("pt", "BR"), "R$ %.2f", p.eqMaxC / 100.0), { p.eqMaxC = maxOf(p.eqMaxC - 10, p.eqMinC + 10); render() }, { p.eqMaxC = p.eqMaxC + 10; render() }), ui.lp(top = 12))
+        box.addView(ce, ui.lp(top = 16))
 
         val c3 = ui.card()
         c3.addView(switchRow("Sumir junto com a oferta", p.sumirJunto) { p.sumirJunto = it; render() })

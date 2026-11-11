@@ -224,6 +224,18 @@ class Prefs(ctx: Context, override_: android.content.SharedPreferences? = null) 
         get() = sp.getInt("telaTopRaio", 28)
         set(v) { sp.edit().putInt("telaTopRaio", v.coerceIn(0, 60)).apply() }
 
+    /** barra tipo equalizador no quadro verde: mostra o quanto a corrida paga dentro da faixa mínimo–máximo */
+    var eqOn: Boolean
+        get() = sp.getBoolean("eqOn", true)
+        set(v) { sp.edit().putBoolean("eqOn", v).apply() }
+    /** R$/km em centavos: começo e topo da barra */
+    var eqMinC: Int
+        get() = sp.getInt("eqMinC", Math.round(greenKm * 100).toInt())
+        set(v) { sp.edit().putInt("eqMinC", v.coerceIn(10, 1990)).apply() }
+    var eqMaxC: Int
+        get() = sp.getInt("eqMaxC", maxOf(topMinC, eqMinC + 50))
+        set(v) { sp.edit().putInt("eqMaxC", v.coerceIn(20, 2000)).apply() }
+
     // ---- Destino: card do bairro, rua de terra e lista negra
     var bairroOn: Boolean
         get() = sp.getBoolean("bairroOn", true)

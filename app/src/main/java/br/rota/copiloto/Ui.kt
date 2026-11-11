@@ -415,6 +415,19 @@ object OverlayCard {
         }
         outer.addView(foot, ui.lp(top = 4))
 
+        // Equalizador: só no quadro verde. Quanto mais a corrida paga por km, mais alto sobe.
+        if (a.verdict == Verdict.GREEN && p.eqOn) {
+            val inner = ui.vbox()
+            while (outer.childCount > 0) { val c = outer.getChildAt(0); outer.removeViewAt(0); inner.addView(c) }
+            outer.orientation = LinearLayout.HORIZONTAL
+            outer.addView(inner, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+            val lo = p.eqMinC / 100.0; val hi = maxOf(p.eqMaxC / 100.0, lo + 0.01)
+            val frac = ((a.perKm - lo) / (hi - lo)).coerceIn(0.0, 1.0)
+            outer.addView(Equalizador(ctx, frac, top), LinearLayout.LayoutParams(ui.dp(30), ViewGroup.LayoutParams.MATCH_PARENT).also {
+                it.marginStart = ui.dp(12); it.topMargin = ui.dp(2); it.bottomMargin = ui.dp(2)
+            })
+        }
+
         val dest = Destino.analisar(a.offer.destText, p)
         val comBairro = p.bairroOn && !dest.vazio
         if (!p.showTotals && !top && !comBairro && dest.negra == null) return outer
@@ -636,3 +649,38 @@ object OverlayCard {
     fun sampleTop(p: Prefs): Analysis =
         Calc.analyze(Offer("Uber", 36.0, 1.2, 4.0, 8.4, 22.0), p)
 }
+
+/** Barra vertical em blocos, como o equalizador de um rádio: acende de baixo para cima. */
+class Equalizador(ctx: Context, private val nivel: Double, private val noNeon: Boolean) : View(ctx) {
+    private val n = 10
+    private val p = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+    private val r = android.graphics.RectF()
+    private val d = ctx.resources.displayMetrics.density
+    // do verde-escuro (pouco lucro) ao verde neon (muito lucro)
+    private val cores = IntArray(n) { i ->
+        val t = i / (n - 1f)
+        android.animation.ArgbEvaluator().evaluate(t, Color.parseColor("#0E7A35"), Color.parseColor("#7CFF4F")) as Int
+    }
+    private val acesos = maxOf(1, Math.ceil(nivel * n).toInt())
+
+    init { minimumHeight = (70 * d).toInt(); contentDescription = "Lucro ${Math.round(nivel * 100)}% da faixa" }
+
+    override fun onDraw(c: android.graphics.Canvas) {
+        val w = width.toFloat(); val h = height.toFloat()
+        val gap = 2.5f * d
+        // moldura branca para destacar em cima do verde
+        p.style = android.graphics.Paint.Style.FILL
+        p.color = if (noNeon) Color.parseColor("#06210A") else Color.argb(90, 0, 0, 0)
+        r.set(0f, 0f, w, h); c.drawRoundRect(r, 6 * d, 6 * d, p)
+        val pad = 3 * d
+        val seg = (h - 2 * pad - gap * (n - 1)) / n
+        for (i in 0 until n) {
+            val bottom = h - pad - i * (seg + gap)
+            val topY = bottom - seg
+            r.set(pad, topY, w - pad, bottom)
+            p.color = if (i < acesos) cores[i] else Color.argb(55, 255, 255, 255)
+            c.drawRoundRect(r, 3 * d, 3 * d, p)
+        }
+    }
+}
+
