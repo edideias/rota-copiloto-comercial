@@ -129,7 +129,14 @@ class Prefs(ctx: Context, override_: android.content.SharedPreferences? = null) 
         get() = d("costPerKm", 0.60)
         set(v) = putD("costPerKm", v)
     var overlayTopDp: Double
-        get() = d("overlayTopDp", 80.0)
+        get() {
+            // altura padrão desceu para não cobrir o X (recusar) do 99; quem estava no padrão antigo desce junto, uma vez
+            if (!sp.getBoolean("alturaV2", false)) {
+                if (d("overlayTopDp", 80.0) <= 80.0) putD("overlayTopDp", 135.0)
+                sp.edit().putBoolean("alturaV2", true).apply()
+            }
+            return d("overlayTopDp", 135.0)
+        }
         set(v) = putD("overlayTopDp", v)
 
     var enabled: Boolean
