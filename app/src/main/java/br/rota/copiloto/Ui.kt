@@ -433,7 +433,7 @@ object OverlayCard {
         if (!p.showTotals && !top && !comBairro && dest.negra == null) return outer
 
         // Envoltório: quadro + (km total e valor) em pílulas + brilho neon quando é corrida TOP
-        val box = ui.vbox().apply { setPadding(ui.dp(8), ui.dp(8), ui.dp(8), ui.dp(8)) }
+        val box = ui.vbox().apply { setPadding(ui.dp(3), ui.dp(3), ui.dp(3), ui.dp(3)) }
         box.addView(outer)
         if (p.showTotals) {
             val pills = ui.hbox()
@@ -444,7 +444,7 @@ object OverlayCard {
                         cornerRadius = ui.dpf(40f)
                         setStroke(ui.dp(2), stroke)
                     }
-                    setPadding(ui.dp(16), ui.dp(5), ui.dp(16), ui.dp(5))
+                    setPadding(ui.dp(14), ui.dp(2), ui.dp(14), ui.dp(3))
                 }
                 v.addView(ui.tv(label, size * 0.45f, txt, 3).apply { alpha = 0.8f })
                 v.addView(ui.tv(value, size * 1.1f, txt, 3).apply { setSingleLine(true); maxLines = 1; ellipsize = null })
@@ -459,11 +459,11 @@ object OverlayCard {
             // largura natural primeiro (o valor nunca quebra em duas linhas); a sobra é dividida igual
             val wrap = ViewGroup.LayoutParams.WRAP_CONTENT
             pills.addView(km, LinearLayout.LayoutParams(wrap, wrap, 1f))
-            pills.addView(vl, LinearLayout.LayoutParams(wrap, wrap, 1f).also { it.marginStart = ui.dp(8) })
-            box.addView(pills, ui.lp(top = 8))
+            pills.addView(vl, LinearLayout.LayoutParams(wrap, wrap, 1f).also { it.marginStart = ui.dp(4) })
+            box.addView(pills, ui.lp(top = 3))
         }
 
-        if (comBairro) box.addView(bairroCard(ctx, ui, dest, p.bairroStyle, size), ui.lp(top = 8))
+        if (comBairro) box.addView(bairroCard(ctx, ui, dest, p.bairroStyle, size), ui.lp(top = 3))
 
         if (top) {
             val period = p.topMs.toLong()
@@ -589,10 +589,9 @@ object OverlayCard {
 
     private fun conteudoNegra(ui: Ui, n: Destino.Negra, size: Float, grande: Boolean): LinearLayout {
         val c = ui.vbox().apply { gravity = Gravity.CENTER_HORIZONTAL }
-        c.addView(ui.tv("⛔", size * (if (grande) 2.2f else 1.6f), Color.WHITE, 3, true))
-        c.addView(ui.tv("PURA BUCHA", size * (if (grande) 1.1f else 0.75f), Color.WHITE, 3, true), ui.lp(top = 4))
-        c.addView(ui.tv(n.nome, size * 0.55f, Color.WHITE, 2, true).apply { maxWidth = ui.dp(if (grande) 280 else 200) }, ui.lp(top = 4))
-        if (n.motivo.isNotBlank()) c.addView(ui.tv("“${n.motivo}”", size * 0.48f, Color.WHITE, 0, true).apply { alpha = 0.9f; maxWidth = ui.dp(if (grande) 280 else 200) }, ui.lp(top = 2))
+        c.addView(ui.tv("⛔", size * (if (grande) 2.0f else 1.4f), Color.WHITE, 3, true))
+        c.addView(ui.tv("CONDOMÍNIO", size * (if (grande) 1.05f else 0.7f), Color.WHITE, 3, true), ui.lp(top = 2))
+        c.addView(ui.tv("NÃO VOU", size * (if (grande) 1.3f else 0.9f), Color.WHITE, 3, true))
         return c
     }
 
@@ -601,14 +600,14 @@ object OverlayCard {
         val livre = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
         box.measure(livre, livre)
         val tela = ctx.resources.displayMetrics.widthPixels - ui.dp(24)
-        val cabeAoLado = box.measuredWidth + ui.dp(150) <= tela
+        val cabeAoLado = box.measuredWidth + ui.dp(126) <= tela
         if (!cabeAoLado) {
             // não cabe ao lado: o aviso vai logo abaixo do quadro, na largura dele
             val col = ui.vbox()
             col.addView(box)
             val bg2 = GradientDrawable().apply { setColor(Color.parseColor("#B91C1C")); cornerRadius = ui.dpf(22f) }
-            val p2 = conteudoNegra(ui, n, size, false).apply { background = bg2; gravity = Gravity.CENTER; setPadding(ui.dp(12), ui.dp(12), ui.dp(12), ui.dp(12)) }
-            col.addView(p2, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).also { it.topMargin = ui.dp(8) })
+            val p2 = conteudoNegra(ui, n, size, false).apply { background = bg2; gravity = Gravity.CENTER; setPadding(ui.dp(10), ui.dp(6), ui.dp(10), ui.dp(6)) }
+            col.addView(p2, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).also { it.topMargin = ui.dp(3) })
             piscar(p2, bg2, Color.parseColor("#B91C1C"), Color.parseColor("#EF4444"), true, ui)
             return col
         }
@@ -619,7 +618,7 @@ object OverlayCard {
             background = bg; gravity = Gravity.CENTER
             setPadding(ui.dp(10), ui.dp(14), ui.dp(10), ui.dp(14))
         }
-        row.addView(painel, LinearLayout.LayoutParams(ui.dp(140), ViewGroup.LayoutParams.MATCH_PARENT).also { it.marginStart = ui.dp(4); it.topMargin = ui.dp(8); it.bottomMargin = ui.dp(8) })
+        row.addView(painel, LinearLayout.LayoutParams(ui.dp(120), ViewGroup.LayoutParams.MATCH_PARENT).also { it.marginStart = ui.dp(3); it.topMargin = ui.dp(3); it.bottomMargin = ui.dp(3) })
         piscar(painel, bg, Color.parseColor("#B91C1C"), Color.parseColor("#EF4444"), true, ui)
         return row
     }
