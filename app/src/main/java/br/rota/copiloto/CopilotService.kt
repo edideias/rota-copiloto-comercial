@@ -448,7 +448,11 @@ class CopilotService : AccessibilityService() {
 
             val box = overlay ?: FrameLayout(this).also { overlay = it }
             box.removeAllViews()
-            box.addView(OverlayCard.build(this, a, prefs))
+            // nunca cortado: se não couber entre a posição escolhida e a borda da tela, o quadro encolhe por igual
+            val dm = resources.displayMetrics
+            val maxW = dm.widthPixels - dp(24)
+            val maxH = dm.heightPixels - dp(prefs.overlayTopDp.toInt()) - dp(24)
+            box.addView(Encaixe(this, maxW, maxH).apply { addView(OverlayCard.build(this@CopilotService, a, prefs)) })
             box.setOnClickListener { dismiss() }
 
             var lp = overlayLp

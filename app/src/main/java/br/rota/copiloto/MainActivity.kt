@@ -694,7 +694,7 @@ class MainActivity : Activity() {
             else -> Gravity.CENTER_HORIZONTAL
         }
         prev.addView(
-            OverlayCard.build(this, OverlayCard.sample(p), p),
+            Encaixe(this, resources.displayMetrics.widthPixels - dp(80), dp(900)).apply { addView(OverlayCard.build(this@MainActivity, OverlayCard.sample(p), p)) },
             LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).also { it.gravity = g }
         )
         c.addView(prev)
@@ -921,7 +921,7 @@ class MainActivity : Activity() {
 
         val prev = ui.vbox().apply { background = ui.round(C.BG, 14); setPadding(dp(14), dp(18), dp(14), dp(18)) }
         val ex = Calc.analyze(Offer("99", 28.50, 2.7, 9.0, 13.3, 30.0, stops = 1, destText = "Rua Pio Rojas, 85 - Centro"), p)
-        prev.addView(OverlayCard.build(this, ex, p), LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).also { it.gravity = Gravity.CENTER_HORIZONTAL })
+        prev.addView(Encaixe(this, resources.displayMetrics.widthPixels - dp(80), dp(900)).apply { addView(OverlayCard.build(this@MainActivity, ex, p)) }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).also { it.gravity = Gravity.CENTER_HORIZONTAL })
         val c0 = ui.card(); c0.addView(ui.tv("Prévia (corrida de exemplo com parada)", 12f, C.MUTED, 0)); c0.addView(prev, ui.lp(top = 6))
         box.addView(c0, ui.lp(top = 20))
 
@@ -1060,7 +1060,7 @@ class MainActivity : Activity() {
             setPadding(dp(14), dp(18), dp(14), dp(18))
         }
         prev.addView(
-            OverlayCard.build(this, OverlayCard.sampleTop(p), p),
+            Encaixe(this, resources.displayMetrics.widthPixels - dp(80), dp(900)).apply { addView(OverlayCard.build(this@MainActivity, OverlayCard.sampleTop(p), p)) },
             LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).also { it.gravity = Gravity.CENTER_HORIZONTAL }
         )
         c.addView(prev)
@@ -1101,7 +1101,7 @@ class MainActivity : Activity() {
             layoutParams = LinearLayout.LayoutParams(dp(40), dp(40))
         }
         r.addView(btn("−", onMinus))
-        r.addView(ui.tv(value, 16f, C.PURPLE, 3, true), LinearLayout.LayoutParams(dp(52), LinearLayout.LayoutParams.WRAP_CONTENT))
+        r.addView(ui.tv(value, 16f, C.PURPLE, 3, true).apply { minWidth = dp(52); setPadding(dp(6), 0, dp(6), 0) }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT))
         r.addView(btn("+", onPlus))
         return r
     }
@@ -1148,7 +1148,7 @@ class MainActivity : Activity() {
             setPadding(dp(20), dp(24), dp(20), dp(24))
         }
         prev.addView(
-            OverlayCard.build(this, OverlayCard.sample(p), p),
+            Encaixe(this, resources.displayMetrics.widthPixels - dp(80), dp(900)).apply { addView(OverlayCard.build(this@MainActivity, OverlayCard.sample(p), p)) },
             LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).also { it.gravity = Gravity.CENTER_HORIZONTAL }
         )
         box.addView(prev)

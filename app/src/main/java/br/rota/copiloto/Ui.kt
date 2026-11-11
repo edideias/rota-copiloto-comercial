@@ -518,10 +518,10 @@ object OverlayCard {
     }
 
     private fun selo(ui: Ui, txt: String, fundo: Int, cor: Int, size: Float): TextView =
-        ui.tv(txt, size * 0.45f, cor, 3).apply {
+        ui.tv(txt, size * 0.68f, cor, 3).apply {
             background = ui.round(fundo, 20)
-            setPadding(ui.dp(8), ui.dp(2), ui.dp(8), ui.dp(2))
-            setSingleLine(true)
+            setPadding(ui.dp(12), ui.dp(4), ui.dp(12), ui.dp(4))
+            maxLines = 2; maxWidth = ui.dp(240)
         }
 
     /** Card azul do bairro de destino nos 3 modelos (A faixa larga, B pílula fina, C placa com status). */
@@ -529,10 +529,11 @@ object OverlayCard {
         val nome = d.condominio ?: d.bairro ?: d.rua ?: ""
         val condo = d.condominio != null
         val roxo = Color.parseColor("#7C3AED")
-        val terraTxt = when (d.pavimento) { "terra" -> "TERRA"; "misto" -> "PARTE TERRA"; else -> null }
+        // só a RUA do destino: aparece apenas quando ela é de terra (asfalto não precisa aviso)
+        val terraTxt = when (d.pavimento) { "terra" -> "RUA DE TERRA"; "misto" -> "RUA COM TRECHO DE TERRA"; else -> null }
         val bg = GradientDrawable().apply { setColor(AZUL) }
         val wrap = ViewGroup.LayoutParams.WRAP_CONTENT
-        val nomeTv = ui.tv(nome, size * 0.95f, Color.WHITE, 3).apply { setSingleLine(true); ellipsize = null }
+        val nomeTv = ui.tv(nome, size * 0.95f, Color.WHITE, 3).apply { maxLines = 2; maxWidth = ui.dp(270) }
         when (estilo) {
             1 -> {
                 bg.cornerRadius = ui.dpf(40f)
@@ -550,12 +551,12 @@ object OverlayCard {
                 esq.addView(ui.tv(if (condo) "CONDOMÍNIO FECHADO" else "BAIRRO DE DESTINO", size * 0.42f, Color.WHITE, 2).apply { alpha = 0.85f })
                 esq.addView(nomeTv)
                 val sub2 = if (condo) listOfNotNull(d.rua, d.bairro?.takeIf { it != d.condominio }).joinToString(" · ") else if (d.bairro != null) d.rua ?: "" else ""
-                if (sub2.isNotBlank()) esq.addView(ui.tv(sub2, size * 0.48f, Color.WHITE, 0).apply { alpha = 0.9f; setSingleLine(true) })
+                if (sub2.isNotBlank()) esq.addView(ui.tv(sub2, size * 0.48f, Color.WHITE, 0).apply { alpha = 0.9f; maxLines = 2; maxWidth = ui.dp(270) })
                 r.addView(esq, LinearLayout.LayoutParams(wrap, wrap, 1f))
                 val (tag, cor) = when { d.evitado -> "EVITAR" to VERMELHO; condo -> "CONDOM." to roxo; terraTxt != null -> terraTxt to AMBAR; else -> "OK" to Color.parseColor("#60A5FA") }
                 val ladoBg = GradientDrawable().apply { setColor(cor); cornerRadii = floatArrayOf(0f, 0f, ui.dpf(20f), ui.dpf(20f), ui.dpf(20f), ui.dpf(20f), 0f, 0f) }
                 val lado = ui.tv(tag, size * 0.55f, if (cor == AMBAR) Color.parseColor("#2A1600") else Color.WHITE, 3, true).apply {
-                    background = ladoBg; gravity = Gravity.CENTER; setPadding(ui.dp(12), 0, ui.dp(12), 0); setSingleLine(true)
+                    background = ladoBg; gravity = Gravity.CENTER; setPadding(ui.dp(12), ui.dp(4), ui.dp(12), ui.dp(4)); maxLines = 3; maxWidth = ui.dp(120)
                 }
                 r.addView(lado, LinearLayout.LayoutParams(wrap, ViewGroup.LayoutParams.MATCH_PARENT))
                 if (d.evitado) piscar(lado, ladoBg, VERMELHO, Color.parseColor("#7F1D1D"), false, ui)
@@ -574,10 +575,11 @@ object OverlayCard {
                 col.addView(nomeTv)
                 val linha = ui.hbox().apply { gravity = Gravity.CENTER_VERTICAL }
                 val sub3 = if (condo) listOfNotNull(d.rua, d.bairro?.takeIf { it != d.condominio }).joinToString(" · ") else if (d.bairro != null) d.rua ?: "" else ""
-                if (sub3.isNotBlank()) linha.addView(ui.tv(sub3, size * 0.48f, Color.WHITE, 0).apply { setSingleLine(true) })
-                if (terraTxt != null) linha.addView(selo(ui, terraTxt, AMBAR, Color.parseColor("#2A1600"), size), LinearLayout.LayoutParams(wrap, wrap).also { it.marginStart = ui.dp(6) })
+                if (sub3.isNotBlank()) linha.addView(ui.tv(sub3, size * 0.48f, Color.WHITE, 0).apply { maxLines = 2; maxWidth = ui.dp(240) })
+
                 if (condo && !d.evitado) bg.setStroke(ui.dp(3), roxo)
                 if (linha.childCount > 0) col.addView(linha)
+                if (terraTxt != null) col.addView(selo(ui, terraTxt, AMBAR, Color.parseColor("#2A1600"), size), LinearLayout.LayoutParams(wrap, wrap).also { it.topMargin = ui.dp(4) })
                 r.addView(col, LinearLayout.LayoutParams(wrap, wrap, 1f))
                 if (d.evitado) piscar(r, bg, AZUL, VERMELHO, true, ui)
                 return r
@@ -589,13 +591,27 @@ object OverlayCard {
         val c = ui.vbox().apply { gravity = Gravity.CENTER_HORIZONTAL }
         c.addView(ui.tv("⛔", size * (if (grande) 2.2f else 1.6f), Color.WHITE, 3, true))
         c.addView(ui.tv("PURA BUCHA", size * (if (grande) 1.1f else 0.75f), Color.WHITE, 3, true), ui.lp(top = 4))
-        c.addView(ui.tv(n.nome, size * 0.55f, Color.WHITE, 2, true), ui.lp(top = 4))
-        if (n.motivo.isNotBlank()) c.addView(ui.tv("“${n.motivo}”", size * 0.48f, Color.WHITE, 0, true).apply { alpha = 0.9f }, ui.lp(top = 2))
+        c.addView(ui.tv(n.nome, size * 0.55f, Color.WHITE, 2, true).apply { maxWidth = ui.dp(if (grande) 280 else 200) }, ui.lp(top = 4))
+        if (n.motivo.isNotBlank()) c.addView(ui.tv("“${n.motivo}”", size * 0.48f, Color.WHITE, 0, true).apply { alpha = 0.9f; maxWidth = ui.dp(if (grande) 280 else 200) }, ui.lp(top = 2))
         return c
     }
 
     /** Opção 1: painel vermelho grande ao lado do quadro. */
     private fun painelNegra(ctx: Context, ui: Ui, box: View, n: Destino.Negra, size: Float): View {
+        val livre = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        box.measure(livre, livre)
+        val tela = ctx.resources.displayMetrics.widthPixels - ui.dp(24)
+        val cabeAoLado = box.measuredWidth + ui.dp(150) <= tela
+        if (!cabeAoLado) {
+            // não cabe ao lado: o aviso vai logo abaixo do quadro, na largura dele
+            val col = ui.vbox()
+            col.addView(box)
+            val bg2 = GradientDrawable().apply { setColor(Color.parseColor("#B91C1C")); cornerRadius = ui.dpf(22f) }
+            val p2 = conteudoNegra(ui, n, size, false).apply { background = bg2; gravity = Gravity.CENTER; setPadding(ui.dp(12), ui.dp(12), ui.dp(12), ui.dp(12)) }
+            col.addView(p2, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).also { it.topMargin = ui.dp(8) })
+            piscar(p2, bg2, Color.parseColor("#B91C1C"), Color.parseColor("#EF4444"), true, ui)
+            return col
+        }
         val row = ui.hbox().apply { gravity = Gravity.CENTER_VERTICAL }
         row.addView(box)
         val bg = GradientDrawable().apply { setColor(Color.parseColor("#B91C1C")); cornerRadius = ui.dpf(22f) }
@@ -705,3 +721,24 @@ class Equalizador(ctx: Context, private val nivel: Double, private val noNeon: B
         }
     }
 }
+
+/**
+ * Encaixa o quadro na tela: mede tudo no tamanho natural e, se não couber na largura
+ * ou na altura disponível, reduz por igual (escala). Nada é cortado.
+ */
+class Encaixe(ctx: Context, private val maxW: Int, private val maxH: Int) : android.widget.FrameLayout(ctx) {
+    override fun onMeasure(wSpec: Int, hSpec: Int) {
+        val c = if (childCount > 0) getChildAt(0) else { setMeasuredDimension(0, 0); return }
+        val livre = MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED)
+        c.measure(livre, livre)
+        val cw = c.measuredWidth.coerceAtLeast(1); val ch = c.measuredHeight.coerceAtLeast(1)
+        val s = minOf(1f, maxW.toFloat() / cw, maxH.toFloat() / ch)
+        c.pivotX = 0f; c.pivotY = 0f; c.scaleX = s; c.scaleY = s
+        setMeasuredDimension(Math.ceil(cw * s.toDouble()).toInt(), Math.ceil(ch * s.toDouble()).toInt())
+    }
+
+    override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
+        if (childCount > 0) { val c = getChildAt(0); c.layout(0, 0, c.measuredWidth, c.measuredHeight) }
+    }
+}
+
