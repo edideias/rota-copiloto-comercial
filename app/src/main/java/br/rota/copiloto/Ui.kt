@@ -428,7 +428,7 @@ object OverlayCard {
             })
         }
 
-        val dest = Destino.analisar(a.offer.destText, p)
+        val dest = Destino.analisar(a.offer.destText, p, a.offer.pickupText)
         val comBairro = p.bairroOn && !dest.vazio
         if (!p.showTotals && !top && !comBairro && dest.negra == null && dest.mercado == null && !p.paradasDemais(a.offer.stops)) return outer
 

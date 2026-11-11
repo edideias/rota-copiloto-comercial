@@ -196,7 +196,7 @@ object Destino {
 
     private val CARA_DE_CONDO = Regex("""(?i)condom|damha|alphavil|terras alpha|village|vilage|resid""")
 
-    fun analisar(dest: String, p: Prefs): Info {
+    fun analisar(dest: String, p: Prefs, embarque: String = ""): Info {
         if (dest.isBlank()) return Info(null, null, null, false, null)
         val ruaTxt = ruaRx.find(dest)?.value?.trim()
         val rua = ruaTxt?.let { ruas[norm(it)] }
@@ -215,7 +215,9 @@ object Destino {
         val tudo = norm(listOfNotNull(dest, bairro, condominio, rua?.bairro).joinToString(" "))
         val negra = p.listaNegra.firstOrNull { bate(it.nome, tudo) }
         val pav = if (p.avisarTerra && (rua?.pavimento == "terra" || rua?.pavimento == "misto")) rua.pavimento else null
-        val mercado = if (p.mercadoOn) mercadoDe(dest, nd, ruaTxt?.let { norm(it) }) else null
+        // mercado só importa no EMBARQUE (destino em mercado não tem problema)
+        val mercado = if (p.mercadoOn && embarque.isNotBlank())
+            mercadoDe(embarque, norm(embarque), ruaRx.find(embarque)?.value?.trim()?.let { norm(it) }) else null
         return Info(bairro, rua?.nome ?: ruaTxt, pav, evitado, negra, condominio, mercado)
     }
 }

@@ -440,7 +440,7 @@ class CopilotService : AccessibilityService() {
     private fun show(a: Analysis, holdMs: Long) {
         try {
             val o = a.offer
-            val key = "${o.platform}|${o.value}|${o.pickupKm}|${o.tripKm}|${o.stops}|${Destino.analisar(o.destText, prefs).let { it.bairro ?: it.rua ?: "" }}"
+            val key = "${o.platform}|${o.value}|${o.pickupKm}|${o.tripKm}|${o.stops}|${Destino.analisar(o.destText, prefs, o.pickupText).let { it.bairro ?: it.rua ?: "" }}"
             val now = SystemClock.uptimeMillis()
             val simulated = holdMs >= 0
             if (simulated) {
@@ -560,7 +560,7 @@ class CopilotService : AccessibilityService() {
         notifyOffer(a)
         if (prefs.topVibrate && prefs.isTop(a)) vibrateTop()
         if (prefs.avisoVibrar) {
-            val d = Destino.analisar(o.destText, prefs)
+            val d = Destino.analisar(o.destText, prefs, o.pickupText)
             if (d.negra != null || d.mercado != null || d.evitado || prefs.paradasDemais(o.stops)) vibrateAlert()
         }
         if (o.platform != "Simulação") saveShot(o.platform)

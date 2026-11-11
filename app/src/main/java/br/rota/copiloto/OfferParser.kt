@@ -58,10 +58,25 @@ object OfferParser {
     fun parse(platform: String, text: String): Offer? {
         val o = parseBase(platform, text) ?: return null
         val s = readStops(text)
-        return o.copy(stops = if (s > 0) s else o.stops, destText = readDest(text))
+        return o.copy(stops = if (s > 0) s else o.stops, destText = readDest(text), pickupText = readPickup(text))
     }
 
     private val fimDest = Regex("""(?i)aceitar|recusar|tenho interesse|n[aã]o tenho|tentando|selecionar|confirmar|R\$|\bvoltar\b|\bverificad|corridas|\buberx\b|\bcomfort\b|★""")
+
+    private val fimEmbarque = Regex("""(?i)\d[,.]\d{1,2}\s*\(|\bverificad|\d+\s*parada|aceitar|tenho interesse|★|R\$|perfil premium|passageiro novo""")
+
+    /** Texto entre o primeiro "x min (y km)" e o segundo: é o endereço de embarque. */
+    fun readPickup(text: String): String {
+        val todos = (minKmRx.findAll(text) + kmMinRx.findAll(text)).sortedBy { it.range.first }.toList()
+        val inicios = todos.map { it.range.first }.distinct()
+        if (inicios.size < 2) return ""
+        val primeiro = todos.first()
+        val segundo = todos.firstOrNull { it.range.first > primeiro.range.last } ?: return ""
+        var e = text.substring(primeiro.range.last + 1, segundo.range.first)
+        fimEmbarque.find(e)?.let { e = e.substring(0, it.range.first) }
+        e = e.replace(Regex("""\s*\|\s*"""), " ").replace(Regex("""^[\s,)•·]+|[\s,•·(]+$"""), "")
+        return e.replace(Regex("""\s+"""), " ").take(180)
+    }
 
     /** Texto logo depois do último "x min (y km)": é o endereço de destino. */
     fun readDest(text: String): String {

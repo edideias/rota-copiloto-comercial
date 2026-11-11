@@ -1061,8 +1061,8 @@ class MainActivity : Activity() {
         c3.addView(switchRow("Vibrar forte no aviso e no bairro evitado", p.avisoVibrar) { p.avisoVibrar = it; render() }, ui.lp(top = 14))
         box.addView(c3, ui.lp(top = 16))
         val cm = ui.card()
-        cm.addView(switchRow("Mercado e supermercado: NÃO VOU", p.mercadoOn) { p.mercadoOn = it; render() })
-        cm.addView(ui.tv("Avisa quando o destino é mercado: pelo nome no endereço (mercado, supermercado, atacadão, Assaí, Comper...), pelos mercados conhecidos do mapa e pelo endereço deles. Mercado que o app não reconhecer, cadastre o endereço (rua e número) na lista negra.", 12f, C.MUTED, 0), ui.lp(top = 4))
+        cm.addView(switchRow("Embarque em mercado ou supermercado: NÃO VOU", p.mercadoOn) { p.mercadoOn = it; render() })
+        cm.addView(ui.tv("Avisa quando o EMBARQUE é em mercado (destino em mercado não avisa): pelo nome no endereço (mercado, supermercado, atacadão, Assaí, Comper...), pelos mercados conhecidos do mapa e pelo endereço deles. Mercado que o app não reconhecer, cadastre o endereço (rua e número) na lista negra.", 12f, C.MUTED, 0), ui.lp(top = 4))
         val ml = campo("Primeira linha do aviso").apply { setText(p.mercadoLinha1) }
         cm.addView(ml, ui.lp(top = 10))
         cm.addView(ui.button("Salvar", false) { p.mercadoLinha1 = ml.text.toString().trim(); render() }, ui.lp(top = 8))

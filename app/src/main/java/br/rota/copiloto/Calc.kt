@@ -12,7 +12,8 @@ data class Offer(
     val tripKm: Double,
     val tripMin: Double,
     val stops: Int = 0,         // paradas no caminho (0 = nenhuma)
-    val destText: String = ""  // endereço de destino como aparece na tela
+    val destText: String = "",  // endereço de destino como aparece na tela
+    val pickupText: String = ""  // endereço de embarque como aparece na tela
 )
 
 data class Analysis(
@@ -272,7 +273,7 @@ class Prefs(ctx: Context, override_: android.content.SharedPreferences? = null) 
         get() = sp.getBoolean("mercadoOn", true)
         set(v) { sp.edit().putBoolean("mercadoOn", v).apply() }
     var mercadoLinha1: String
-        get() = sp.getString("mercadoLinha1", "MERCADO") ?: "MERCADO"
+        get() = sp.getString("mercadoLinha1", "EMBARQUE NO MERCADO") ?: "EMBARQUE NO MERCADO"
         set(v) { sp.edit().putString("mercadoLinha1", v).apply() }
 
     fun paradasDemais(stops: Int) = naoVouParadasOn && stops >= naoVouParadasMin
