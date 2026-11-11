@@ -288,7 +288,36 @@ class RangeBar(
 
 /** Cartão que aparece por cima do Uber/99 (e na prévia das configurações). */
 object OverlayCard {
+    /** Quadro completo; com parada, ganha a moldura piscante em volta de tudo. */
     fun build(ctx: Context, a: Analysis, p: Prefs): View {
+        val v = montar(ctx, a, p)
+        if (a.offer.stops <= 0 || !p.paradaOn) return v
+        val ui = Ui(ctx)
+        val esp = ui.dp(p.paradaEsp)
+        val cor = PARADA_CORES[p.paradaCor.coerceIn(0, PARADA_CORES.size - 1)]
+        val bg = GradientDrawable().apply { setColor(Color.TRANSPARENT); cornerRadius = ui.dpf(30f); setStroke(esp, cor) }
+        val fr = android.widget.FrameLayout(ctx).apply { background = bg; setPadding(esp + ui.dp(2), esp + ui.dp(2), esp + ui.dp(2), esp + ui.dp(2)) }
+        fr.addView(v)
+        val anim = android.animation.ValueAnimator.ofFloat(1f, 0.15f).apply {
+            duration = when (p.paradaVel) { 0 -> 900L; 2 -> 250L; else -> 450L }
+            repeatMode = android.animation.ValueAnimator.REVERSE
+            repeatCount = android.animation.ValueAnimator.INFINITE
+            addUpdateListener { bg.setStroke(esp, Color.argb((255 * (it.animatedValue as Float)).toInt(), Color.red(cor), Color.green(cor), Color.blue(cor))) }
+        }
+        fr.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(x: View) { if (!anim.isStarted) anim.start() }
+            override fun onViewDetachedFromWindow(x: View) { anim.cancel() }
+        })
+        anim.start()
+        return fr
+    }
+
+    val TAG_CORES = intArrayOf(Color.parseColor("#7C3AED"), Color.parseColor("#111418"), Color.WHITE, Color.parseColor("#2563EB"))
+    val TAG_NOMES = listOf("Roxo", "Preto", "Branco", "Azul")
+    val PARADA_CORES = intArrayOf(Color.parseColor("#FF1F1F"), Color.parseColor("#FF7A00"), Color.parseColor("#FF2D95"), Color.parseColor("#FFD400"))
+    val PARADA_NOMES = listOf("Vermelho", "Laranja", "Rosa", "Amarelo")
+
+    private fun montar(ctx: Context, a: Analysis, p: Prefs): View {
         Templates.ensure(p.template)
         val tpl = Templates.tpl(p.template)
         val ui = Ui(ctx)
@@ -347,26 +376,7 @@ object OverlayCard {
         }
         outer.addView(row)
 
-        // Parada no caminho: borda vermelha piscante para chamar a atencao
         val stops = a.offer.stops
-        if (stops > 0) {
-            val bgd = outer.background as GradientDrawable
-            bgd.setStroke(ui.dp(5), Color.rgb(255, 31, 31))
-            val anim = android.animation.ValueAnimator.ofInt(255, 30).apply {
-                duration = 450
-                repeatMode = android.animation.ValueAnimator.REVERSE
-                repeatCount = android.animation.ValueAnimator.INFINITE
-                addUpdateListener {
-                    val al = it.animatedValue as Int
-                    bgd.setStroke(ui.dp(5), Color.argb(al, 255, 31, 31))
-                }
-            }
-            outer.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
-                override fun onViewAttachedToWindow(v: View) { if (!anim.isStarted) anim.start() }
-                override fun onViewDetachedFromWindow(v: View) { anim.cancel() }
-            })
-            anim.start()
-        }
 
         val totalRounded = Math.round(a.totalMin).toInt()
         val h = totalRounded / 60
@@ -378,11 +388,15 @@ object OverlayCard {
             "99" -> "99"
             else -> "TESTE"
         }
-        foot.addView(ui.tv(badge, size * 0.5f, fg, 3).apply {
-            background = ui.round(Color.TRANSPARENT, 4, 1, fg)
-            setPadding(ui.dp(5), ui.dp(1), ui.dp(5), ui.dp(1))
+        val tagCor = TAG_CORES[p.appTagColor.coerceIn(0, TAG_CORES.size - 1)]
+        val tagTxt = if (tagCor == Color.WHITE) Color.parseColor("#1B1F24") else Color.WHITE
+        val tagEsc = when (p.appTagSize) { 0 -> 0.55f; 1 -> 0.75f; else -> 0.95f }
+        foot.addView(ui.tv(badge, size * tagEsc, tagTxt, 3).apply {
+            background = ui.round(tagCor, 8, if (tagCor == Color.WHITE) 1 else 0, Color.parseColor("#1B1F24"))
+            setPadding(ui.dp(10), ui.dp(2), ui.dp(10), ui.dp(2))
+            setSingleLine(true)
         })
-        foot.addView(ui.tv(info, size * 0.8f, fg, 2).apply { setPadding(ui.dp(8), 0, 0, 0) })
+        foot.addView(ui.tv(info, size * 0.8f, fg, 2).apply { setPadding(ui.dp(14), 0, 0, 0) })
         if (stops > 0) {
             val tag = ui.tv(if (stops == 1) "PARADA" else "$stops PARADAS", size * 0.5f, Color.WHITE, 3).apply {
                 background = ui.round(Color.rgb(224, 16, 16), 4)

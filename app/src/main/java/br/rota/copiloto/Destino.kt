@@ -149,7 +149,7 @@ object Destino {
     /** Bairro escrito no próprio destino: "Rua Igarapé, 92 , Guanandi", "..., 4747, Vila Planalto, Campo Grande" ou "..., 5089 - Centro". */
     private fun bairroDoTexto(dest: String): String? {
         val limpo = (Regex("""\s+-\s+""").find(dest)?.let { m -> dest.substring(0, m.range.first) + ", " + dest.substring(m.range.last + 1) } ?: dest)
-        val partes = limpo.split(",").map { it.trim().trimEnd('.', '…').trim() }
+        val partes = limpo.split(",").map { it.trim().trimEnd('.', '…').trim().replace(Regex("(?i)^bairro\\s+"), "") }
         // 1) qualquer parte que seja um bairro conhecido no banco (de trás para frente)
         for (p in partes.reversed()) {
             if (p.length < 3 || NAO_BAIRRO.containsMatchIn(p) || ruaRx.containsMatchIn(p)) continue

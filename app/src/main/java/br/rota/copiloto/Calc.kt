@@ -162,6 +162,35 @@ class Prefs(ctx: Context, override_: android.content.SharedPreferences? = null) 
     var cardPos: Int
         get() = sp.getInt("cardPos", 1)
         set(v) { sp.edit().putInt("cardPos", v).apply() }
+    // ---- Aparência do quadro (admin)
+    /** 0 pequeno, 1 médio, 2 grande */
+    var appTagSize: Int
+        get() = sp.getInt("appTagSize", 2)
+        set(v) { sp.edit().putInt("appTagSize", v).apply() }
+    /** 0 roxo, 1 preto, 2 branco, 3 azul */
+    var appTagColor: Int
+        get() = sp.getInt("appTagColor", 0)
+        set(v) { sp.edit().putInt("appTagColor", v).apply() }
+    var paradaOn: Boolean
+        get() = sp.getBoolean("paradaOn", true)
+        set(v) { sp.edit().putBoolean("paradaOn", v).apply() }
+    /** espessura da moldura da parada, em dp */
+    var paradaEsp: Int
+        get() = sp.getInt("paradaEsp", 12)
+        set(v) { sp.edit().putInt("paradaEsp", v.coerceIn(4, 30)).apply() }
+    /** 0 vermelho, 1 laranja, 2 rosa, 3 amarelo */
+    var paradaCor: Int
+        get() = sp.getInt("paradaCor", 0)
+        set(v) { sp.edit().putInt("paradaCor", v).apply() }
+    /** 0 lenta, 1 normal, 2 rápida */
+    var paradaVel: Int
+        get() = sp.getInt("paradaVel", 1)
+        set(v) { sp.edit().putInt("paradaVel", v).apply() }
+    /** some com o quadro assim que a oferta sai da tela */
+    var sumirJunto: Boolean
+        get() = sp.getBoolean("sumirJunto", true)
+        set(v) { sp.edit().putBoolean("sumirJunto", v).apply() }
+
     // ---- Destino: card do bairro, rua de terra e lista negra
     var bairroOn: Boolean
         get() = sp.getBoolean("bairroOn", true)

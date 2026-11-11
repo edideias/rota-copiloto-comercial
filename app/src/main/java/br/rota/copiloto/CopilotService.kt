@@ -74,7 +74,8 @@ class CopilotService : AccessibilityService() {
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && pkg != packageName &&
             !pkg.startsWith("com.android.systemui") && !pkg.contains("inputmethod", true) && !pkg.contains("keyboard", true)) {
             fgPkg = pkg
-            if (platformOf(pkg) == "99" && prefs.use99 && prefs.useOcr) { lastTargetEvent = SystemClock.uptimeMillis(); ensureOcrLoop() }
+            val pf = platformOf(pkg)
+            if (pf != null && prefs.useOcr && ((pf == "99" && prefs.use99) || (pf == "Uber" && prefs.useUber))) { lastTargetEvent = SystemClock.uptimeMillis(); ensureOcrLoop() }
         }
         val platform = platformOf(pkg) ?: return
         if (!prefs.enabled || !prefs.calcEnabled) return
@@ -97,7 +98,7 @@ class CopilotService : AccessibilityService() {
         } else {
             logSnapshot(platform, joined)
             if (!REQUIRE_OFFER_BUTTON || hasOfferButton(joined)) {
-                val offer = OfferParser.parse(platform, joined)
+                val offer = OfferParser.parse(OfferParser.platformOf(joined, platform), joined)
                 if (offer != null) {
                     show(Calc.analyze(offer, prefs), -1L)
                     return
@@ -114,14 +115,16 @@ class CopilotService : AccessibilityService() {
     // O 99 não avisa a acessibilidade quando a oferta aparece. Por isso, enquanto o 99
     // estiver ativo, a leitura por imagem roda por tempo (a cada ~1,5 s), não por evento.
     private var lastTargetEvent = 0L
+    @Volatile private var meuQuadro: android.graphics.Rect? = null
     private var fgPkg = ""
     private var ocrLoopRunning = false
     private val ocrLoop = object : Runnable {
         override fun run() {
             val now = SystemClock.uptimeMillis()
-            val noNoventaENove = platformOf(fgPkg) == "99"
-            if (prefs.enabled && prefs.calcEnabled && prefs.use99 && prefs.useOcr && (noNoventaENove || now - lastTargetEvent < 20000)) {
-                tryOcr("99")
+            val fg = platformOf(fgPkg)
+            val ligado = (fg == "99" && prefs.use99) || (fg == "Uber" && prefs.useUber)
+            if (prefs.enabled && prefs.calcEnabled && prefs.useOcr && (ligado || now - lastTargetEvent < 20000)) {
+                tryOcr(fg ?: "99")
                 handler.postDelayed(this, 450)
             } else {
                 ocrLoopRunning = false
@@ -219,14 +222,24 @@ class CopilotService : AccessibilityService() {
                             }
                             lastBrightness = brightnessInfo(bmp)
                             // So a parte de baixo (onde fica o painel da oferta) e em escala menor: OCR bem mais rapido.
-                            val y0 = if (platform == "99") (bmp.height * 0.25f).toInt() else 0
+                            val y0 = (bmp.height * 0.25f).toInt()
                             val crop = Bitmap.createBitmap(bmp, 0, y0, bmp.width, bmp.height - y0)
                             val small = Bitmap.createScaledBitmap(crop, (crop.width * 0.6f).toInt(), (crop.height * 0.6f).toInt(), true)
+                            // onde está o nosso quadro, nas coordenadas da imagem reduzida (para não lermos a nós mesmos)
+                            meuQuadro = overlay?.takeIf { attached && it.isShown }?.let { v ->
+                                val xy = IntArray(2); v.getLocationOnScreen(xy)
+                                android.graphics.Rect(((xy[0]) * 0.6f).toInt(), ((xy[1] - y0) * 0.6f).toInt(),
+                                    ((xy[0] + v.width) * 0.6f).toInt(), ((xy[1] - y0 + v.height) * 0.6f).toInt())
+                            }
                             if (crop !== bmp) bmp.recycle()
                             recognizer.process(InputImage.fromBitmap(small, 0))
                                 .addOnSuccessListener { t ->
                                     ocrBusy = false
-                                    onOcrText(platform, t.text)
+                                    // linhas na ordem da tela (de cima para baixo), sem o que o nosso quadro desenhou
+                                    val linhas = t.textBlocks.flatMap { it.lines }
+                                        .filter { l -> val b = l.boundingBox; b == null || meuQuadro == null || !android.graphics.Rect.intersects(b, meuQuadro!!) }
+                                        .sortedWith(compareBy({ (it.boundingBox?.centerY() ?: 0) / 12 }, { it.boundingBox?.left ?: 0 }))
+                                    onOcrText(platform, linhas.joinToString("\n") { it.text })
                                 }
                                 .addOnFailureListener { e ->
                                     ocrBusy = false
@@ -269,11 +282,19 @@ class CopilotService : AccessibilityService() {
             DebugLog.add("[$platform] OCR ($lastBrightness): ${joined.take(size)}")
         }
 
-        val offer = OfferParser.parse(platform, joined)
+        val plat = OfferParser.platformOf(joined, platform)
+        val lida = OfferParser.parse(plat, joined)
+        // parada lida em qualquer quadro da mesma oferta fica valendo
+        val offer = lida?.let { o ->
+            val k = "${o.value}|${o.pickupKm}|${o.tripKm}"
+            if (k != paradaKey) { paradaKey = k; paradaMax = 0 }
+            paradaMax = maxOf(paradaMax, o.stops)
+            if (paradaMax > o.stops) o.copy(stops = paradaMax) else o
+        }
         if (offer == null || !(hasOfferButton(joined) || offer.pickupKm > 0.0)) {
             // Sem oferta na tela: depois de alguns quadros seguidos, some com o painel antigo.
             pendingKey = ""; pendingCount = 0
-            if (++noOfferFrames >= 4 && attached && !shownSimulated) hide()
+            if (++noOfferFrames >= 3 && attached && !shownSimulated && prefs.sumirJunto) hide()
             return
         }
         noOfferFrames = 0
@@ -289,6 +310,8 @@ class CopilotService : AccessibilityService() {
     private var pendingKey = ""
     private var pendingCount = 0
     private var noOfferFrames = 0
+    private var paradaKey = ""
+    private var paradaMax = 0
     private var shownSimulated = false
 
     override fun onInterrupt() {}
@@ -406,7 +429,7 @@ class CopilotService : AccessibilityService() {
     private fun show(a: Analysis, holdMs: Long) {
         try {
             val o = a.offer
-            val key = "${o.platform}|${o.value}|${o.pickupKm}|${o.tripKm}"
+            val key = "${o.platform}|${o.value}|${o.pickupKm}|${o.tripKm}|${o.stops}|${Destino.analisar(o.destText, prefs).let { it.bairro ?: it.rua ?: "" }}"
             val now = SystemClock.uptimeMillis()
             val simulated = holdMs >= 0
             if (simulated) {

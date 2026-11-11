@@ -45,6 +45,16 @@ object OfferParser {
         return if (text.contains("taxa de parada", ignoreCase = true)) 1 else 0
     }
 
+    private val marcaUber = Regex("""(?i)tenho interesse|uber ?x|uber ?comfort|uber ?black|uber ?flash|uber ?moto|est\. de r\$|\d+\s*minutos""")
+    private val marca99 = Regex("""(?i)aceitar por|negocia|n[aã]o afeta a ta|99 ?pop|99 ?comfort|parada\(s\)|\+?\d+ corridas|perfil premium|pgto\. no app""")
+
+    /** Qual app mostrou a oferta, pelo próprio texto da tela (Uber e 99 podem estar abertos juntos). */
+    fun platformOf(text: String, padrao: String): String {
+        val u = marcaUber.findAll(text).count()
+        val n = marca99.findAll(text).count()
+        return when { u > n -> "Uber"; n > u -> "99"; else -> padrao }
+    }
+
     fun parse(platform: String, text: String): Offer? {
         val o = parseBase(platform, text) ?: return null
         val s = readStops(text)
@@ -55,7 +65,12 @@ object OfferParser {
 
     /** Texto logo depois do último "x min (y km)": é o endereço de destino. */
     fun readDest(text: String): String {
-        val ultimo = (minKmRx.findAll(text) + kmMinRx.findAll(text)).maxByOrNull { it.range.last } ?: return ""
+        val todos = (minKmRx.findAll(text) + kmMinRx.findAll(text)).toList()
+        // Só existe destino quando a tela mostra os dois trechos (até o passageiro e a corrida).
+        // Com um trecho só, o endereço seria o de partida: melhor não mostrar nada.
+        val inicios = todos.map { it.range.first }.distinct()
+        if (inicios.size < 2) return ""
+        val ultimo = todos.maxByOrNull { it.range.last } ?: return ""
         var d = text.substring(ultimo.range.last + 1)
         fimDest.find(d)?.let { d = d.substring(0, it.range.first) }
         // linhas do mesmo endereço ("..., 4747, Vila" + "Planalto, Campo Grande") voltam a ser uma frase

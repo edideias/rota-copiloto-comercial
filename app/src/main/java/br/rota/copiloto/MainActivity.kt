@@ -466,6 +466,7 @@ class MainActivity : Activity() {
         item("Apps de trabalho", "Uber, 99 e leitura por imagem") { openConfig("Apps de trabalho") { appsContent(it) } }
         item("Metas e custo", "Ganho por km, por hora e custo do carro") { openConfig("Metas e custo") { goalsContent(it) } }
         item("Aparência do quadro", "Métricas, posição, tema e fonte") { openConfig("Aparência do quadro") { cardContent(it) } }
+        item("Aparência do quadro", "Nome do app, moldura da parada e quando o quadro some") { openConfig("Aparência do quadro") { aparenciaContent(it) } }
         item("Destino da corrida", "Bairro, rua de terra, bairros evitados e lista negra") { openConfig("Destino da corrida") { destinoContent(it) } }
         item("Destaque corrida TOP", "Verde neon piscando e km total/valor") { openConfig("Destaque corrida TOP") { topContent(it) } }
         item("Tempo na tela", "Quanto tempo o quadro fica visível") { openConfig("Tempo na tela") { timeContent(it) } }
@@ -777,6 +778,56 @@ class MainActivity : Activity() {
         textSize = 15f
         background = ui.round(C.BG, 14)
         setPadding(dp(14), dp(12), dp(14), dp(12))
+    }
+
+    private fun bolinhas(cores: IntArray, nomes: List<String>, sel: Int, onPick: (Int) -> Unit): View {
+        val r = ui.hbox()
+        cores.forEachIndexed { i, col ->
+            r.addView(View(this).apply {
+                background = android.graphics.drawable.GradientDrawable().apply {
+                    shape = android.graphics.drawable.GradientDrawable.OVAL
+                    setColor(col)
+                    setStroke(dp(if (i == sel) 4 else 1), Color.parseColor(if (i == sel) "#1B2430" else "#C5CED7"))
+                }
+                contentDescription = nomes[i]
+                setOnClickListener { onPick(i) }
+            }, LinearLayout.LayoutParams(dp(46), dp(46)).also { it.marginEnd = dp(12) })
+        }
+        return r
+    }
+
+    private fun aparenciaContent(p: Prefs): View {
+        val box = ui.vbox()
+        box.addView(pageHeader("Aparência do quadro", "Ajuste como o quadro aparece em cima do Uber e do 99"))
+
+        val prev = ui.vbox().apply { background = ui.round(C.BG, 14); setPadding(dp(14), dp(18), dp(14), dp(18)) }
+        val ex = Calc.analyze(Offer("99", 17.82, 2.7, 9.0, 13.3, 39.0, stops = 1, destText = "Rua Pio Rojas, 85 - Centro"), p)
+        prev.addView(OverlayCard.build(this, ex, p), LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).also { it.gravity = Gravity.CENTER_HORIZONTAL })
+        val c0 = ui.card(); c0.addView(ui.tv("Prévia (corrida de exemplo com parada)", 12f, C.MUTED, 0)); c0.addView(prev, ui.lp(top = 6))
+        box.addView(c0, ui.lp(top = 20))
+
+        val c1 = ui.card()
+        c1.addView(ui.tv("Nome do app (UBER / 99)", 16f, C.TEXT, 2))
+        c1.addView(ui.tv("Tamanho", 14f, C.TEXT, 2), ui.lp(top = 12))
+        c1.addView(ui.segmented(listOf("Pequeno", "Médio", "Grande"), p.appTagSize) { p.appTagSize = it; render() }, ui.lp(top = 8))
+        c1.addView(ui.tv("Cor", 14f, C.TEXT, 2), ui.lp(top = 14))
+        c1.addView(bolinhas(OverlayCard.TAG_CORES, OverlayCard.TAG_NOMES, p.appTagColor) { p.appTagColor = it; render() }, ui.lp(top = 8))
+        box.addView(c1, ui.lp(top = 16))
+
+        val c2 = ui.card()
+        c2.addView(switchRow("Moldura piscante quando tem parada", p.paradaOn) { p.paradaOn = it; render() })
+        c2.addView(stepperRow("Espessura da moldura", "${p.paradaEsp}", { p.paradaEsp = p.paradaEsp - 2; render() }, { p.paradaEsp = p.paradaEsp + 2; render() }), ui.lp(top = 14))
+        c2.addView(ui.tv("Cor da moldura", 14f, C.TEXT, 2), ui.lp(top = 14))
+        c2.addView(bolinhas(OverlayCard.PARADA_CORES, OverlayCard.PARADA_NOMES, p.paradaCor) { p.paradaCor = it; render() }, ui.lp(top = 8))
+        c2.addView(ui.tv("Velocidade da piscada", 14f, C.TEXT, 2), ui.lp(top = 14))
+        c2.addView(ui.segmented(listOf("Lenta", "Normal", "Rápida"), p.paradaVel) { p.paradaVel = it; render() }, ui.lp(top = 8))
+        box.addView(c2, ui.lp(top = 16))
+
+        val c3 = ui.card()
+        c3.addView(switchRow("Sumir junto com a oferta", p.sumirJunto) { p.sumirJunto = it; render() })
+        c3.addView(ui.tv("Quando a corrida sai da tela do Uber ou do 99, o quadro some em cerca de 1 segundo.", 12f, C.MUTED, 0), ui.lp(top = 4))
+        box.addView(c3, ui.lp(top = 16))
+        return box
     }
 
     private fun destinoContent(p: Prefs): View {
