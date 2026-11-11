@@ -1,7 +1,7 @@
 {
-"versao": 3,
+"versao": 4,
 "cidade": "Campo Grande - MS",
-"gerado_em": "2026-11-10T11:18:44Z",
+"gerado_em": "2026-11-11T23:35:46Z",
 "fonte": "Pavimentação: Agetran/Sisgran - Prefeitura de Campo Grande. Ruas e bairros: © colaboradores do OpenStreetMap (ODbL)",
 "resumo": {
 "ruas": 8924,
@@ -826,6 +826,603 @@
 "Villa Bella Residence",
 "Village Bahamas",
 "Vitalitá Condominium Club"
+],
+"mercados": [
+{
+"nome": "Mercado Taquarussu",
+"rua": "",
+"num": null,
+"lat": -20.483074,
+"lon": -54.634618
+},
+{
+"nome": "Mercado Pag Poko",
+"rua": "rua pinhao",
+"num": 205,
+"lat": -20.420932,
+"lon": -54.553826
+},
+{
+"nome": "Conveniência Fenix",
+"rua": "",
+"num": null,
+"lat": -20.523275,
+"lon": -54.624714
+},
+{
+"nome": "Big",
+"rua": "",
+"num": null,
+"lat": -20.50055,
+"lon": -54.59508
+},
+{
+"nome": "Mercado Ramos",
+"rua": "rua barnabe honorio da silva",
+"num": 180,
+"lat": -20.550605,
+"lon": -54.665323
+},
+{
+"nome": "Mercado Maysa",
+"rua": "rua joaquim amarilha da silva",
+"num": 137,
+"lat": -20.549343,
+"lon": -54.663855
+},
+{
+"nome": "Supermercado Verdão do Quinzinho",
+"rua": "rua acaia",
+"num": null,
+"lat": -20.542322,
+"lon": -54.673062
+},
+{
+"nome": "Supermercado Primavera",
+"rua": "rua acai",
+"num": null,
+"lat": -20.544116,
+"lon": -54.666826
+},
+{
+"nome": "Supermercado Pires - Tarumã",
+"rua": "rua acaia",
+"num": 760,
+"lat": -20.542453,
+"lon": -54.672787
+},
+{
+"nome": "Mercado Libra - Jardim Colorado",
+"rua": "rua dario anhaia filho",
+"num": null,
+"lat": -20.552505,
+"lon": -54.658665
+},
+{
+"nome": "Supermercado YPÊ",
+"rua": "rua evelina selingardi",
+"num": null,
+"lat": -20.546052,
+"lon": -54.65286
+},
+{
+"nome": "Mercado Kim",
+"rua": "rua carlota dos santos saueia",
+"num": null,
+"lat": -20.548058,
+"lon": -54.663574
+},
+{
+"nome": "Supermercado 2 dois irmãos",
+"rua": "rua evelina selingardi",
+"num": 669,
+"lat": -20.551455,
+"lon": -54.651293
+},
+{
+"nome": "Comper Supermercado",
+"rua": "avenida bandeirantes",
+"num": null,
+"lat": -20.491717,
+"lon": -54.645875
+},
+{
+"nome": "Quitanda Paraguaia",
+"rua": "rua evelina selingardi",
+"num": null,
+"lat": -20.550627,
+"lon": -54.651503
+},
+{
+"nome": "Pires (antigo veratti)",
+"rua": "avenida julio de castilho",
+"num": null,
+"lat": -20.451842,
+"lon": -54.64938
+},
+{
+"nome": "Martins",
+"rua": "avenida 9",
+"num": null,
+"lat": -20.458641,
+"lon": -54.686068
+},
+{
+"nome": "Mercado Brites",
+"rua": "rua vitorio zeolla",
+"num": 1503,
+"lat": -20.435272,
+"lon": -54.570079
+},
+{
+"nome": "Boutipet Center",
+"rua": "rua da peninsula",
+"num": 817,
+"lat": -20.537407,
+"lon": -54.671484
+},
+{
+"nome": "Supermercado Duarte",
+"rua": "",
+"num": null,
+"lat": -20.554924,
+"lon": -54.57634
+},
+{
+"nome": "Rei dos Frios",
+"rua": "",
+"num": null,
+"lat": -20.528767,
+"lon": -54.608613
+},
+{
+"nome": "Mais Nunes Supermarket",
+"rua": "",
+"num": null,
+"lat": -20.47719,
+"lon": -54.591614
+},
+{
+"nome": "Comper",
+"rua": "",
+"num": null,
+"lat": -20.454651,
+"lon": -54.634509
+},
+{
+"nome": "Atacadão",
+"rua": "avenida coronel antonino",
+"num": 3671,
+"lat": -20.419611,
+"lon": -54.583432
+},
+{
+"nome": "Atacadão",
+"rua": "avenida costa e silva",
+"num": 1525,
+"lat": -20.495843,
+"lon": -54.611506
+},
+{
+"nome": "Ki-Frutas",
+"rua": "",
+"num": null,
+"lat": -20.470414,
+"lon": -54.610609
+},
+{
+"nome": "Comper Rui Barbosa",
+"rua": "rua rui barbosa",
+"num": null,
+"lat": -20.479491,
+"lon": -54.610183
+},
+{
+"nome": "Comper",
+"rua": "avenida mato grosso",
+"num": 2674,
+"lat": -20.453037,
+"lon": -54.594248
+},
+{
+"nome": "Supermercado Comper",
+"rua": "",
+"num": null,
+"lat": -20.46805,
+"lon": -54.616061
+},
+{
+"nome": "Fort Atacadista",
+"rua": "avenida consul assaf trad",
+"num": null,
+"lat": -20.408881,
+"lon": -54.568429
+},
+{
+"nome": "Carrefour",
+"rua": "",
+"num": null,
+"lat": -20.458197,
+"lon": -54.589057
+},
+{
+"nome": "Comper",
+"rua": "",
+"num": null,
+"lat": -20.435925,
+"lon": -54.604871
+},
+{
+"nome": "Supermercado Campos",
+"rua": "",
+"num": null,
+"lat": -20.448288,
+"lon": -54.575733
+},
+{
+"nome": "Atacadão",
+"rua": "avenida duque de caxias",
+"num": 2270,
+"lat": -20.461908,
+"lon": -54.65116
+},
+{
+"nome": "Fort Atacadista",
+"rua": "",
+"num": null,
+"lat": -20.434737,
+"lon": -54.628462
+},
+{
+"nome": "Fort Atacadista",
+"rua": "",
+"num": null,
+"lat": -20.515884,
+"lon": -54.657373
+},
+{
+"nome": "Fort Atacadista",
+"rua": "avenida presidente vargas",
+"num": 1336,
+"lat": -20.449031,
+"lon": -54.646161
+},
+{
+"nome": "Fort Atacadista",
+"rua": "avenida presidente ernesto geisel",
+"num": 2300,
+"lat": -20.478361,
+"lon": -54.626108
+},
+{
+"nome": "Br Salvados",
+"rua": "",
+"num": null,
+"lat": -20.456894,
+"lon": -54.64002
+},
+{
+"nome": "Assaí Atacadista",
+"rua": "rua joaquim murtinho",
+"num": 3167,
+"lat": -20.470149,
+"lon": -54.584255
+},
+{
+"nome": "Assaí Atacadista",
+"rua": "avenida consul assaf trad",
+"num": null,
+"lat": -20.418908,
+"lon": -54.578731
+},
+{
+"nome": "Comper",
+"rua": "",
+"num": null,
+"lat": -20.444606,
+"lon": -54.619688
+},
+{
+"nome": "Supermercado Pires",
+"rua": "rua ana luiza de souza",
+"num": null,
+"lat": -20.522794,
+"lon": -54.623078
+},
+{
+"nome": "Hiper Center Comper Brilhante",
+"rua": "rua brilhante",
+"num": 2702,
+"lat": -20.479235,
+"lon": -54.641094
+},
+{
+"nome": "Alemão Conveniência",
+"rua": "",
+"num": null,
+"lat": -20.465244,
+"lon": -54.61863
+},
+{
+"nome": "Fort Atacadista",
+"rua": "rua da divisao",
+"num": 1208,
+"lat": -20.515834,
+"lon": -54.634887
+},
+{
+"nome": "Merc\\do JP",
+"rua": "",
+"num": null,
+"lat": -20.524892,
+"lon": -54.607498
+},
+{
+"nome": "Supermercado Pires",
+"rua": "rua ana luiza de souza",
+"num": null,
+"lat": -20.512507,
+"lon": -54.605936
+},
+{
+"nome": "Comper Spipe Calarge",
+"rua": "",
+"num": null,
+"lat": -20.4951,
+"lon": -54.596519
+},
+{
+"nome": "Fort Atacadista",
+"rua": "rua sao borja",
+"num": 586,
+"lat": -20.439422,
+"lon": -54.597368
+},
+{
+"nome": "Supermercado Mister Junior",
+"rua": "",
+"num": null,
+"lat": -20.421416,
+"lon": -54.598768
+},
+{
+"nome": "Supermercado Pag Poko",
+"rua": "avenida alberto araujo arruda",
+"num": 558,
+"lat": -20.42437,
+"lon": -54.572457
+},
+{
+"nome": "Pão de Açúcar",
+"rua": "rua alvares azevedo",
+"num": 195,
+"lat": -20.436135,
+"lon": -54.578982
+},
+{
+"nome": "Assaí Atacadista",
+"rua": "avenida fabio zahran",
+"num": 7919,
+"lat": -20.489118,
+"lon": -54.620459
+},
+{
+"nome": "Fort Atacadista",
+"rua": "rua antonio bicudo",
+"num": 112,
+"lat": -20.47231,
+"lon": -54.584561
+},
+{
+"nome": "Legal Supermercados",
+"rua": "rua albert sabin",
+"num": 1075,
+"lat": -20.478588,
+"lon": -54.646196
+},
+{
+"nome": "Mercearia Pérola",
+"rua": "",
+"num": null,
+"lat": -20.443401,
+"lon": -54.673399
+},
+{
+"nome": "Santo Antônio Express",
+"rua": "",
+"num": null,
+"lat": -20.477403,
+"lon": -54.562394
+},
+{
+"nome": "Fort Atacadista",
+"rua": "avenida presidente ernesto geisel",
+"num": 501,
+"lat": -20.494521,
+"lon": -54.64012
+},
+{
+"nome": "Supermercado Gaucho",
+"rua": "avenida norte",
+"num": 211,
+"lat": -20.424126,
+"lon": -54.607239
+},
+{
+"nome": "Assaí Atacadista",
+"rua": "",
+"num": null,
+"lat": -20.458923,
+"lon": -54.659397
+},
+{
+"nome": "Fort Atacadista",
+"rua": "",
+"num": null,
+"lat": -20.545211,
+"lon": -54.595497
+},
+{
+"nome": "Supermercado Mister Junior",
+"rua": "avenida general alberto carlos de mendonca lima",
+"num": 2669,
+"lat": -20.499002,
+"lon": -54.67852
+},
+{
+"nome": "MorenAtacadista",
+"rua": "",
+"num": null,
+"lat": -20.460151,
+"lon": -54.693258
+},
+{
+"nome": "Supermercado Nunes",
+"rua": "rua 14 de julho",
+"num": null,
+"lat": -20.440064,
+"lon": -54.618163
+},
+{
+"nome": "Supermercado Portoalegrense",
+"rua": "avenida raquel de queiroz",
+"num": null,
+"lat": -20.522966,
+"lon": -54.647122
+},
+{
+"nome": "Comper Itanhangá",
+"rua": "rua joaquim murtinho",
+"num": 1679,
+"lat": -20.46661,
+"lon": -54.596758
+},
+{
+"nome": "Sacolão d Paula",
+"rua": "",
+"num": null,
+"lat": -20.428954,
+"lon": -54.571889
+},
+{
+"nome": "Supermercado Daroli",
+"rua": "",
+"num": null,
+"lat": -20.417589,
+"lon": -54.662882
+},
+{
+"nome": "Atacadão",
+"rua": "",
+"num": null,
+"lat": -20.540508,
+"lon": -54.662386
+},
+{
+"nome": "Assaí Atacadista",
+"rua": "",
+"num": null,
+"lat": -20.533364,
+"lon": -54.663105
+},
+{
+"nome": "CONVENIENCIA E MERCEARIA DO BOSQUE",
+"rua": "",
+"num": null,
+"lat": -20.420987,
+"lon": -54.600618
+},
+{
+"nome": "Fort Atacadista",
+"rua": "avenida tres barras",
+"num": 1650,
+"lat": -20.486528,
+"lon": -54.579855
+},
+{
+"nome": "Supermercado Nunes",
+"rua": "avenida tres barras",
+"num": null,
+"lat": -20.483569,
+"lon": -54.5835
+},
+{
+"nome": "Fort Atacadista",
+"rua": "rua petropolis",
+"num": 1080,
+"lat": -20.481269,
+"lon": -54.657799
+},
+{
+"nome": "Supermercado Pires",
+"rua": "rua maria luiza moraes",
+"num": 1032,
+"lat": -20.482139,
+"lon": -54.662741
+},
+{
+"nome": "Mercado do Produtor",
+"rua": "",
+"num": null,
+"lat": -20.477053,
+"lon": -54.616364
+},
+{
+"nome": "Supermercado Mister Junior",
+"rua": "rua vaz de caminha",
+"num": 1200,
+"lat": -20.457378,
+"lon": -54.536327
+},
+{
+"nome": "Supermercado Nunes",
+"rua": "avenida dom antonio barbosa",
+"num": 3440,
+"lat": -20.426661,
+"lon": -54.64832
+},
+{
+"nome": "Supermercado do Produtor",
+"rua": "rua panambi vera",
+"num": null,
+"lat": -20.50645,
+"lon": -54.65437
+},
+{
+"nome": "Supermercado Gaúcho",
+"rua": "rua santo angelo",
+"num": null,
+"lat": -20.43072,
+"lon": -54.594574
+},
+{
+"nome": "Supermercado Pires",
+"rua": "",
+"num": null,
+"lat": -20.387171,
+"lon": -54.561818
+},
+{
+"nome": "Supermercado Mister Junior",
+"rua": "",
+"num": null,
+"lat": -20.38982,
+"lon": -54.5664
+},
+{
+"nome": "Frama Atacadista",
+"rua": "avenida guaicurus",
+"num": 4858,
+"lat": -20.528654,
+"lon": -54.612896
+},
+{
+"nome": "Supermercado Pag Poko",
+"rua": "",
+"num": null,
+"lat": -20.430191,
+"lon": -54.590207
+}
 ],
 "ruas": [
 {
