@@ -949,6 +949,11 @@ class MainActivity : Activity() {
         ce.addView(velocidadeRow("Velocidade da piscada", p.eqMs) { p.eqMs = it }, ui.lp(top = 16))
         box.addView(ce, ui.lp(top = 16))
 
+        val cs = ui.card()
+        cs.addView(stepperRow("Espaço entre os cards", "${p.espacoCards}", { p.espacoCards = p.espacoCards - 1; render() }, { p.espacoCards = p.espacoCards + 1; render() }))
+        cs.addView(ui.tv("Menor = semáforo, km/valor e bairro mais juntinhos. Se o quadro não couber na tela, ele encolhe sozinho para nada ficar cortado.", 12f, C.MUTED, 0), ui.lp(top = 4))
+        box.addView(cs, ui.lp(top = 16))
+
         val c3 = ui.card()
         c3.addView(switchRow("Sumir junto com a oferta", p.sumirJunto) { p.sumirJunto = it; render() })
         c3.addView(ui.tv("Quando a corrida sai da tela do Uber ou do 99, o quadro some em cerca de 1 segundo.", 12f, C.MUTED, 0), ui.lp(top = 4))
@@ -1043,10 +1048,23 @@ class MainActivity : Activity() {
             })
             c3.addView(r, ui.lp(top = 10))
         }
+        c3.addView(ui.tv("Texto do aviso", 14f, C.TEXT, 2), ui.lp(top = 16))
+        val l1 = campo("Primeira linha").apply { setText(p.avisoLinha1) }
+        val l2 = campo("Segunda linha").apply { setText(p.avisoLinha2) }
+        c3.addView(l1, ui.lp(top = 8)); c3.addView(l2, ui.lp(top = 8))
+        c3.addView(ui.button("Salvar texto do aviso", false) {
+            p.avisoLinha1 = l1.text.toString().trim(); p.avisoLinha2 = l2.text.toString().trim()
+            android.widget.Toast.makeText(this, "Texto salvo", android.widget.Toast.LENGTH_SHORT).show(); render()
+        }, ui.lp(top = 8))
         c3.addView(ui.tv("Estilo do aviso", 14f, C.TEXT, 2), ui.lp(top = 16))
         c3.addView(ui.segmented(listOf("Painel ao lado", "Cartaz por cima"), p.avisoStyle) { p.avisoStyle = it; render() }, ui.lp(top = 8))
         c3.addView(switchRow("Vibrar forte no aviso e no bairro evitado", p.avisoVibrar) { p.avisoVibrar = it; render() }, ui.lp(top = 14))
         box.addView(c3, ui.lp(top = 16))
+        val c4 = ui.card()
+        c4.addView(switchRow("Avisar corrida com paradas demais", p.naoVouParadasOn) { p.naoVouParadasOn = it; render() })
+        c4.addView(ui.tv("Mostra o mesmo aviso grande (com a segunda linha acima) quando a corrida tem paradas a partir do número escolhido.", 12f, C.MUTED, 0), ui.lp(top = 4))
+        c4.addView(stepperRow("A partir de quantas paradas", "${p.naoVouParadasMin}", { p.naoVouParadasMin = p.naoVouParadasMin - 1; render() }, { p.naoVouParadasMin = p.naoVouParadasMin + 1; render() }), ui.lp(top = 12))
+        box.addView(c4, ui.lp(top = 16))
         return box
     }
 

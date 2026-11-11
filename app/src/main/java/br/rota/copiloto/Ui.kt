@@ -430,10 +430,10 @@ object OverlayCard {
 
         val dest = Destino.analisar(a.offer.destText, p)
         val comBairro = p.bairroOn && !dest.vazio
-        if (!p.showTotals && !top && !comBairro && dest.negra == null) return outer
+        if (!p.showTotals && !top && !comBairro && dest.negra == null && !p.paradasDemais(a.offer.stops)) return outer
 
         // Envoltório: quadro + (km total e valor) em pílulas + brilho neon quando é corrida TOP
-        val box = ui.vbox().apply { setPadding(ui.dp(3), ui.dp(3), ui.dp(3), ui.dp(3)) }
+        val box = ui.vbox().apply { setPadding(ui.dp(p.espacoCards), ui.dp(p.espacoCards), ui.dp(p.espacoCards), ui.dp(p.espacoCards)) }
         box.addView(outer)
         if (p.showTotals) {
             val pills = ui.hbox()
@@ -460,10 +460,10 @@ object OverlayCard {
             val wrap = ViewGroup.LayoutParams.WRAP_CONTENT
             pills.addView(km, LinearLayout.LayoutParams(wrap, wrap, 1f))
             pills.addView(vl, LinearLayout.LayoutParams(wrap, wrap, 1f).also { it.marginStart = ui.dp(4) })
-            box.addView(pills, ui.lp(top = 3))
+            box.addView(pills, ui.lp(top = p.espacoCards))
         }
 
-        if (comBairro) box.addView(bairroCard(ctx, ui, dest, p.bairroStyle, size), ui.lp(top = 3))
+        if (comBairro) box.addView(bairroCard(ctx, ui, dest, p.bairroStyle, size), ui.lp(top = p.espacoCards))
 
         if (top) {
             val period = p.topMs.toLong()
@@ -489,7 +489,11 @@ object OverlayCard {
             })
             anim.start()
         }
-        val negra = dest.negra ?: return box
+        val negra = when {
+            dest.negra != null -> Destino.Negra(p.avisoLinha1, p.avisoLinha2)
+            p.paradasDemais(a.offer.stops) -> Destino.Negra("${a.offer.stops} PARADAS", p.avisoLinha2)
+            else -> return box
+        }
         return if (p.avisoStyle == 1) cartazNegra(ctx, ui, box, negra, size) else painelNegra(ctx, ui, box, negra, size)
     }
 
@@ -590,8 +594,8 @@ object OverlayCard {
     private fun conteudoNegra(ui: Ui, n: Destino.Negra, size: Float, grande: Boolean): LinearLayout {
         val c = ui.vbox().apply { gravity = Gravity.CENTER_HORIZONTAL }
         c.addView(ui.tv("⛔", size * (if (grande) 2.0f else 1.4f), Color.WHITE, 3, true))
-        c.addView(ui.tv("CONDOMÍNIO", size * (if (grande) 1.05f else 0.7f), Color.WHITE, 3, true), ui.lp(top = 2))
-        c.addView(ui.tv("NÃO VOU", size * (if (grande) 1.3f else 0.9f), Color.WHITE, 3, true))
+        if (n.nome.isNotBlank()) c.addView(ui.tv(n.nome, size * (if (grande) 1.05f else 0.7f), Color.WHITE, 3, true).apply { maxWidth = ui.dp(if (grande) 280 else 110) }, ui.lp(top = 2))
+        if (n.motivo.isNotBlank()) c.addView(ui.tv(n.motivo, size * (if (grande) 1.3f else 0.9f), Color.WHITE, 3, true).apply { maxWidth = ui.dp(if (grande) 280 else 110) })
         return c
     }
 

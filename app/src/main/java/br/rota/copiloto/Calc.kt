@@ -243,6 +243,26 @@ class Prefs(ctx: Context, override_: android.content.SharedPreferences? = null) 
         get() = sp.getInt("eqMs", 350)
         set(v) { sp.edit().putInt("eqMs", v.coerceIn(70, 1500)).apply() }
 
+    // ---- Aviso "NÃO VOU" (lista negra e muitas paradas) e espaçamento
+    var avisoLinha1: String
+        get() = sp.getString("avisoLinha1", "CONDOMÍNIO") ?: "CONDOMÍNIO"
+        set(v) { sp.edit().putString("avisoLinha1", v).apply() }
+    var avisoLinha2: String
+        get() = sp.getString("avisoLinha2", "NÃO VOU") ?: "NÃO VOU"
+        set(v) { sp.edit().putString("avisoLinha2", v).apply() }
+    var naoVouParadasOn: Boolean
+        get() = sp.getBoolean("naoVouParadasOn", true)
+        set(v) { sp.edit().putBoolean("naoVouParadasOn", v).apply() }
+    var naoVouParadasMin: Int
+        get() = sp.getInt("naoVouParadasMin", 2)
+        set(v) { sp.edit().putInt("naoVouParadasMin", v.coerceIn(1, 6)).apply() }
+    /** espaço entre o semáforo, as pílulas e o card do bairro (dp) */
+    var espacoCards: Int
+        get() = sp.getInt("espacoCards", 3)
+        set(v) { sp.edit().putInt("espacoCards", v.coerceIn(0, 20)).apply() }
+
+    fun paradasDemais(stops: Int) = naoVouParadasOn && stops >= naoVouParadasMin
+
     // ---- Destino: card do bairro, rua de terra e lista negra
     var bairroOn: Boolean
         get() = sp.getBoolean("bairroOn", true)
