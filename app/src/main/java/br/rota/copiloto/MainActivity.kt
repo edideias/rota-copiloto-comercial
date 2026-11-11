@@ -1072,6 +1072,11 @@ class MainActivity : Activity() {
         c.addView(corRow("Cor do destaque", p.topCorInt) { p.topCorInt = it }, ui.lp(top = 18))
         c.addView(velocidadeRow("Velocidade da piscada", p.topMs) { p.topMs = it }, ui.lp(top = 16))
 
+        c.addView(switchRow("Contorno na tela inteira", p.telaTopOn) { p.telaTopOn = it; render() }, ui.lp(top = 18))
+        c.addView(ui.tv("Uma moldura fina em volta de toda a tela do celular, na cor e na piscada do destaque.", 11f, C.MUTED, 0), ui.lp(top = 4))
+        c.addView(stepperRow("Espessura do contorno", "${p.telaTopEsp}", { p.telaTopEsp = p.telaTopEsp - 1; render() }, { p.telaTopEsp = p.telaTopEsp + 1; render() }), ui.lp(top = 12))
+        c.addView(stepperRow("Cantos arredondados", "${p.telaTopRaio}", { p.telaTopRaio = p.telaTopRaio - 4; render() }, { p.telaTopRaio = p.telaTopRaio + 4; render() }), ui.lp(top = 12))
+
         c.addView(switchRow("Vibrar ao detectar corrida TOP", p.topVibrate) { p.topVibrate = it; render() }, ui.lp(top = 18))
         c.addView(switchRow("Mostrar km total e valor abaixo do quadro", p.showTotals) { p.showTotals = it; render() }, ui.lp(top = 14))
         box.addView(c, ui.lp(top = 20))

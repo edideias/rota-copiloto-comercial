@@ -212,6 +212,18 @@ class Prefs(ctx: Context, override_: android.content.SharedPreferences? = null) 
         get() = sp.getInt("topMs", when (topSpeed) { 0 -> 1500; 2 -> 480; else -> 950 })
         set(v) { sp.edit().putInt("topMs", v.coerceIn(70, 1500)).apply() }
 
+    /** contorno na tela inteira quando a corrida é TOP */
+    var telaTopOn: Boolean
+        get() = sp.getBoolean("telaTopOn", true)
+        set(v) { sp.edit().putBoolean("telaTopOn", v).apply() }
+    var telaTopEsp: Int
+        get() = sp.getInt("telaTopEsp", 4)
+        set(v) { sp.edit().putInt("telaTopEsp", v.coerceIn(1, 24)).apply() }
+    /** cantos do contorno, para acompanhar o formato da tela */
+    var telaTopRaio: Int
+        get() = sp.getInt("telaTopRaio", 28)
+        set(v) { sp.edit().putInt("telaTopRaio", v.coerceIn(0, 60)).apply() }
+
     // ---- Destino: card do bairro, rua de terra e lista negra
     var bairroOn: Boolean
         get() = sp.getBoolean("bairroOn", true)

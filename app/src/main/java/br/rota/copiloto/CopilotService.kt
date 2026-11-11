@@ -6,6 +6,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.ContentValues
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.graphics.PixelFormat
 import android.provider.MediaStore
 import android.os.Build
@@ -470,6 +471,7 @@ class CopilotService : AccessibilityService() {
             }
             lp.x = dp(12)
             lp.y = dp(prefs.overlayTopDp.toInt())
+            if (prefs.telaTopOn && prefs.isTop(a)) mostrarContorno() else tirarContorno()
             if (!attached) {
                 wm.addView(box, lp)
                 attached = true
@@ -485,7 +487,50 @@ class CopilotService : AccessibilityService() {
         }
     }
 
+    // ---------- contorno na tela inteira (corrida TOP) ----------
+    private var contorno: View? = null
+    private var contornoAnim: android.animation.ValueAnimator? = null
+
+    private fun mostrarContorno() {
+        tirarContorno()
+        try {
+            val cor = prefs.topCorInt
+            val esp = dp(prefs.telaTopEsp)
+            val bg = android.graphics.drawable.GradientDrawable().apply {
+                setColor(Color.TRANSPARENT); cornerRadius = dp(prefs.telaTopRaio).toFloat(); setStroke(esp, cor)
+            }
+            val v = View(this).apply { background = bg }
+            val lp = WindowManager.LayoutParams(
+                WindowManager.LayoutParams.MATCH_PARENT,
+                WindowManager.LayoutParams.MATCH_PARENT,
+                WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                PixelFormat.TRANSLUCENT
+            )
+            if (Build.VERSION.SDK_INT >= 28) lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+            wm.addView(v, lp)
+            contorno = v
+            contornoAnim = android.animation.ValueAnimator.ofFloat(1f, 0.2f).apply {
+                duration = prefs.topMs.toLong()
+                repeatMode = android.animation.ValueAnimator.REVERSE
+                repeatCount = android.animation.ValueAnimator.INFINITE
+                addUpdateListener { bg.setStroke(esp, Color.argb((255 * (it.animatedValue as Float)).toInt(), Color.red(cor), Color.green(cor), Color.blue(cor))) }
+                start()
+            }
+        } catch (e: Exception) {
+            DebugLog.add("Contorno da tela: ${e.message}")
+        }
+    }
+
+    private fun tirarContorno() {
+        contornoAnim?.cancel(); contornoAnim = null
+        contorno?.let { try { wm.removeView(it) } catch (_: Exception) {} }
+        contorno = null
+    }
+
     private fun hide() {
+        tirarContorno()
         handler.removeCallbacks(hideRunnable)
         val box = overlay ?: return
         if (attached) {
