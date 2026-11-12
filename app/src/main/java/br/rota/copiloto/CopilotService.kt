@@ -132,6 +132,7 @@ class CopilotService : AccessibilityService() {
                 val on = prefs.enabled && prefs.calcEnabled && prefs.useOcr
                 val fgAgora = if (on) appNaFrente() else ""
                 if (fgAgora.isNotEmpty()) fgPkg = fgAgora
+                Estado.loopVivo = SystemClock.uptimeMillis(); Estado.appFrente = fgPkg
                 val fg = platformOf(fgPkg)
                 val ligado = on && ((fg == "99" && prefs.use99) || (fg == "Uber" && prefs.useUber))
                 if (ligado) {
@@ -283,7 +284,7 @@ class CopilotService : AccessibilityService() {
 
                     override fun onFailure(errorCode: Int) {
                         ocrBusy = false
-                        if (errorCode != 3) ocrNote("Screenshot recusado: ${screenshotError(errorCode)}")
+                        if (errorCode != 3) { Estado.ultimoErro = "captura: ${screenshotError(errorCode)}"; ocrNote("Screenshot recusado: ${screenshotError(errorCode)}") }
                     }
                 }
             )
@@ -303,6 +304,7 @@ class CopilotService : AccessibilityService() {
             DebugLog.add("[$platform] OCR ($lastBrightness): ${joined.take(size)}")
         }
 
+        Estado.leitura(Leitor.avaliar(joined, platform).second, joined)
         val plat = OfferParser.platformOf(joined, platform)
         val lida = OfferParser.parse(plat, joined)
         // parada lida em qualquer quadro da mesma oferta fica valendo
@@ -514,7 +516,9 @@ class CopilotService : AccessibilityService() {
             handler.removeCallbacks(hideRunnable)
             handler.postDelayed(hideRunnable, hold)
             onOffer(a)
+            if (!simulated) { Estado.ultimoPainel = SystemClock.uptimeMillis(); Estado.ultimoPainelTxt = "R$ ${o.value} (${o.platform})" }
         } catch (e: Exception) {
+            Estado.ultimoErro = "painel: ${e.message}"
             DebugLog.add("Erro ao mostrar painel: ${e.message}")
         }
     }

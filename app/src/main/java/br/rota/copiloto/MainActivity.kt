@@ -341,6 +341,23 @@ class MainActivity : Activity() {
         body.addView(ui.tv("Diagnóstico", 20f, C.TEXT, 3))
         body.addView(ui.tv("Se o painel não aparecer numa corrida real, copie o log e mande para ajustar a leitura.", 13f, C.MUTED, 0))
 
+        // estado ao vivo: atualiza sozinho a cada segundo
+        val estado = ui.tv("", 13f, C.TEXT, 0).apply {
+            typeface = Typeface.MONOSPACE
+            background = ui.round(C.WHITE, 14)
+            setPadding(dp(12), dp(12), dp(12), dp(12))
+        }
+        val atualiza = object : Runnable {
+            override fun run() {
+                if (!estado.isAttachedToWindow && estado.text.isNotEmpty()) return
+                val ligado = (android.provider.Settings.Secure.getString(contentResolver, android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) ?: "").contains(packageName)
+                estado.text = Estado.resumo(CopilotService.instance != null, ligado)
+                estado.postDelayed(this, 1000)
+            }
+        }
+        atualiza.run()
+        body.addView(estado, ui.lp(top = 10))
+
         body.addView(ui.button("Testar painel (oferta falsa)") {
             val s = CopilotService.instance
             if (s == null) {

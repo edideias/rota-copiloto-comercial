@@ -16,7 +16,7 @@ object Leitor {
     private val ETIQUETA_NOVA = Regex("""(?i)\b(negocia\w*|pop|comfort|top|moto|plus|entrega|corrida|econ[oô]mico)\s+nova\b""")
     private val PAR_TEMPO_KM = Regex("""(?i)\d+\s*min[^\d]{0,12}?\d+(?:[.,]\d+)?\s*k?m(?![a-z])""")
     private val BOTAO = Regex("""(?i)aceitar por|tenho interesse|\bescolh""")
-    private val OFFER_BUTTON_WORDS = listOf("aceitar", "tenho interesse", "selecionar", "escolher")
+    private val OFFER_BUTTON_WORDS = listOf("aceitar", "tenho interesse", "selecionar", "escolher", "tentando encontrar")
 
     fun hasOfferButton(text: String): Boolean = OFFER_BUTTON_WORDS.any { text.contains(it, ignoreCase = true) }
 
