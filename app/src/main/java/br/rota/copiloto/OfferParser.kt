@@ -10,7 +10,8 @@ package br.rota.copiloto
 object OfferParser {
 
     // Aceita "R$23,00", "R$ 10,38" e também "R$ | 10,38" (quando o app separa em dois textos).
-    private val moneyRx = Regex("""R\$\s*(?:\|\s*)?(\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d+(?:,\d{1,2})?)""")
+    // O OCR às vezes lê o "$" gigante como "S" ou "5" ("RS25,10"): também vale.
+    private val moneyRx = Regex("""R\s?[\$S5s]\s*(?:\|\s*)?(\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d+(?:[,.]\d{2})?)(?![\d])""")
 
     // Distância em km OU metros ("806 m" vira 0,806 km). "min" nunca é confundido com "m".
     private const val DIST = """(\d+(?:[.,]\d+)?)\s*(km|m)(?![a-zA-Z])"""
@@ -27,7 +28,7 @@ object OfferParser {
     private val minOnlyRx = Regex(TEMPO, RegexOption.IGNORE_CASE)
 
     // "R$1,47/km" que o próprio 99 mostra: serve para conferir a distância lida.
-    private val perKmRx = Regex("""R\$\s*(\d+(?:,\d{1,2})?)\s*/\s*km""", RegexOption.IGNORE_CASE)
+    private val perKmRx = Regex("""R\s?[\$S5]\s*(\d+(?:[,.]\d{1,2})?)\s*/\s*km""", RegexOption.IGNORE_CASE)
 
     private fun dist(v: String, unit: String): Double =
         num(v) / (if (unit.equals("m", true)) 1000.0 else 1.0)
@@ -94,7 +95,17 @@ object OfferParser {
     }
 
     private fun parseBase(platform: String, text: String): Offer? {
-        val value = readValue(text) ?: return null
+        val lido = readValue(text)
+        if (lido != null) return parseCom(platform, text, lido)
+        // Valor ilegível no OCR: o 99 mostra "R$ x/km", então valor = R$/km × distância total.
+        val ref = perKmRx.find(text)?.groupValues?.get(1)?.let { num(it) } ?: return null
+        val o = parseCom(platform, text, 1.0) ?: return null
+        val total = o.pickupKm + o.tripKm
+        if (ref <= 0.0 || total <= 0.0) return null
+        return o.copy(value = Math.round(ref * total * 100.0) / 100.0)
+    }
+
+    private fun parseCom(platform: String, text: String, value: Double): Offer? {
 
         val pairs = ArrayList<Pair>()
         for (m in minKmRx.findAll(text)) {
@@ -135,6 +146,7 @@ object OfferParser {
      */
     private fun confere(text: String, o: Offer?): Offer? {
         if (o == null) return null
+        if (o.value == 1.0) return o
         val ref = perKmRx.find(text)?.groupValues?.get(1)?.let { num(it) } ?: return o
         if (ref <= 0.0) return o
         val esperado = o.value / ref
@@ -161,7 +173,9 @@ object OfferParser {
         for (m in moneyRx.findAll(text)) {
             val after = text.substring(m.range.last + 1, minOf(text.length, m.range.last + 9)).lowercase()
             if (after.contains("/km") || after.contains("/h") || after.trimStart().startsWith("por ")) continue
-            val v = m.groupValues[1].replace(".", "").replace(",", ".").toDoubleOrNull() ?: continue
+            val g = m.groupValues[1]
+            // "25,10" e "1.250,00" (vírgula decimal); "25.10" quando o OCR troca a vírgula por ponto
+            val v = (if (g.contains(",") || !Regex("""\.\d{2}$""").containsMatchIn(g)) g.replace(".", "").replace(",", ".") else g).toDoubleOrNull() ?: continue
             if (v > 0.0) return v
         }
         return null
