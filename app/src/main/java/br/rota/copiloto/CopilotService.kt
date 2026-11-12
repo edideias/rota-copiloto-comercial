@@ -311,6 +311,13 @@ class CopilotService : AccessibilityService() {
         // Oferta só conta quando está aberta (com botão Aceitar / Tenho interesse).
         // Na lista "Solicitações" do 99 (ou no "Radar de Viagens" do Uber) ela ainda não abriu.
         val naLista = (LISTA.containsMatchIn(joined) && !hasOfferButton(joined)) || naoEhJanelaDeOferta(joined)
+        // O próprio semáforo cobre parte do cartão e o texto embaixo dele não é lido.
+        // Enquanto o botão da oferta continua na tela, a oferta continua: leitura pela metade não esconde
+        // o quadro nem troca os números. Só uma leitura completa (com o embarque) pode atualizar.
+        if (attached && !shownSimulated && !naLista && hasOfferButton(joined) && (offer == null || offer.pickupKm <= 0.0)) {
+            noOfferFrames = 0
+            return
+        }
         if (offer == null || naLista || !(hasOfferButton(joined) || offer.pickupKm > 0.0)) {
             // Sem oferta na tela: depois de alguns quadros seguidos, some com o painel antigo.
             pendingKey = ""; pendingCount = 0

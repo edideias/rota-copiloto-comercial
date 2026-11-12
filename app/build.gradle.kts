@@ -11,8 +11,8 @@ android {
         applicationId = "br.rota.copiloto.pro"
         minSdk = 26
         targetSdk = 34
-        versionCode = 41
-        versionName = "3.14.6"
+        versionCode = 42
+        versionName = "3.15.0"
     }
 
     // Chave fixa: todas as versões saem assinadas igual, então o Android atualiza por cima
