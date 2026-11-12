@@ -42,21 +42,9 @@ class CopilotService : AccessibilityService() {
          * 99: "Aceitar (1s)".  Uber: "Tenho interesse" (ou "Aceitar", em outras versões).
          */
         private const val REQUIRE_OFFER_BUTTON = true
-        private val LISTA = Regex("""(?i)solicita[cç][oõ]es|buscando|radar de viagens""")
-        /** Página de lista de corridas (dentro do app): várias ofertas, etiqueta "Nova", aba Entregas, botão Escolher. */
-        private val PAGINA_LISTA = Regex("""(?i)\bentregas\b|\bordenar\b""")
-        /** Etiqueta "Pop Nova", "Comfort Nova"... Uma só = tela de detalhe (pode mostrar). Duas ou mais = lista. */
-        private val ETIQUETA_NOVA = Regex("""(?i)\b(negocia\w*|pop|comfort|top|moto|plus|entrega|corrida|econ[oô]mico)\s+nova\b""")
-        private val PAR_TEMPO_KM = Regex("""(?i)\d+\s*min[^\d]{0,12}?\d+(?:[.,]\d+)?\s*k?m(?![a-z])""")
-        private val BOTAO = Regex("""(?i)aceitar por|tenho interesse|\bescolh""")
-        /** Só a janela de oferta conta: lista de solicitações, abas do app e prints não. */
-        private fun naoEhJanelaDeOferta(t: String): Boolean =
-            PAGINA_LISTA.containsMatchIn(t) || ETIQUETA_NOVA.findAll(t).count() >= 2 || BOTAO.findAll(t).count() >= 2 || PAR_TEMPO_KM.findAll(t).count() >= 3
-        private val OFFER_BUTTON_WORDS = listOf("aceitar", "tenho interesse", "selecionar", "escolher")
-
-        private fun hasOfferButton(text: String): Boolean =
-            OFFER_BUTTON_WORDS.any { text.contains(it, ignoreCase = true) }
-
+        private val LISTA = Leitor.LISTA
+        private fun naoEhJanelaDeOferta(t: String) = Leitor.naoEhJanelaDeOferta(t)
+        private fun hasOfferButton(text: String) = Leitor.hasOfferButton(text)
     }
 
     private lateinit var prefs: Prefs
@@ -253,10 +241,7 @@ class CopilotService : AccessibilityService() {
                                 .addOnSuccessListener { t ->
                                     ocrBusy = false
                                     // linhas na ordem da tela (de cima para baixo), sem o que o nosso quadro desenhou
-                                    val linhas = t.textBlocks.flatMap { it.lines }
-                                        .filter { l -> val b = l.boundingBox; b == null || meuQuadro == null || !android.graphics.Rect.intersects(b, meuQuadro!!) }
-                                        .sortedWith(compareBy({ (it.boundingBox?.centerY() ?: 0) / 12 }, { it.boundingBox?.left ?: 0 }))
-                                    onOcrText(platform, linhas.joinToString("\n") { it.text })
+                                    onOcrText(platform, Leitor.linhas(t, meuQuadro))
                                 }
                                 .addOnFailureListener { e ->
                                     ocrBusy = false
@@ -281,16 +266,7 @@ class CopilotService : AccessibilityService() {
     }
 
     private fun onOcrText(platform: String, raw: String) {
-        // Tira o que o próprio painel desenhou, para não ler a si mesmo.
-        val hm = Regex("""\d+\s*h\s*\d{1,2}\s*m""")
-        val lines = raw.split("\n").filter { l ->
-            val s = l.lowercase().trim()
-            !(s.contains("lucro") || s.startsWith("$/") || s.startsWith("\$/") ||
-                hm.containsMatchIn(s) ||
-                (s.contains("/km") && s.contains("/h")) ||
-                s.contains("vale a pena") || s.contains("no limite") || s.contains("não compensa"))
-        }
-        val joined = lines.joinToString(" | ")
+        val joined = Leitor.limpar(raw)
 
         val t = SystemClock.uptimeMillis()
         if (t - lastOcrLog > 2500) {

@@ -13,6 +13,7 @@ android {
         targetSdk = 34
         versionCode = 42
         versionName = "3.15.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     // Chave fixa: todas as versões saem assinadas igual, então o Android atualiza por cima
@@ -44,4 +45,7 @@ android {
 dependencies {
     // Leitura por imagem (OCR) 100% no aparelho, modelo embutido no app.
     implementation("com.google.mlkit:text-recognition:16.0.1")
+    androidTestImplementation("androidx.test:runner:1.5.2")
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+    androidTestImplementation("junit:junit:4.13.2")
 }
