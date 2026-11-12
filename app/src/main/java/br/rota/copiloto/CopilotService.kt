@@ -63,6 +63,7 @@ class CopilotService : AccessibilityService() {
         wm = getSystemService(WINDOW_SERVICE) as WindowManager
         DebugLog.add("Serviço conectado.")
         Destino.iniciar(this)
+        ensureOcrLoop()
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -125,16 +126,43 @@ class CopilotService : AccessibilityService() {
     private var ocrLoopRunning = false
     private val ocrLoop = object : Runnable {
         override fun run() {
-            val now = SystemClock.uptimeMillis()
-            val fg = platformOf(fgPkg)
-            val ligado = (fg == "99" && prefs.use99) || (fg == "Uber" && prefs.useUber)
-            if (prefs.enabled && prefs.calcEnabled && prefs.useOcr && (ligado || (fgPkg.isEmpty() && now - lastTargetEvent < 20000))) {
-                tryOcr(fg ?: "99")
-                handler.postDelayed(this, 450)
-            } else {
-                ocrLoopRunning = false
+            // Roda sempre, enquanto o serviço estiver ligado: a cada volta pergunta ao sistema
+            // qual app está na frente. Não depende de aviso do 99 (que quase nunca avisa).
+            try {
+                val on = prefs.enabled && prefs.calcEnabled && prefs.useOcr
+                val fgAgora = if (on) appNaFrente() else ""
+                if (fgAgora.isNotEmpty()) fgPkg = fgAgora
+                val fg = platformOf(fgPkg)
+                val ligado = on && ((fg == "99" && prefs.use99) || (fg == "Uber" && prefs.useUber))
+                if (ligado) {
+                    tryOcr(fg!!)
+                    handler.postDelayed(this, 450)
+                } else {
+                    // outro app na frente (galeria, prints, notificações): o quadro some e a leitura espera
+                    if (on && fgAgora.isNotEmpty() && fg == null && attached && !shownSimulated) hide()
+                    handler.postDelayed(this, 800)
+                }
+            } catch (e: Exception) {
+                handler.postDelayed(this, 1000)
             }
         }
+    }
+
+    /** Pacote do app que está de fato na frente agora (janela ativa), sem esperar evento. */
+    private fun appNaFrente(): String {
+        try {
+            for (w in windows) {
+                if (w.type == android.view.accessibility.AccessibilityWindowInfo.TYPE_APPLICATION && (w.isActive || w.isFocused)) {
+                    val pk = w.root?.packageName?.toString()
+                    if (!pk.isNullOrEmpty() && pk != packageName) return pk
+                }
+            }
+        } catch (_: Exception) {}
+        try {
+            val pk = rootInActiveWindow?.packageName?.toString()
+            if (!pk.isNullOrEmpty() && pk != packageName && !pk.startsWith("com.android.systemui")) return pk
+        } catch (_: Exception) {}
+        return ""
     }
 
     private fun ensureOcrLoop() {
