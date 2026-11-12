@@ -11,7 +11,7 @@ object OfferParser {
 
     // Aceita "R$23,00", "R$ 10,38" e também "R$ | 10,38" (quando o app separa em dois textos).
     // O OCR às vezes lê o "$" gigante como "S" ou "5" ("RS25,10"): também vale.
-    private val moneyRx = Regex("""R\s?[\$S5s]\s*(?:\|\s*)?(\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d+(?:[,.]\d{2})?)(?![\d])""")
+    private val moneyRx = Regex("""R\s?[${'$'}S5s]\s*(?:\|\s*)?(\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d+(?:[,.]\d{2})?)(?![\d])""")
 
     // Distância em km OU metros ("806 m" vira 0,806 km). "min" nunca é confundido com "m".
     private const val DIST = """(\d+(?:[.,]\d+)?)\s*(km|m)(?![a-zA-Z])"""
@@ -28,7 +28,7 @@ object OfferParser {
     private val minOnlyRx = Regex(TEMPO, RegexOption.IGNORE_CASE)
 
     // "R$1,47/km" que o próprio 99 mostra: serve para conferir a distância lida.
-    private val perKmRx = Regex("""R\s?[\$S5]\s*(\d+(?:[,.]\d{1,2})?)\s*/\s*km""", RegexOption.IGNORE_CASE)
+    private val perKmRx = Regex("""R\s?[${'$'}S5]\s*(\d+(?:[,.]\d{1,2})?)\s*/\s*km""", RegexOption.IGNORE_CASE)
 
     private fun dist(v: String, unit: String): Double =
         num(v) / (if (unit.equals("m", true)) 1000.0 else 1.0)
