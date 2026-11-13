@@ -376,6 +376,14 @@ object OverlayCard {
         if (p.bairroOn && !dest.vazio) esq.addView(bairroCompacto(ctx, ui, dest, size), ui.lp(top = 8))
 
         frame.addView(esq, LinearLayout.LayoutParams(wrap, wrap))
+
+        // R$ por km, grande, ao lado
+        val kmCol = ui.vbox().apply { gravity = Gravity.CENTER }
+        val corKm = if (top) neon else verdict
+        kmCol.addView(ui.tv(String.format(br, "%.2f", a.perKm), size * 2.3f, corKm, 3, true).apply { setSingleLine(true); includeFontPadding = false })
+        kmCol.addView(ui.tv("R$/km", size * 0.6f, Color.WHITE, 2, true).apply { alpha = 0.85f })
+        frame.addView(kmCol, LinearLayout.LayoutParams(wrap, ViewGroup.LayoutParams.MATCH_PARENT).also { it.marginStart = ui.dp(12) })
+
         if (a.verdict == Verdict.GREEN && p.eqOn) {
             val lo = p.eqMinC / 100.0; val hi = maxOf(p.eqMaxC / 100.0, lo + 0.01)
             val frac = ((a.perKm - lo) / (hi - lo)).coerceIn(0.0, 1.0)
@@ -863,27 +871,43 @@ class Encaixe(ctx: Context, private val maxW: Int, private val maxH: Int) : andr
 
 
 
-/** Desenho do piso: terra (marrom com pedrinhas) ou asfalto (cinza com faixa tracejada). */
+/** Ícone do piso: uma estrada em perspectiva. Asfalto cinza com faixas; terra marrom com marcas de pneu. */
 class IconePiso(ctx: Context, private val terra: Boolean) : View(ctx) {
     private val p = Paint(Paint.ANTI_ALIAS_FLAG)
     override fun onDraw(c: Canvas) {
-        val w = width.toFloat(); val h = height.toFloat(); val r = w * 0.22f
+        val w = width.toFloat(); val h = height.toFloat()
+        // fundo redondo claro para destacar sobre o azul
         p.style = Paint.Style.FILL
+        p.color = if (terra) Color.parseColor("#FFF4E5") else Color.parseColor("#EEF2F7")
+        c.drawRoundRect(RectF(0f, 0f, w, h), w * 0.26f, w * 0.26f, p)
+        // estrada: trapézio do horizonte (fino) até embaixo (largo)
+        val topoE = w * 0.42f; val topoD = w * 0.58f; val baseE = w * 0.1f; val baseD = w * 0.9f
+        val yT = h * 0.16f; val yB = h * 0.9f
+        val estrada = Path().apply { moveTo(topoE, yT); lineTo(topoD, yT); lineTo(baseD, yB); lineTo(baseE, yB); close() }
+        p.color = if (terra) Color.parseColor("#B7793F") else Color.parseColor("#3B4250")
+        c.drawPath(estrada, p)
         if (terra) {
-            p.color = Color.parseColor("#9A5B2B"); c.drawRoundRect(RectF(0f, 0f, w, h), r, r, p)
-            p.color = Color.parseColor("#C98A4B")
-            val path = Path().apply { moveTo(0f, h * 0.62f); quadTo(w * 0.3f, h * 0.45f, w * 0.55f, h * 0.6f); quadTo(w * 0.8f, h * 0.74f, w, h * 0.55f); lineTo(w, h); lineTo(0f, h); close() }
-            c.save(); c.clipPath(Path().apply { addRoundRect(RectF(0f, 0f, w, h), r, r, Path.Direction.CW) }); c.drawPath(path, p); c.restore()
-            p.color = Color.parseColor("#5E3413")
-            listOf(0.25f to 0.3f, 0.6f to 0.22f, 0.78f to 0.42f, 0.38f to 0.48f, 0.2f to 0.8f, 0.55f to 0.82f, 0.82f to 0.78f).forEach { (x, y) -> c.drawCircle(w * x, h * y, w * 0.06f, p) }
+            // duas marcas de pneu e pedrinhas
+            p.style = Paint.Style.STROKE; p.strokeCap = Paint.Cap.ROUND
+            p.color = Color.parseColor("#7A4A1E"); p.strokeWidth = w * 0.055f
+            c.drawLine(w * 0.47f, yT + h * 0.04f, w * 0.33f, yB - h * 0.03f, p)
+            c.drawLine(w * 0.53f, yT + h * 0.04f, w * 0.67f, yB - h * 0.03f, p)
+            p.style = Paint.Style.FILL; p.color = Color.parseColor("#8C5A2B")
+            listOf(0.5f to 0.55f, 0.42f to 0.78f, 0.6f to 0.72f, 0.5f to 0.35f).forEach { (x, y) -> c.drawCircle(w * x, h * y, w * 0.035f, p) }
+            // tufos de mato nas beiras
+            p.color = Color.parseColor("#4E9A3A")
+            c.drawCircle(w * 0.12f, h * 0.62f, w * 0.06f, p); c.drawCircle(w * 0.88f, h * 0.55f, w * 0.06f, p)
         } else {
-            p.color = Color.parseColor("#3F4650"); c.drawRoundRect(RectF(0f, 0f, w, h), r, r, p)
-            p.color = Color.parseColor("#F5F5F5"); p.strokeWidth = w * 0.06f
-            c.drawLine(w * 0.12f, h * 0.15f, w * 0.12f, h * 0.85f, p); c.drawLine(w * 0.88f, h * 0.15f, w * 0.88f, h * 0.85f, p)
+            // faixas brancas nas bordas e tracejado central amarelo, em perspectiva
+            p.style = Paint.Style.STROKE; p.strokeCap = Paint.Cap.ROUND
+            p.color = Color.WHITE; p.strokeWidth = w * 0.04f
+            c.drawLine(topoE + w * 0.02f, yT + h * 0.02f, baseE + w * 0.06f, yB - h * 0.02f, p)
+            c.drawLine(topoD - w * 0.02f, yT + h * 0.02f, baseD - w * 0.06f, yB - h * 0.02f, p)
             p.color = Color.parseColor("#FACC15")
-            for (k in 0 until 3) { val y0 = h * (0.1f + k * 0.3f); c.drawRoundRect(RectF(w * 0.44f, y0, w * 0.56f, y0 + h * 0.18f), w * 0.04f, w * 0.04f, p) }
+            listOf(0.2f to 0.32f, 0.42f to 0.56f, 0.66f to 0.86f).forEachIndexed { i, (a0, b0) ->
+                p.strokeWidth = w * (0.035f + i * 0.02f)
+                c.drawLine(w * 0.5f, h * a0, w * 0.5f, h * b0, p)
+            }
         }
-        p.style = Paint.Style.STROKE; p.strokeWidth = w * 0.05f; p.color = Color.WHITE
-        c.drawRoundRect(RectF(p.strokeWidth / 2, p.strokeWidth / 2, w - p.strokeWidth / 2, h - p.strokeWidth / 2), r, r, p)
     }
 }
