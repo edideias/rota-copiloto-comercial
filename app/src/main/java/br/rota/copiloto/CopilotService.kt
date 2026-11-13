@@ -20,6 +20,7 @@ import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.FrameLayout
+import android.widget.LinearLayout
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
@@ -462,6 +463,40 @@ class CopilotService : AccessibilityService() {
     }
 
     /** holdMs < 0 usa o tempo configurado (0 = até tocar, no máximo 60 s). */
+    private var registradoKey = ""
+
+    /** "Peguei": registra a corrida no Diário com o que a oferta mostrou. Não toca em nada da 99. */
+    private fun botaoPeguei(a: Analysis, key: String, simulated: Boolean): View {
+        val feito = key == registradoKey
+        return android.widget.TextView(this).apply {
+            text = if (feito) "✓ NO DIÁRIO" else "✓ PEGUEI"
+            textSize = 17f
+            setTypeface(android.graphics.Typeface.DEFAULT_BOLD)
+            setTextColor(if (feito) Color.WHITE else Color.parseColor("#0B0F0D"))
+            gravity = Gravity.CENTER
+            setPadding(dp(26), 0, dp(26), 0)
+            background = android.graphics.drawable.GradientDrawable().apply {
+                cornerRadius = dp(22).toFloat()
+                setColor(if (feito) Color.parseColor("#1F2A24") else Color.parseColor("#22C55E"))
+                setStroke(dp(2), Color.parseColor("#0B0F0D"))
+            }
+            setOnClickListener {
+                if (registradoKey == key) return@setOnClickListener
+                registradoKey = key
+                if (!simulated) {
+                    val o = a.offer
+                    val emb = Destino.bairroDe(o.pickupText) ?: Alarmes.bairroAqui(this@CopilotService) ?: ""
+                    val dst = Destino.analisar(o.destText, prefs, o.pickupText).bairro ?: ""
+                    Diario.registrarDaOferta(this@CopilotService, a, emb, dst)
+                    Alarmes.avisarMissoes(this@CopilotService)
+                }
+                text = "✓ NO DIÁRIO"; setTextColor(Color.WHITE)
+                (background as? android.graphics.drawable.GradientDrawable)?.setColor(Color.parseColor("#1F2A24"))
+                try { (getSystemService(VIBRATOR_SERVICE) as android.os.Vibrator).vibrate(android.os.VibrationEffect.createOneShot(60, 200)) } catch (_: Exception) {}
+            }
+        }
+    }
+
     private fun show(a: Analysis, holdMs: Long) {
         try {
             val o = a.offer
@@ -483,7 +518,12 @@ class CopilotService : AccessibilityService() {
             val dm = resources.displayMetrics
             val maxW = dm.widthPixels - dp(24)
             val maxH = dm.heightPixels - dp(prefs.overlayTopDp.toInt()) - dp(24)
-            box.addView(Encaixe(this, maxW, maxH).apply { addView(OverlayCard.build(this@CopilotService, a, prefs)) })
+            val coluna = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_HORIZONTAL }
+            val alturaPeguei = if (prefs.pegueiOn) dp(52) else 0
+            coluna.addView(Encaixe(this, maxW, maxH - alturaPeguei).apply { addView(OverlayCard.build(this@CopilotService, a, prefs)) })
+            if (prefs.pegueiOn) coluna.addView(botaoPeguei(a, key, simulated), LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, dp(44)).also { it.topMargin = dp(8) })
+            box.addView(coluna)
             box.setOnClickListener { dismiss() }
 
             var lp = overlayLp
