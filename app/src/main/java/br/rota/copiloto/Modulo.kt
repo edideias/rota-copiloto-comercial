@@ -287,13 +287,13 @@ class Modulo(
 
         fun lista(tit: String, l: List<Diario.Celula>, cor: Int) {
             c.addView(titulo(tit))
-            if (l.isEmpty()) { c.addView(ui.tv("Precisa de pelo menos 2 corridas no mesmo bairro e horário.", 13f, C.MUTED, 0), ui.lp(top = 6)); return }
+            if (l.isEmpty()) { c.addView(ui.tv("Precisa de pelo menos 2 corridas no mesmo bairro e faixa de horário.", 13f, C.MUTED, 0), ui.lp(top = 6)); return }
             l.forEachIndexed { i, x ->
                 val r = ui.hbox().apply { background = ui.round(C.WHITE, 14); setPadding(dp(14), dp(12), dp(14), dp(12)) }
                 r.addView(ui.tv("${i + 1}", 18f, cor, 3), LinearLayout.LayoutParams(dp(28), LinearLayout.LayoutParams.WRAP_CONTENT))
                 val m = ui.vbox()
                 m.addView(ui.tv(x.bairro, 16f, C.TEXT, 2))
-                m.addView(ui.tv("${Diario.DIAS[x.dia]} ${Diario.nomeFaixa(x.faixa)} · ${x.corridas} corridas", 12f, C.MUTED, 0))
+                m.addView(ui.tv("${x.quando()} · ${x.corridas} corridas", 13f, C.MUTED, 0))
                 r.addView(m, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
                 r.addView(ui.tv("${rs(x.porHora)}/h", 16f, cor, 3))
                 c.addView(r, ui.lp(top = 8))

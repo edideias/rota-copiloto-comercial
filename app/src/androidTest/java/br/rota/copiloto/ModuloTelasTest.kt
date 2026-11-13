@@ -43,7 +43,8 @@ class ModuloTelasTest {
         val o = Offer("99", 22.08, 2.0, 5.0, 8.2, 21.0, pickupText = "Rua Bahia, 1491, Monte Castelo", destText = "Rua 26 de Agosto, 2315 - Centro")
         val pend = Diario.registrarDaOferta(app, Calc.analyze(o, prefs), "Monte Castelo", "Centro", agora - 10 * 60_000L)
         check(!pend.confirmada && pend.valor == 22.08) { "pendente errada" }
-        check(pend.esperaMin in 40..60) { "espera ${pend.esperaMin}" }
+        // anterior: começou há 70 min e durou 23 → terminou há 47; Peguei há 10 → esperou 37
+        check(pend.esperaMin == 37) { "espera ${pend.esperaMin}" }
         Diario.salvarEvento(app, Diario.Evento(1, "Show no Bosque Expo", "Show", "Bosque Expo", agora + 3600_000L, agora + 4 * 3600_000L))
         Diario.salvarIncentivo(app, Diario.Incentivo(2, "missao", "Multiplica 99 sexta", agora - 3 * 3600_000L, agora + 5 * 3600_000L, 10, 30.0))
         Diario.salvarIncentivo(app, Diario.Incentivo(3, "taxa_zero", "Taxa zero da noite", agora + 6 * 3600_000L, agora + 9 * 3600_000L, 0, 0.0))

@@ -199,7 +199,8 @@ object Diario {
     data class Celula(val bairro: String, val dia: Int, val faixa: Int, val corridas: Int, val total: Double, val minutos: Int) {
         /** R$ por hora contando a espera até a corrida, não só o tempo rodando. */
         val porHora: Double get() = if (minutos > 0) total / (minutos / 60.0) else 0.0
-        fun rotulo() = "${bairro.ifEmpty { "Bairro ?" }} · ${DIAS[dia]} ${nomeFaixa(faixa)}"
+        fun quando() = (if (dia < 0) "qualquer dia" else DIAS[dia]) + " " + nomeFaixa(faixa)
+        fun rotulo() = "${bairro.ifEmpty { "Bairro ?" }} · ${quando()}"
     }
 
     fun celulas(ctx: Context): List<Celula> {
@@ -218,11 +219,23 @@ object Diario {
         return g
     }
 
-    fun melhores(ctx: Context, n: Int = 5, minimo: Int = 2) =
-        celulas(ctx).filter { it.corridas >= minimo && it.bairro.isNotEmpty() }.sortedByDescending { it.porHora }.take(n)
+    /**
+     * Candidatos ao ranking: primeiro bairro × dia da semana × horário (com 2+ corridas).
+     * Enquanto há pouco dado, completa com bairro × horário em qualquer dia (dia = -1).
+     */
+    private fun candidatos(ctx: Context, minimo: Int): List<Celula> {
+        val cel = celulas(ctx).filter { it.bairro.isNotEmpty() }
+        val exatos = cel.filter { it.corridas >= minimo }
+        val usados = exatos.map { it.bairro to it.faixa }.toSet()
+        val qualquerDia = cel.groupBy { it.bairro to it.faixa }.filter { it.key !in usados }
+            .map { (k, l) -> Celula(k.first, -1, k.second, l.sumOf { it.corridas }, l.sumOf { it.total }, l.sumOf { it.minutos }) }
+            .filter { it.corridas >= minimo }
+        return exatos + qualquerDia
+    }
 
-    fun piores(ctx: Context, n: Int = 5, minimo: Int = 2) =
-        celulas(ctx).filter { it.corridas >= minimo && it.bairro.isNotEmpty() }.sortedBy { it.porHora }.take(n)
+    fun melhores(ctx: Context, n: Int = 5, minimo: Int = 2) = candidatos(ctx, minimo).sortedByDescending { it.porHora }.take(n)
+
+    fun piores(ctx: Context, n: Int = 5, minimo: Int = 2) = candidatos(ctx, minimo).sortedBy { it.porHora }.take(n)
 
     /** Dias de histórico (do primeiro registro até hoje), para a barra de confiança. */
     fun diasDeDados(ctx: Context): Int {
