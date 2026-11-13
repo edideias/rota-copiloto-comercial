@@ -37,7 +37,7 @@ jobs:
           disable-animations: true
           script: |
             adb logcat -c
-            gradle connectedDebugAndroidTest --no-daemon || true
+            gradle connectedDebugAndroidTest --no-daemon -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true || true
             adb logcat -d -s LEITOR:I > leitura.txt
             cat leitura.txt
             mkdir -p telas && adb pull /sdcard/Android/data/br.rota.copiloto.pro/files/. telas/ || true
