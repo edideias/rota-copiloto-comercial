@@ -211,6 +211,10 @@ def main():
                "gerado_em": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
                "fonte": "Pavimentação: Agetran/Sisgran - Prefeitura de Campo Grande. Ruas e bairros: © colaboradores do OpenStreetMap (ODbL)", "resumo": {"ruas": len(saida), **resumo},
                "bairros": sorted({b["nome"] for b in bairros if b["nivel"] != "9"} | {p[0] for p in pontos}),
+               # contorno simplificado de cada bairro, para achar o bairro pelo GPS sem internet
+               "bairros_mapa": [{"nome": b["nome"], "aneis": [[[round(x, 5), round(y, 5)] for (x, y) in a[::max(1, len(a) // 80)]] for a in b["aneis"] if len(a) > 2]}
+                                for b in bairros if b["nivel"] != "9"],
+               "bairros_pontos": [{"nome": n, "lon": round(x, 5), "lat": round(y, 5)} for n, x, y in pontos],
                "condominios": sorted({c["nome"] for c in condos}),
                "mercados": mercados,
                "ruas": saida}, open("dados/campo-grande-ruas.json", "w"), ensure_ascii=False, indent=0)
