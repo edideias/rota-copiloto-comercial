@@ -28,7 +28,7 @@ class TelaInicialTest {
             Offer("99", 10.94, 1.5, 5.0, 8.5, 17.0)
         ).forEachIndexed { i, o -> Historico.add(app, Calc.analyze(o, prefs), listOf("Universitário", "Centro", "Mata do Jacinto", "Jardim Leblon", "Nova Lima")[i]) }
         Historico.marcarOnline(app)
-        val out = app.getExternalFilesDir(null)!!
+        val out = app.filesDir
         for ((nome, ligado) in listOf("tela-ligada" to true, "tela-desligada" to false)) {
             prefs.enabled = ligado
             inst.runOnMainSync {

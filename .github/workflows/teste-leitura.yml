@@ -40,7 +40,7 @@ jobs:
             gradle connectedDebugAndroidTest --no-daemon -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true || true
             adb logcat -d -s LEITOR:I > leitura.txt
             cat leitura.txt
-            mkdir -p telas && adb pull /sdcard/Android/data/br.rota.copiloto.pro/files/. telas/ || true
+            mkdir -p telas && for n in tela-ligada tela-desligada; do adb exec-out run-as br.rota.copiloto.pro cat files/$n.png > telas/$n.png || true; done; ls -la telas
       - uses: actions/upload-artifact@v4
         if: always()
         with:
