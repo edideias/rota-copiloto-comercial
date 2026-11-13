@@ -334,6 +334,18 @@ private class ZoneBar(
     }
 }
 
+/** Símbolo de liga/desliga desenhado (a fonte do aparelho nem sempre tem o caractere). */
+private class IconePower(ctx: Context, private val cor: Int) : View(ctx) {
+    private val p = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND }
+    override fun onDraw(c: Canvas) {
+        val w = width.toFloat(); val h = height.toFloat()
+        p.color = cor; p.strokeWidth = w * 0.1f
+        val m = w * 0.16f
+        c.drawArc(RectF(m, m + h * 0.04f, w - m, h - m + h * 0.04f), -60f, 300f, false, p)
+        c.drawLine(w / 2, h * 0.1f, w / 2, h * 0.48f, p)
+    }
+}
+
 private class MapView(ctx: Context, private val bg: Int, private val road: Int, private val route: Int) : View(ctx) {
     private val p = Paint(Paint.ANTI_ALIAS_FLAG)
 
@@ -396,14 +408,14 @@ object HomeTemplates {
         val r = b.h().apply {
             gravity = Gravity.CENTER_VERTICAL
             background = b.rr(C.WHITE, 14)
-            setPadding(b.dp(13), b.dp(11), b.dp(13), b.dp(11))
+            setPadding(b.dp(15), b.dp(14), b.dp(15), b.dp(14))
         }
         r.addView(b.dot(corDe(it.ver), 12))
         val mid = b.v()
-        mid.addView(b.t("R$ ${f2(it.v)} · ${String.format(br, "%.1f", it.km)} km", 14f, C.TEXT, 2))
-        mid.addView(b.t(listOf(it.p, it.bairro.ifEmpty { null }, hm(it.t)).filterNotNull().joinToString(" · "), 12f, C.MUTED, 0))
+        mid.addView(b.t("R$ ${f2(it.v)} · ${String.format(br, "%.1f", it.km)} km", 16f, C.TEXT, 2))
+        mid.addView(b.t(listOf(it.p, it.bairro.ifEmpty { null }, hm(it.t)).filterNotNull().joinToString(" · "), 13f, C.MUTED, 0))
         r.addView(mid, b.lp(0, weight = 1f, start = 4))
-        r.addView(b.t(f2(it.pk), 16f, C.TEXT, 3))
+        r.addView(b.t(f2(it.pk), 19f, C.TEXT, 3))
         return r
     }
 
@@ -424,7 +436,7 @@ object HomeTemplates {
 
         // topo: nome + aparelho
         val hd = b.h().apply { gravity = Gravity.CENTER_VERTICAL }
-        hd.addView(b.t("Rota Calculadora", 19f, C.TEXT, 3), b.lp(0, weight = 1f))
+        hd.addView(b.t("Rota Calculadora", 22f, C.TEXT, 3), b.lp(0, weight = 1f))
         hd.addView(b.t(android.os.Build.MANUFACTURER.replaceFirstChar { it.uppercase() } + " · Android " + android.os.Build.VERSION.RELEASE, 11f, C.MUTED, 0))
         c.addView(hd)
 
@@ -440,15 +452,15 @@ object HomeTemplates {
             setOnClickListener { a.setCopilot(!p.enabled) }
             contentDescription = if (p.enabled) "Desligar copiloto" else "Ligar copiloto"
         }
-        bt.addView(b.t("⏻", 34f, C.BG, 3, true))
-        bt.addView(b.t(if (p.enabled) "LIGADO" else "DESLIGADO", 15f, C.BG, 3, true))
-        c.addView(bt, LinearLayout.LayoutParams(b.dp(140), b.dp(140)).also { it.gravity = Gravity.CENTER_HORIZONTAL; it.topMargin = b.dp(18) })
+        bt.addView(IconePower(ctx, C.BG), LinearLayout.LayoutParams(b.dp(48), b.dp(48)))
+        bt.addView(b.t(if (p.enabled) "LIGADO" else "DESLIGADO", 17f, C.BG, 3, true), b.lp(w = WRAP, top = 4))
+        c.addView(bt, LinearLayout.LayoutParams(b.dp(176), b.dp(176)).also { it.gravity = Gravity.CENTER_HORIZONTAL; it.topMargin = b.dp(26) })
         c.addView(b.t(when {
             !p.enabled -> "Copiloto desligado. Toque para ligar."
             !a.reading -> "Falta ligar a acessibilidade."
             else -> "Tudo pronto. Pode rodar."
-        }, 16f, C.TEXT, 2, true), b.lp(top = 12))
-        val vivo = b.t("", 13f, C.MUTED, 0, true)
+        }, 19f, C.TEXT, 2, true), b.lp(top = 16))
+        val vivo = b.t("", 15f, C.MUTED, 0, true)
         c.addView(vivo, b.lp(top = 2))
         val tick = object : Runnable {
             override fun run() {
@@ -474,10 +486,10 @@ object HomeTemplates {
             setPadding(b.dp(14), b.dp(4), b.dp(14), b.dp(4))
         }
         fun item(ok: Boolean, txt: String, acao: String, last: Boolean, f: () -> Unit) {
-            val r = b.h().apply { gravity = Gravity.CENTER_VERTICAL; minimumHeight = b.dp(46); setOnClickListener { f() } }
+            val r = b.h().apply { gravity = Gravity.CENTER_VERTICAL; minimumHeight = b.dp(54); setOnClickListener { f() } }
             r.addView(b.t(if (ok) "✓" else "!", 13f, C.BG, 3, true).apply { background = b.oval(if (ok) C.PURPLE else C.MID) }, LinearLayout.LayoutParams(b.dp(22), b.dp(22)))
-            r.addView(b.t(txt, 14f, C.TEXT, 1), b.lp(0, weight = 1f, start = 12))
-            if (!ok) r.addView(b.t(acao, 13f, C.PURPLE, 2))
+            r.addView(b.t(txt, 16f, C.TEXT, 1), b.lp(0, weight = 1f, start = 12))
+            if (!ok) r.addView(b.t(acao, 15f, C.PURPLE, 2))
             ck.addView(r)
             if (!last) ck.addView(View(ctx).apply { setBackgroundColor(C.LINE) }, b.lp(h = 1))
         }
@@ -489,32 +501,32 @@ object HomeTemplates {
         item(bateriaOk, "Bateria sem restrição", "corrigir", false) { a.bateria() }
         if (xiaomi) item(false, "Início automático (Xiaomi)", "conferir", false) { a.xiaomi() }
         item(apps.isNotEmpty(), if (apps.isEmpty()) "Nenhum app ligado" else apps.joinToString(" e ") + if (apps.size > 1) " ligados" else " ligado", "escolher", true) { a.apps() }
-        c.addView(ck, b.lp(top = 16))
+        c.addView(ck, b.lp(top = 22))
 
         // meu turno
         val hoje = Historico.hoje(ctx)
         val turno = b.v().apply {
             background = b.rr(C.WHITE, 22)
-            setPadding(b.dp(16), b.dp(14), b.dp(16), b.dp(14))
+            setPadding(b.dp(18), b.dp(18), b.dp(18), b.dp(18))
         }
         val g = b.h()
         val c1 = b.v()
-        c1.addView(b.t("Média das ofertas", 12f, C.MUTED, 0))
-        c1.addView(b.t(if (hoje.isEmpty()) "–" else f2(hoje.map { it.pk }.average()), 32f, C.PURPLE, 3))
-        c1.addView(b.t("R$ por km hoje", 12f, C.MUTED, 0))
+        c1.addView(b.t("Média das ofertas", 14f, C.MUTED, 0))
+        c1.addView(b.t(if (hoje.isEmpty()) "–" else f2(hoje.map { it.pk }.average()), 40f, C.PURPLE, 3))
+        c1.addView(b.t("R$ por km hoje", 13f, C.MUTED, 0))
         g.addView(c1, b.lp(0, weight = 1f))
         val ini = Historico.inicioTurno(ctx)
         val c2 = b.v()
-        c2.addView(b.t(if (Historico.turnoAtivo(ctx)) "Online há" else "Turno de hoje", 12f, C.MUTED, 0))
+        c2.addView(b.t(if (Historico.turnoAtivo(ctx)) "Online há" else "Turno de hoje", 14f, C.MUTED, 0))
         val dur = if (ini == 0L) "–" else ((System.currentTimeMillis() - ini) / 60000).let { "${it / 60}h${String.format(br, "%02d", it % 60)}" }
-        c2.addView(b.t(dur, 32f, C.TEXT, 3))
-        c2.addView(b.t(if (ini == 0L) "ainda não rodou hoje" else "desde ${hm(ini)}", 12f, C.MUTED, 0))
+        c2.addView(b.t(dur, 40f, C.TEXT, 3))
+        c2.addView(b.t(if (ini == 0L) "ainda não rodou hoje" else "desde ${hm(ini)}", 13f, C.MUTED, 0))
         g.addView(c2, b.lp(0, weight = 1f))
         turno.addView(g)
         val boas = hoje.count { it.ver == Verdict.GREEN }
         val lb = b.h()
-        lb.addView(b.t("Ofertas boas", 12f, C.MUTED, 0), b.lp(0, weight = 1f))
-        lb.addView(b.t("$boas de ${hoje.size}", 12f, C.TEXT, 2))
+        lb.addView(b.t("Ofertas boas", 14f, C.MUTED, 0), b.lp(0, weight = 1f))
+        lb.addView(b.t("$boas de ${hoje.size}", 14f, C.TEXT, 2))
         turno.addView(lb, b.lp(top = 12))
         val trilho = FrameLayout(ctx).apply { background = b.rr(C.LINE, 5) }
         val frac = if (hoje.isEmpty()) 0f else boas.toFloat() / hoje.size
@@ -526,25 +538,25 @@ object HomeTemplates {
         listOf(Verdict.GREEN to "boas", Verdict.YELLOW to "no limite", Verdict.RED to "ruins").forEach { (v, n) ->
             val q = b.h().apply { gravity = Gravity.CENTER_VERTICAL }
             q.addView(b.dot(corDe(v), 8))
-            q.addView(b.t("${hoje.count { it.ver == v }} $n", 12f, C.TEXT, 1))
+            q.addView(b.t("${hoje.count { it.ver == v }} $n", 14f, C.TEXT, 1))
             cores.addView(q, b.lp(0, weight = 1f))
         }
         turno.addView(cores, b.lp(top = 8))
-        c.addView(b.t("MEU TURNO", 12f, C.MUTED, 2), b.lp(top = 18))
+        c.addView(b.t("MEU TURNO", 14f, C.MUTED, 2), b.lp(top = 26))
         c.addView(turno, b.lp(top = 8))
 
         // últimas ofertas
         val ht = b.h()
-        ht.addView(b.t("ÚLTIMAS OFERTAS", 12f, C.MUTED, 2), b.lp(0, weight = 1f))
-        if (hoje.size > 4) ht.addView(b.t("ver todas", 13f, C.PURPLE, 2).apply { setOnClickListener { a.ofertas() } })
-        c.addView(ht, b.lp(top = 18))
+        ht.addView(b.t("ÚLTIMAS OFERTAS", 14f, C.MUTED, 2), b.lp(0, weight = 1f))
+        if (hoje.size > 4) ht.addView(b.t("ver todas", 15f, C.PURPLE, 2).apply { setOnClickListener { a.ofertas() } })
+        c.addView(ht, b.lp(top = 26))
         if (hoje.isEmpty()) c.addView(b.t("Quando chegar uma oferta, ela aparece aqui com a cor do semáforo.", 13f, C.MUTED, 0), b.lp(top = 8))
         hoje.takeLast(4).reversed().forEach { c.addView(linhaOferta(b, it), b.lp(top = 8)) }
 
         val atalhos = b.h().apply { gravity = Gravity.CENTER }
-        atalhos.addView(b.t("Testar semáforo", 13f, C.PURPLE, 2).apply { setPadding(b.dp(10), b.dp(12), b.dp(10), b.dp(12)); setOnClickListener { a.testar() } })
+        atalhos.addView(b.t("Testar semáforo", 15f, C.PURPLE, 2).apply { setPadding(b.dp(10), b.dp(12), b.dp(10), b.dp(12)); setOnClickListener { a.testar() } })
         atalhos.addView(b.t("·", 13f, C.MUTED, 0))
-        atalhos.addView(b.t("Diagnóstico", 13f, C.PURPLE, 2).apply { setPadding(b.dp(10), b.dp(12), b.dp(10), b.dp(12)); setOnClickListener { a.diag() } })
+        atalhos.addView(b.t("Diagnóstico", 15f, C.PURPLE, 2).apply { setPadding(b.dp(10), b.dp(12), b.dp(10), b.dp(12)); setOnClickListener { a.diag() } })
         c.addView(atalhos, b.lp(top = 10))
         c.addView(footerView(b, a))
 
@@ -561,8 +573,8 @@ object HomeTemplates {
         ).forEachIndexed { i, (label, res, f) ->
             val col = b.v().apply { gravity = Gravity.CENTER_HORIZONTAL; minimumHeight = b.dp(48); setOnClickListener { f() } }
             val tint = if (i == 0) C.PURPLE else C.MUTED
-            col.addView(b.icon(res, tint))
-            col.addView(b.t(label, 11f, tint, if (i == 0) 2 else 1, true), b.lp(top = 3))
+            col.addView(b.icon(res, tint, 26))
+            col.addView(b.t(label, 13f, tint, if (i == 0) 2 else 1, true), b.lp(top = 3))
             nav.addView(col, b.lp(0, weight = 1f))
         }
         val navWrap = b.v()
