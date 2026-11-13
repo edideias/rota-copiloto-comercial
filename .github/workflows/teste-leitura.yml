@@ -5,6 +5,9 @@ on:
     paths: ["app/src/**", ".github/workflows/teste-leitura.yml"]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   teste:
     runs-on: ubuntu-latest
@@ -45,3 +48,14 @@ jobs:
           path: |
             leitura.txt
             telas/
+      - name: Publica as telas desenhadas
+        if: always()
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: telas-teste
+          name: Telas do teste (não é versão do app)
+          prerelease: true
+          make_latest: false
+          files: |
+            telas/*.png
+            leitura.txt
