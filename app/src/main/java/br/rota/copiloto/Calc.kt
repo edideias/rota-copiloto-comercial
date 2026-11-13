@@ -200,10 +200,10 @@ class Prefs(ctx: Context, override_: android.content.SharedPreferences? = null) 
         get() = sp.getInt("paradaVel", 1)
         set(v) { sp.edit().putInt("paradaVel", v).apply() }
     /** some com o quadro assim que a oferta sai da tela */
-    /** Botão "Peguei" embaixo do semáforo, para registrar a corrida no Diário com 1 toque. */
-    var pegueiOn: Boolean
-        get() = sp.getBoolean("pegueiOn", true)
-        set(v) { sp.edit().putBoolean("pegueiOn", v).apply() }
+    /** Semáforo compacto: só o essencial (etiqueta do app, barra de lucro, km, valor, destino e avisos). */
+    var compacto: Boolean
+        get() = sp.getBoolean("compacto", false)
+        set(v) { sp.edit().putBoolean("compacto", v).apply() }
 
     var sumirJunto: Boolean
         get() = sp.getBoolean("sumirJunto", true)

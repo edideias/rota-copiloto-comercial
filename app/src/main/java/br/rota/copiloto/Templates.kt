@@ -102,10 +102,7 @@ class HomeActions(
     val testar: () -> Unit = {},
     val bateria: () -> Unit = {},
     val ofertas: () -> Unit = {},
-    val diario: () -> Unit = {},
-    val mapa: () -> Unit = {},
-    val agenda: () -> Unit = {},
-    val estado: (String) -> Unit = {}
+    val compacto: (Boolean) -> Unit = {}
 )
 
 private const val MATCH = ViewGroup.LayoutParams.MATCH_PARENT
@@ -484,24 +481,17 @@ object HomeTemplates {
         }
         tick.run()
 
-        // ONLINE / PAUSA do Diário de ganhos
-        Diario.carregar(ctx)
-        val est = Diario.estado
-        val op = b.h()
-        listOf(Triple("ONLINE", "online", C.GOOD), Triple("PAUSA", "pausa", C.MID)).forEachIndexed { i, (t, e, cor) ->
-            val on = est == e
-            val bt2 = b.t(if (on) "● $t" else t, 17f, if (on) C.BG else C.TEXT, 3, true).apply {
-                background = if (on) b.rr(cor, 16) else GradientDrawable().apply { setColor(C.WHITE); cornerRadius = b.dp(16).toFloat(); setStroke(b.dp(2), cor) }
-                minHeight = b.dp(58); gravity = Gravity.CENTER
-                setOnClickListener { a.estado(if (on) "offline" else e) }
-            }
-            op.addView(bt2, b.lp(0, weight = 1f, start = if (i == 0) 0 else 10))
+        // botão do modo compacto do semáforo
+        val seg = b.h().apply { background = b.rr(C.WHITE, 16); setPadding(b.dp(4), b.dp(4), b.dp(4), b.dp(4)) }
+        listOf("Semáforo completo" to false, "Compacto" to true).forEach { (t, v) ->
+            val on = p.compacto == v
+            seg.addView(b.t(t, 16f, if (on) C.BG else C.TEXT, 3, true).apply {
+                background = if (on) b.rr(C.PURPLE, 12) else null
+                minHeight = b.dp(50); gravity = Gravity.CENTER
+                setOnClickListener { if (!on) a.compacto(v) }
+            }, b.lp(0, weight = 1f))
         }
-        c.addView(op, b.lp(top = 16))
-        val rDia = Diario.resumo(ctx, p)
-        if (rDia.corridas > 0 || est != "offline") c.addView(b.t(
-            String.format(br, "Hoje: R$ %.2f · %d corrida(s) · R$ %.0f/h", rDia.total, rDia.corridas, rDia.porHora) +
-                if (rDia.pendentes > 0) " · ${rDia.pendentes} para confirmar" else "", 14f, C.MUTED, 1, true).apply { setOnClickListener { a.diario() } }, b.lp(top = 8))
+        c.addView(seg, b.lp(top = 16))
 
         // checklist do aparelho (só o que importa; tocar resolve)
         val ck = b.v().apply {
@@ -580,8 +570,6 @@ object HomeTemplates {
         atalhos.addView(b.t("Testar semáforo", 15f, C.PURPLE, 2).apply { setPadding(b.dp(10), b.dp(12), b.dp(10), b.dp(12)); setOnClickListener { a.testar() } })
         atalhos.addView(b.t("·", 13f, C.MUTED, 0))
         atalhos.addView(b.t("Diagnóstico", 15f, C.PURPLE, 2).apply { setPadding(b.dp(10), b.dp(12), b.dp(10), b.dp(12)); setOnClickListener { a.diag() } })
-        atalhos.addView(b.t("·", 13f, C.MUTED, 0))
-        atalhos.addView(b.t("Ajuda", 15f, C.PURPLE, 2).apply { setPadding(b.dp(10), b.dp(12), b.dp(10), b.dp(12)); setOnClickListener { a.help() } })
         c.addView(atalhos, b.lp(top = 10))
         c.addView(footerView(b, a))
 
@@ -592,10 +580,9 @@ object HomeTemplates {
         }
         listOf(
             Triple("Início", android.R.drawable.ic_menu_mylocation, {}),
-            Triple("Diário", android.R.drawable.ic_menu_edit, a.diario),
-            Triple("Mapa", android.R.drawable.ic_dialog_map, a.mapa),
-            Triple("Agenda", android.R.drawable.ic_menu_my_calendar, a.agenda),
-            Triple("Ajustes", android.R.drawable.ic_menu_preferences, a.config)
+            Triple("Ofertas", android.R.drawable.ic_menu_agenda, a.ofertas),
+            Triple("Ajustes", android.R.drawable.ic_menu_preferences, a.config),
+            Triple("Ajuda", android.R.drawable.ic_menu_help, a.help)
         ).forEachIndexed { i, (label, res, f) ->
             val col = b.v().apply { gravity = Gravity.CENTER_HORIZONTAL; minimumHeight = b.dp(48); setOnClickListener { f() } }
             val tint = if (i == 0) C.PURPLE else C.MUTED

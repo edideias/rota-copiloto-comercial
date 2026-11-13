@@ -22,7 +22,7 @@ object Destino {
     data class Info(
         val bairro: String?,
         val rua: String?,
-        val pavimento: String?,      // terra, misto (parte terra) ou null quando é asfalto/sem aviso
+        val pavimento: String?,      // terra, misto (trecho de terra), pavimentada ou null quando não se sabe
         val evitado: Boolean,
         val negra: Negra?,
         val condominio: String? = null,  // destino dentro de condomínio fechado
@@ -65,35 +65,6 @@ object Destino {
     @Volatile private var carregando = false
 
     val nomesBairros: List<String> get() = bairros.values.sorted()
-
-    // ------------------------------------------------------------------ bairro pelo GPS
-    class Area(val nome: String, val aneis: List<DoubleArray>)   // [lon, lat, lon, lat, ...]
-    @Volatile private var areas: List<Area> = emptyList()
-    @Volatile private var pontosBairro: List<Triple<String, Double, Double>> = emptyList()
-
-    private fun dentro(lon: Double, lat: Double, a: DoubleArray): Boolean {
-        var d = false
-        val n = a.size / 2
-        var j = n - 1
-        for (i in 0 until n) {
-            val xi = a[i * 2]; val yi = a[i * 2 + 1]; val xj = a[j * 2]; val yj = a[j * 2 + 1]
-            if ((yi > lat) != (yj > lat) && lon < (xj - xi) * (lat - yi) / (yj - yi) + xi) d = !d
-            j = i
-        }
-        return d
-    }
-
-    /** Bairro do ponto (contorno do bairro; sem contorno, o bairro marcado mais perto até 1,8 km). */
-    fun bairroPorGps(lat: Double, lon: Double): String? {
-        areas.firstOrNull { ar -> ar.aneis.any { it.size >= 6 && dentro(lon, lat, it) } }?.let { return it.nome }
-        var melhor: String? = null; var dmin = 1.8
-        for ((nome, la, lo) in pontosBairro) {
-            val dx = (lo - lon) * 111.32 * Math.cos(Math.toRadians(lat)); val dy = (la - lat) * 110.57
-            val d = Math.sqrt(dx * dx + dy * dy)
-            if (d < dmin) { dmin = d; melhor = nome }
-        }
-        return melhor
-    }
     val pronto: Boolean get() = ruas.isNotEmpty()
 
     /** Carrega o banco em segundo plano (arquivo baixado, senão o que veio no app) e atualiza se tiver mais de 30 dias. */
@@ -103,11 +74,8 @@ object Destino {
         Thread {
             try {
                 val arq = File(ctx.filesDir, "ruas.json")
-                // usa o mais novo entre o banco baixado e o que veio dentro do app
-                val doApp = ctx.assets.open("ruas.json").bufferedReader().use { it.readText() }
-                val baixado = if (arq.exists() && arq.length() > 1000) arq.readText() else null
-                fun data(t: String) = Regex("\"gerado_em\"\\s*:\\s*\"([^\"]+)\"").find(t.take(600))?.groupValues?.get(1) ?: ""
-                val txt = if (baixado != null && data(baixado) >= data(doApp)) baixado else doApp
+                val txt = if (arq.exists() && arq.length() > 1000) arq.readText()
+                else ctx.assets.open("ruas.json").bufferedReader().use { it.readText() }
                 ler(txt)
                 val idadeDias = (System.currentTimeMillis() - (if (arq.exists()) arq.lastModified() else 0L)) / 86_400_000L
                 if (idadeDias > 30) atualizar(ctx)
@@ -156,16 +124,6 @@ object Destino {
         for (i in 0 until ma.length()) ma.getJSONObject(i).let { x ->
             ml.add(Mercado(x.optString("nome"), x.optString("rua"), if (x.isNull("num")) null else x.optInt("num")))
         }
-        val mapa = ArrayList<Area>()
-        o.optJSONArray("bairros_mapa")?.let { a -> for (i in 0 until a.length()) { val b = a.getJSONObject(i)
-            val an = b.getJSONArray("aneis")
-            val aneis = (0 until an.length()).map { k -> val r = an.getJSONArray(k); DoubleArray(r.length() * 2).also { d ->
-                for (j in 0 until r.length()) { val pt = r.getJSONArray(j); d[j * 2] = pt.getDouble(0); d[j * 2 + 1] = pt.getDouble(1) } } }
-            mapa.add(Area(b.getString("nome"), aneis)) } }
-        val pts = ArrayList<Triple<String, Double, Double>>()
-        o.optJSONArray("bairros_pontos")?.let { a -> for (i in 0 until a.length()) { val b = a.getJSONObject(i)
-            pts.add(Triple(b.getString("nome"), b.getDouble("lat"), b.getDouble("lon"))) } }
-        areas = mapa; pontosBairro = pts
         ruas = m; bairros = bm; condominios = cs; mercados = ml
         dataBanco = o.optString("gerado_em").take(10)
     }
@@ -197,8 +155,6 @@ object Destino {
     private val NAO_BAIRRO = Regex("""(?i)interesse|aceitar|recusar|verificad|corrida|passageiro|selecionar|confirmar|minuto|\bmin\b|\bkm\b|uberx|comfort|black|flash|negocia|pgto|dinheiro|cart[aã]o|pix|parada|campo grande|\bms\b|brasil|cep""")
 
     /** Bairro escrito no próprio destino: "Rua Igarapé, 92 , Guanandi", "..., 4747, Vila Planalto, Campo Grande" ou "..., 5089 - Centro". */
-    fun bairroDe(texto: String): String? = try { bairroDoTexto(texto) } catch (_: Exception) { null }
-
     private fun bairroDoTexto(dest: String): String? {
         val limpo = (Regex("""\s+-\s+""").find(dest)?.let { m -> dest.substring(0, m.range.first) + ", " + dest.substring(m.range.last + 1) } ?: dest)
         val partes = limpo.split(",").map { it.trim().trimEnd('.', '…').trim().replace(Regex("(?i)^bairro\\s+"), "") }
@@ -258,7 +214,8 @@ object Destino {
         // lista negra olha o texto do destino, o bairro e o condomínio onde a rua fica
         val tudo = norm(listOfNotNull(dest, bairro, condominio, rua?.bairro).joinToString(" "))
         val negra = p.listaNegra.firstOrNull { bate(it.nome, tudo) }
-        val pav = if (p.avisarTerra && (rua?.pavimento == "terra" || rua?.pavimento == "misto")) rua.pavimento else null
+        // terra, misto (trecho de terra) ou pavimentada: vira ícone no quadro
+        val pav = if (p.avisarTerra && rua?.pavimento in setOf("terra", "misto", "pavimentada")) rua?.pavimento else null
         // mercado só importa no EMBARQUE (destino em mercado não tem problema)
         val mercado = if (p.mercadoOn && embarque.isNotBlank())
             mercadoDe(embarque, norm(embarque), ruaRx.find(embarque)?.value?.trim()?.let { norm(it) }) else null

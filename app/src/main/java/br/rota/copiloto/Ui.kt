@@ -5,6 +5,7 @@ import android.content.res.ColorStateList
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -358,8 +359,9 @@ object OverlayCard {
             setPadding(ui.dp(14), ui.dp(8), ui.dp(16), ui.dp(8))
         }
 
+        val compacto = p.compacto
         val row = ui.hbox()
-        p.metrics.forEach { key ->
+        if (!compacto) p.metrics.forEach { key ->
             val col = ui.vbox()
             col.addView(ui.tv(Metrics.label(key), size * 0.55f, muted, 1))
             val vr = ui.hbox()
@@ -374,7 +376,7 @@ object OverlayCard {
                 it.marginEnd = ui.dp(14)
             })
         }
-        outer.addView(row)
+        if (!compacto) outer.addView(row)
 
         val stops = a.offer.stops
 
@@ -397,7 +399,7 @@ object OverlayCard {
             setPadding(ui.dp(10), ui.dp(2), ui.dp(10), ui.dp(2))
             setSingleLine(true)
         })
-        foot.addView(ui.tv(info, size * 0.8f, fg, 2).apply { setPadding(ui.dp(14), 0, 0, 0) })
+        if (!compacto) foot.addView(ui.tv(info, size * 0.8f, fg, 2).apply { setPadding(ui.dp(14), 0, 0, 0) })
         if (stops > 0) {
             val tag = ui.tv(if (stops == 1) "PARADA" else "$stops PARADAS", size * 0.5f, Color.WHITE, 3).apply {
                 background = ui.round(Color.rgb(224, 16, 16), 4)
@@ -413,7 +415,7 @@ object OverlayCard {
             }
             foot.addView(superTag, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).also { it.marginStart = ui.dp(8) })
         }
-        outer.addView(foot, ui.lp(top = 4))
+        outer.addView(foot, ui.lp(top = if (compacto) 0 else 4))
 
         // Equalizador: só no quadro verde. Quanto mais a corrida paga por km, mais alto sobe.
         if (a.verdict == Verdict.GREEN && p.eqOn) {
@@ -446,7 +448,8 @@ object OverlayCard {
                     }
                     setPadding(ui.dp(14), ui.dp(2), ui.dp(14), ui.dp(3))
                 }
-                v.addView(ui.tv(label, size * 0.45f, txt, 3).apply { alpha = 0.8f })
+                if (!compacto) v.addView(ui.tv(label, size * 0.45f, txt, 3).apply { alpha = 0.8f })
+                else v.setPadding(ui.dp(14), ui.dp(4), ui.dp(14), ui.dp(5))
                 v.addView(ui.tv(value, size * 1.1f, txt, 3).apply { setSingleLine(true); maxLines = 1; ellipsize = null })
                 return v
             }
@@ -463,7 +466,7 @@ object OverlayCard {
             box.addView(pills, ui.lp(top = p.espacoCards))
         }
 
-        if (comBairro) box.addView(bairroCard(ctx, ui, dest, p.bairroStyle, size), ui.lp(top = p.espacoCards))
+        if (comBairro) box.addView(if (compacto) bairroCompacto(ctx, ui, dest, size) else bairroCard(ctx, ui, dest, p.bairroStyle, size), ui.lp(top = p.espacoCards))
 
         if (top) {
             val period = p.topMs.toLong()
@@ -535,7 +538,8 @@ object OverlayCard {
         val condo = d.condominio != null
         val roxo = Color.parseColor("#7C3AED")
         // só a RUA do destino: aparece apenas quando ela é de terra (asfalto não precisa aviso)
-        val terraTxt = when (d.pavimento) { "terra" -> "RUA DE TERRA"; "misto" -> "RUA COM TRECHO DE TERRA"; else -> null }
+        val terraTxt: String? = null
+        val piso = iconePiso(ctx, ui, d.pavimento, size)
         val bg = GradientDrawable().apply { setColor(AZUL) }
         val wrap = ViewGroup.LayoutParams.WRAP_CONTENT
         val nomeTv = ui.tv(nome, size * 0.95f, Color.WHITE, 3).apply { maxLines = 2; maxWidth = ui.dp(270) }
@@ -545,7 +549,7 @@ object OverlayCard {
                 val r = ui.hbox().apply { background = bg; setPadding(ui.dp(16), ui.dp(6), ui.dp(16), ui.dp(6)); gravity = Gravity.CENTER_VERTICAL }
                 r.addView(ui.tv(if (d.evitado) "⚠ EVITAR" else if (condo) "Condomínio" else if (d.bairro == null) "Destino" else "Bairro", size * 0.5f, Color.WHITE, 2).apply { alpha = 0.9f })
                 r.addView(nomeTv, LinearLayout.LayoutParams(wrap, wrap).also { it.marginStart = ui.dp(8) })
-                if (terraTxt != null) r.addView(selo(ui, terraTxt, AMBAR, Color.parseColor("#2A1600"), size), LinearLayout.LayoutParams(wrap, wrap).also { it.marginStart = ui.dp(8) })
+                if (piso != null) r.addView(piso, LinearLayout.LayoutParams(ui.dp((size * 1.6f).toInt()), ui.dp((size * 1.6f).toInt())).also { it.marginStart = ui.dp(8) })
                 if (d.evitado) piscar(r, bg, AZUL, VERMELHO, true, ui) else if (condo) bg.setStroke(ui.dp(3), roxo)
                 return r
             }
@@ -558,6 +562,7 @@ object OverlayCard {
                 val sub2 = if (condo) listOfNotNull(d.rua, d.bairro?.takeIf { it != d.condominio }).joinToString(" · ") else if (d.bairro != null) d.rua ?: "" else ""
                 if (sub2.isNotBlank()) esq.addView(ui.tv(sub2, size * 0.48f, Color.WHITE, 0).apply { alpha = 0.9f; maxLines = 2; maxWidth = ui.dp(270) })
                 r.addView(esq, LinearLayout.LayoutParams(wrap, wrap, 1f))
+                if (piso != null) r.addView(piso, LinearLayout.LayoutParams(ui.dp((size * 1.6f).toInt()), ui.dp((size * 1.6f).toInt())).also { it.gravity = Gravity.CENTER_VERTICAL; it.marginEnd = ui.dp(8) })
                 val (tag, cor) = when { d.evitado -> "EVITAR" to VERMELHO; condo -> "CONDOM." to roxo; terraTxt != null -> terraTxt to AMBAR; else -> "OK" to Color.parseColor("#60A5FA") }
                 val ladoBg = GradientDrawable().apply { setColor(cor); cornerRadii = floatArrayOf(0f, 0f, ui.dpf(20f), ui.dpf(20f), ui.dpf(20f), ui.dpf(20f), 0f, 0f) }
                 val lado = ui.tv(tag, size * 0.55f, if (cor == AMBAR) Color.parseColor("#2A1600") else Color.WHITE, 3, true).apply {
@@ -584,12 +589,32 @@ object OverlayCard {
 
                 if (condo && !d.evitado) bg.setStroke(ui.dp(3), roxo)
                 if (linha.childCount > 0) col.addView(linha)
-                if (terraTxt != null) col.addView(selo(ui, terraTxt, AMBAR, Color.parseColor("#2A1600"), size), LinearLayout.LayoutParams(wrap, wrap).also { it.topMargin = ui.dp(4) })
                 r.addView(col, LinearLayout.LayoutParams(wrap, wrap, 1f))
+                if (piso != null) r.addView(piso, LinearLayout.LayoutParams(ui.dp((size * 1.6f).toInt()), ui.dp((size * 1.6f).toInt())).also { it.marginStart = ui.dp(10) })
                 if (d.evitado) piscar(r, bg, AZUL, VERMELHO, true, ui)
                 return r
             }
         }
+    }
+
+    /** Ícone do piso da rua de destino: terra (também para trecho de terra) ou asfalto. */
+    private fun iconePiso(ctx: Context, ui: Ui, pav: String?, size: Float): View? = when (pav) {
+        "terra", "misto" -> IconePiso(ctx, true).apply { contentDescription = if (pav == "terra") "Rua de terra" else "Rua com trecho de terra" }
+        "pavimentada" -> IconePiso(ctx, false).apply { contentDescription = "Rua asfaltada" }
+        else -> null
+    }
+
+    /** Destino no modo compacto: só o nome e o ícone do piso, sem rótulo nem alfinete. */
+    private fun bairroCompacto(ctx: Context, ui: Ui, d: Destino.Info, size: Float): View {
+        val nome = d.condominio ?: d.bairro ?: d.rua ?: ""
+        val condo = d.condominio != null
+        val bg = GradientDrawable().apply { setColor(AZUL); cornerRadius = ui.dpf(22f) }
+        val r = ui.hbox().apply { background = bg; setPadding(ui.dp(16), ui.dp(6), ui.dp(12), ui.dp(6)); gravity = Gravity.CENTER_VERTICAL }
+        r.addView(ui.tv((if (d.evitado) "⚠ " else "") + nome, size * 0.95f, Color.WHITE, 3).apply { maxLines = 2; maxWidth = ui.dp(270) },
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        iconePiso(ctx, ui, d.pavimento, size)?.let { r.addView(it, LinearLayout.LayoutParams(ui.dp((size * 1.6f).toInt()), ui.dp((size * 1.6f).toInt())).also { lp -> lp.marginStart = ui.dp(10) }) }
+        if (d.evitado) piscar(r, bg, AZUL, VERMELHO, true, ui) else if (condo) bg.setStroke(ui.dp(3), Color.parseColor("#7C3AED"))
+        return r
     }
 
     private fun conteudoNegra(ui: Ui, n: Destino.Negra, size: Float, grande: Boolean): LinearLayout {
@@ -746,3 +771,29 @@ class Encaixe(ctx: Context, private val maxW: Int, private val maxH: Int) : andr
     }
 }
 
+
+
+/** Desenho do piso: terra (marrom com pedrinhas) ou asfalto (cinza com faixa tracejada). */
+class IconePiso(ctx: Context, private val terra: Boolean) : View(ctx) {
+    private val p = Paint(Paint.ANTI_ALIAS_FLAG)
+    override fun onDraw(c: Canvas) {
+        val w = width.toFloat(); val h = height.toFloat(); val r = w * 0.22f
+        p.style = Paint.Style.FILL
+        if (terra) {
+            p.color = Color.parseColor("#9A5B2B"); c.drawRoundRect(RectF(0f, 0f, w, h), r, r, p)
+            p.color = Color.parseColor("#C98A4B")
+            val path = Path().apply { moveTo(0f, h * 0.62f); quadTo(w * 0.3f, h * 0.45f, w * 0.55f, h * 0.6f); quadTo(w * 0.8f, h * 0.74f, w, h * 0.55f); lineTo(w, h); lineTo(0f, h); close() }
+            c.save(); c.clipPath(Path().apply { addRoundRect(RectF(0f, 0f, w, h), r, r, Path.Direction.CW) }); c.drawPath(path, p); c.restore()
+            p.color = Color.parseColor("#5E3413")
+            listOf(0.25f to 0.3f, 0.6f to 0.22f, 0.78f to 0.42f, 0.38f to 0.48f, 0.2f to 0.8f, 0.55f to 0.82f, 0.82f to 0.78f).forEach { (x, y) -> c.drawCircle(w * x, h * y, w * 0.06f, p) }
+        } else {
+            p.color = Color.parseColor("#3F4650"); c.drawRoundRect(RectF(0f, 0f, w, h), r, r, p)
+            p.color = Color.parseColor("#F5F5F5"); p.strokeWidth = w * 0.06f
+            c.drawLine(w * 0.12f, h * 0.15f, w * 0.12f, h * 0.85f, p); c.drawLine(w * 0.88f, h * 0.15f, w * 0.88f, h * 0.85f, p)
+            p.color = Color.parseColor("#FACC15")
+            for (k in 0 until 3) { val y0 = h * (0.1f + k * 0.3f); c.drawRoundRect(RectF(w * 0.44f, y0, w * 0.56f, y0 + h * 0.18f), w * 0.04f, w * 0.04f, p) }
+        }
+        p.style = Paint.Style.STROKE; p.strokeWidth = w * 0.05f; p.color = Color.WHITE
+        c.drawRoundRect(RectF(p.strokeWidth / 2, p.strokeWidth / 2, w - p.strokeWidth / 2, h - p.strokeWidth / 2), r, r, p)
+    }
+}

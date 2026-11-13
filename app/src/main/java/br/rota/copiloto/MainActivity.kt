@@ -107,10 +107,7 @@ class MainActivity : Activity() {
                 catch (_: Exception) { push { screen("Ajuda Xiaomi", xiaomiHelpContent()) } }
             },
             ofertas = { push { screen("Ofertas de hoje", HomeTemplates.listaOfertas(this)) } },
-            diario = { push { telaDiario() } },
-            mapa = { push { telaMapa() } },
-            agenda = { push { telaAgenda() } },
-            estado = { e -> Diario.mudarEstado(this, e); render() }
+            compacto = { v -> prefs.compacto = v; render() }
         )
         return HomeTemplates.build(this, prefs.template, acts)
     }
@@ -162,63 +159,8 @@ class MainActivity : Activity() {
         if (savedInstanceState == null && prefs.termsAccepted && !prefs.wizardDone) {
             stack.add { wizardStep(0) }
         }
-        if (intent?.getStringExtra("aba") == "agenda") stack.add { telaAgenda() }
         render()
         if (!prefs.termsAccepted) showTerms()
-        Thread { try { Alarmes.reagendar(this) } catch (_: Exception) {} }.start()
-    }
-
-    // ---------------------------------------------------------------- Diário, Mapa e Agenda
-
-    private fun modulo() = Modulo(this, ui, prefs,
-        refazer = { render() },
-        exportar = { fmt -> exportarDiario(fmt) },
-        importar = {
-            try { startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*"), 41) }
-            catch (_: Exception) { Toast.makeText(this, "Não achei um app de arquivos.", Toast.LENGTH_LONG).show() }
-        },
-        pedirLocalizacao = { requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION), 21) },
-        pedirAlarmes = {
-            try { startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:$packageName"))) } catch (_: Exception) {}
-        })
-
-    private fun telaDiario(): View = screen("Diário de ganhos", modulo().diario())
-    private fun telaMapa(): View = screen("Mapa de calor", modulo().mapa())
-    private fun telaAgenda(): View = screen("Agenda", modulo().agenda())
-
-    private var exportando = "csv"
-
-    private fun exportarDiario(fmt: String) {
-        exportando = fmt
-        val nome = "rota-diario-" + java.text.SimpleDateFormat("yyyy-MM-dd", Locale.US).format(java.util.Date()) + "." + fmt
-        try {
-            startActivityForResult(Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
-                .setType(if (fmt == "csv") "text/csv" else "application/json").putExtra(Intent.EXTRA_TITLE, nome), 40)
-        } catch (_: Exception) { Toast.makeText(this, "Não achei um app de arquivos.", Toast.LENGTH_LONG).show() }
-    }
-
-    @Deprecated("Activity clássica")
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        val uri = data?.data ?: return
-        if (resultCode != RESULT_OK) return
-        try {
-            if (requestCode == 40) {
-                Diario.carregar(this)
-                val txt = if (exportando == "csv") Diario.paraCsv() else Diario.paraJson().toString(2)
-                contentResolver.openOutputStream(uri)?.use { it.write(txt.toByteArray(Charsets.UTF_8)) }
-                Toast.makeText(this, "Backup salvo (${Diario.corridas.size} corridas).", Toast.LENGTH_LONG).show()
-            } else if (requestCode == 41) {
-                val txt = contentResolver.openInputStream(uri)?.use { it.readBytes().toString(Charsets.UTF_8) } ?: return
-                val antes = Diario.corridas.size
-                if (txt.trimStart().startsWith("{")) Diario.importarJson(this, txt) else Diario.importarCsv(this, txt)
-                Alarmes.reagendar(this)
-                Toast.makeText(this, "Importado: ${Diario.corridas.size - antes} corrida(s) nova(s). Nada foi apagado.", Toast.LENGTH_LONG).show()
-                render()
-            }
-        } catch (e: Exception) {
-            Toast.makeText(this, "Não deu para ler/gravar o arquivo: ${e.message}", Toast.LENGTH_LONG).show()
-        }
     }
 
     override fun onResume() {
@@ -1041,8 +983,8 @@ class MainActivity : Activity() {
         box.addView(cs, ui.lp(top = 16))
 
         val c3 = ui.card()
-        c3.addView(switchRow("Botão \"Peguei\" embaixo do semáforo", p.pegueiOn) { p.pegueiOn = it; render() })
-        c3.addView(ui.tv("Toque depois de aceitar na 99: a corrida entra no Diário já preenchida.", 12f, C.MUTED, 0), ui.lp(top = 4, ))
+        c3.addView(switchRow("Modo compacto", p.compacto) { p.compacto = it; render() })
+        c3.addView(ui.tv("Só o essencial: app, barra de lucro, km, valor, destino com ícone de terra/asfalto e os avisos.", 12f, C.MUTED, 0), ui.lp(top = 4))
         c3.addView(switchRow("Sumir junto com a oferta", p.sumirJunto) { p.sumirJunto = it; render() })
         c3.addView(ui.tv("Quando a corrida sai da tela do Uber ou do 99, o quadro some em cerca de 1 segundo.", 12f, C.MUTED, 0), ui.lp(top = 4))
         box.addView(c3, ui.lp(top = 16))
