@@ -367,7 +367,11 @@ class Prefs(ctx: Context, override_: android.content.SharedPreferences? = null) 
 
     /** Modelo visual do aplicativo (0 a 9). */
     var template: Int
-        get() = sp.getInt("template", 0)
+        get() {
+            // tela nova (modelos 6 + 3) vira o padrão uma vez; dá para voltar a outro modelo em Configurar
+            if (!sp.getBoolean("homeV2", false)) sp.edit().putInt("template", 10).putBoolean("homeV2", true).apply()
+            return sp.getInt("template", 10)
+        }
         set(v) { sp.edit().putInt("template", v).apply() }
     /** 0 claro, 1 escuro, 2 cheio */
     var cardTheme: Int

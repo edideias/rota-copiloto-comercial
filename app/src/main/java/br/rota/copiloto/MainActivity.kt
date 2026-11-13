@@ -96,7 +96,17 @@ class MainActivity : Activity() {
                 stack[0] = { mainScreen() }
                 render()
             },
-            help = { push { helpScreen() } }
+            help = { push { helpScreen() } },
+            testar = {
+                val sv = CopilotService.instance
+                if (sv == null) Toast.makeText(this, "Ligue a acessibilidade primeiro.", Toast.LENGTH_LONG).show()
+                else { sv.showSimulation(); Toast.makeText(this, "Saia do app: o semáforo aparece por 6 segundos.", Toast.LENGTH_LONG).show() }
+            },
+            bateria = {
+                try { startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)) }
+                catch (_: Exception) { push { screen("Ajuda Xiaomi", xiaomiHelpContent()) } }
+            },
+            ofertas = { push { screen("Ofertas de hoje", HomeTemplates.listaOfertas(this)) } }
         )
         return HomeTemplates.build(this, prefs.template, acts)
     }

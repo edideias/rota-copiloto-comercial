@@ -136,6 +136,7 @@ class CopilotService : AccessibilityService() {
                 val fg = platformOf(fgPkg)
                 val ligado = on && ((fg == "99" && prefs.use99) || (fg == "Uber" && prefs.useUber))
                 if (ligado) {
+                    Historico.marcarOnline(this@CopilotService)
                     tryOcr(fg!!)
                     handler.postDelayed(this, 450)
                 } else {
@@ -589,7 +590,10 @@ class CopilotService : AccessibilityService() {
             val d = Destino.analisar(o.destText, prefs, o.pickupText)
             if (d.negra != null || d.mercado != null || d.evitado || prefs.paradasDemais(o.stops)) vibrateAlert()
         }
-        if (o.platform != "Simulação") saveShot(o.platform)
+        if (o.platform != "Simulação") {
+            saveShot(o.platform)
+            Historico.add(this, a, Destino.analisar(o.destText, prefs, o.pickupText).bairro ?: "")
+        }
     }
 
     /** Três toques curtos: corrida TOP detectada. */

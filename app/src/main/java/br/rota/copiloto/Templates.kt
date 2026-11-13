@@ -52,7 +52,8 @@ object Templates {
             Tpl("Trilho lateral", "Menu vertical à esquerda", h("#EEF1F6"), h("#FFFFFF"), h("#14213D"), h("#5C6B8A"), h("#14213D"), h("#DDE3F0"), h("#D5DBE8"), h("#EEF1F6"), false, 1f, 0, 18, 2),
             Tpl("Cartas deslizantes", "Cartões que você desliza", h("#0A2A31"), h("#123C45"), h("#F6EFE2"), h("#9CC9CF"), h("#7FE0C1"), h("#1B5560"), h("#2B5C66"), h("#0A2A31"), true, 1.5f, 0, 28, 0),
             Tpl("Painel do turno", "Faixas de meta e números", h("#17181C"), h("#22242A"), h("#F2F3EE"), h("#9A9DA6"), h("#C6F432"), h("#2E3036"), h("#34363D"), h("#17181C"), true, 1.2f, 0, 22, 2),
-            Tpl("Mapa e gaveta", "Mapa ao fundo, controles embaixo", h("#D9E4DD"), h("#FFFFFF"), h("#1B2A24"), h("#5A6C63"), h("#E4572E"), h("#EEF3EF"), h("#CBD5CF"), h("#D9E4DD"), false, 1f, 0, 18, 2)
+            Tpl("Mapa e gaveta", "Mapa ao fundo, controles embaixo", h("#D9E4DD"), h("#FFFFFF"), h("#1B2A24"), h("#5A6C63"), h("#E4572E"), h("#EEF3EF"), h("#CBD5CF"), h("#D9E4DD"), false, 1f, 0, 18, 2),
+            Tpl("Pronto + Turno", "Liga/desliga, checklist e o seu dia", h("#0A2A31"), h("#123C45"), h("#F6EFE2"), h("#9CC9CF"), h("#7FE0C1"), h("#1B5560"), h("#2B5C66"), h("#0A2A31"), true, 1.3f, 0, 22, 2)
         )
     }
 
@@ -97,7 +98,10 @@ class HomeActions(
     val tutorial: () -> Unit,
     val xiaomi: () -> Unit,
     val diag: () -> Unit,
-    val help: () -> Unit
+    val help: () -> Unit,
+    val testar: () -> Unit = {},
+    val bateria: () -> Unit = {},
+    val ofertas: () -> Unit = {}
 )
 
 private const val MATCH = ViewGroup.LayoutParams.MATCH_PARENT
@@ -376,8 +380,195 @@ object HomeTemplates {
             7 -> cartas(b, a)
             8 -> turno(b, a)
             9 -> mapa(b, a)
+            10 -> prontoTurno(b, a)
             else -> cockpit(b, a)
         }
+    }
+
+    // 11 · Pronto + Turno (modelos 6 e 3 juntos) ---------------------------
+    private val br = java.util.Locale("pt", "BR")
+    private fun f2(v: Double) = String.format(br, "%.2f", v)
+    private fun hm(ms: Long) = java.text.SimpleDateFormat("HH:mm", br).format(java.util.Date(ms))
+    private fun corDe(v: Verdict) = when (v) { Verdict.GREEN -> C.GOOD; Verdict.YELLOW -> C.MID; Verdict.RED -> C.BAD }
+    private fun nomeDe(v: Verdict) = when (v) { Verdict.GREEN -> "BOA"; Verdict.YELLOW -> "MÉDIA"; Verdict.RED -> "RUIM" }
+
+    private fun linhaOferta(b: B, it: Historico.Item): View {
+        val r = b.h().apply {
+            gravity = Gravity.CENTER_VERTICAL
+            background = b.rr(C.WHITE, 14)
+            setPadding(b.dp(13), b.dp(11), b.dp(13), b.dp(11))
+        }
+        r.addView(b.dot(corDe(it.ver), 12))
+        val mid = b.v()
+        mid.addView(b.t("R$ ${f2(it.v)} · ${String.format(br, "%.1f", it.km)} km", 14f, C.TEXT, 2))
+        mid.addView(b.t(listOf(it.p, it.bairro.ifEmpty { null }, hm(it.t)).filterNotNull().joinToString(" · "), 12f, C.MUTED, 0))
+        r.addView(mid, b.lp(0, weight = 1f, start = 4))
+        r.addView(b.t(f2(it.pk), 16f, C.TEXT, 3))
+        return r
+    }
+
+    /** Lista de todas as ofertas de hoje (aba "Ofertas"). */
+    fun listaOfertas(ctx: Context): View {
+        val b = B(ctx)
+        val c = b.v()
+        val itens = Historico.hoje(ctx).reversed()
+        if (itens.isEmpty()) c.addView(b.t("Nenhuma oferta lida hoje ainda. Abra o Uber ou a 99 e fique online.", 14f, C.MUTED, 0))
+        itens.forEach { c.addView(linhaOferta(b, it), b.lp(top = 8)) }
+        return c
+    }
+
+    private fun prontoTurno(b: B, a: HomeActions): View {
+        val p = a.prefs
+        val ctx = b.ctx
+        val c = b.v().apply { setPadding(b.dp(18), b.dp(22), b.dp(18), b.dp(16)) }
+
+        // topo: nome + aparelho
+        val hd = b.h().apply { gravity = Gravity.CENTER_VERTICAL }
+        hd.addView(b.t("Rota Calculadora", 19f, C.TEXT, 3), b.lp(0, weight = 1f))
+        hd.addView(b.t(android.os.Build.MANUFACTURER.replaceFirstChar { it.uppercase() } + " · Android " + android.os.Build.VERSION.RELEASE, 11f, C.MUTED, 0))
+        c.addView(hd)
+
+        // botão grande liga/desliga
+        val pronto = p.enabled && a.reading
+        val cor = if (!p.enabled) C.MUTED else if (a.reading) C.PURPLE else C.MID
+        val bt = b.v().apply {
+            gravity = Gravity.CENTER
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL; setColor(cor)
+                setStroke(b.dp(10), (cor and 0x00FFFFFF) or 0x33000000)
+            }
+            setOnClickListener { a.setCopilot(!p.enabled) }
+            contentDescription = if (p.enabled) "Desligar copiloto" else "Ligar copiloto"
+        }
+        bt.addView(b.t("⏻", 34f, C.BG, 3, true))
+        bt.addView(b.t(if (p.enabled) "LIGADO" else "DESLIGADO", 15f, C.BG, 3, true))
+        c.addView(bt, LinearLayout.LayoutParams(b.dp(140), b.dp(140)).also { it.gravity = Gravity.CENTER_HORIZONTAL; it.topMargin = b.dp(18) })
+        c.addView(b.t(when {
+            !p.enabled -> "Copiloto desligado. Toque para ligar."
+            !a.reading -> "Falta ligar a acessibilidade."
+            else -> "Tudo pronto. Pode rodar."
+        }, 16f, C.TEXT, 2, true), b.lp(top = 12))
+        val vivo = b.t("", 13f, C.MUTED, 0, true)
+        c.addView(vivo, b.lp(top = 2))
+        val tick = object : Runnable {
+            override fun run() {
+                if (vivo.text.isNotEmpty() && !vivo.isAttachedToWindow) return
+                val t = android.os.SystemClock.uptimeMillis()
+                val viva = Estado.loopVivo != 0L && t - Estado.loopVivo < 5000
+                val fg = Estado.appFrente.lowercase()
+                vivo.text = when {
+                    !pronto -> " "
+                    !viva -> "Leitura parada. Abra o Diagnóstico."
+                    fg.contains("99") -> "Lendo a 99" + (if (Estado.ultimaLeitura > 0) " · última leitura há ${(t - Estado.ultimaLeitura) / 1000} s" else "")
+                    fg.contains("uber") -> "Lendo o Uber" + (if (Estado.ultimaLeitura > 0) " · última leitura há ${(t - Estado.ultimaLeitura) / 1000} s" else "")
+                    else -> "Esperando você abrir o Uber ou a 99"
+                }
+                vivo.postDelayed(this, 1000)
+            }
+        }
+        tick.run()
+
+        // checklist do aparelho (só o que importa; tocar resolve)
+        val ck = b.v().apply {
+            background = b.rr(C.WHITE, 20)
+            setPadding(b.dp(14), b.dp(4), b.dp(14), b.dp(4))
+        }
+        fun item(ok: Boolean, txt: String, acao: String, last: Boolean, f: () -> Unit) {
+            val r = b.h().apply { gravity = Gravity.CENTER_VERTICAL; minimumHeight = b.dp(46); setOnClickListener { f() } }
+            r.addView(b.t(if (ok) "✓" else "!", 13f, C.BG, 3, true).apply { background = b.oval(if (ok) C.PURPLE else C.MID) }, LinearLayout.LayoutParams(b.dp(22), b.dp(22)))
+            r.addView(b.t(txt, 14f, C.TEXT, 1), b.lp(0, weight = 1f, start = 12))
+            if (!ok) r.addView(b.t(acao, 13f, C.PURPLE, 2))
+            ck.addView(r)
+            if (!last) ck.addView(View(ctx).apply { setBackgroundColor(C.LINE) }, b.lp(h = 1))
+        }
+        val pm = ctx.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+        val bateriaOk = pm.isIgnoringBatteryOptimizations(ctx.packageName)
+        val xiaomi = android.os.Build.MANUFACTURER.lowercase().let { it.contains("xiaomi") || it.contains("redmi") || it.contains("poco") }
+        val apps = listOfNotNull(if (p.useUber) "Uber" else null, if (p.use99) "99" else null)
+        item(a.reading, "Acessibilidade ligada", "ligar", false) { a.activate() }
+        item(bateriaOk, "Bateria sem restrição", "corrigir", false) { a.bateria() }
+        if (xiaomi) item(false, "Início automático (Xiaomi)", "conferir", false) { a.xiaomi() }
+        item(apps.isNotEmpty(), if (apps.isEmpty()) "Nenhum app ligado" else apps.joinToString(" e ") + if (apps.size > 1) " ligados" else " ligado", "escolher", true) { a.apps() }
+        c.addView(ck, b.lp(top = 16))
+
+        // meu turno
+        val hoje = Historico.hoje(ctx)
+        val turno = b.v().apply {
+            background = b.rr(C.WHITE, 22)
+            setPadding(b.dp(16), b.dp(14), b.dp(16), b.dp(14))
+        }
+        val g = b.h()
+        val c1 = b.v()
+        c1.addView(b.t("Média das ofertas", 12f, C.MUTED, 0))
+        c1.addView(b.t(if (hoje.isEmpty()) "–" else f2(hoje.map { it.pk }.average()), 32f, C.PURPLE, 3))
+        c1.addView(b.t("R$ por km hoje", 12f, C.MUTED, 0))
+        g.addView(c1, b.lp(0, weight = 1f))
+        val ini = Historico.inicioTurno(ctx)
+        val c2 = b.v()
+        c2.addView(b.t(if (Historico.turnoAtivo(ctx)) "Online há" else "Turno de hoje", 12f, C.MUTED, 0))
+        val dur = if (ini == 0L) "–" else ((System.currentTimeMillis() - ini) / 60000).let { "${it / 60}h${String.format(br, "%02d", it % 60)}" }
+        c2.addView(b.t(dur, 32f, C.TEXT, 3))
+        c2.addView(b.t(if (ini == 0L) "ainda não rodou hoje" else "desde ${hm(ini)}", 12f, C.MUTED, 0))
+        g.addView(c2, b.lp(0, weight = 1f))
+        turno.addView(g)
+        val boas = hoje.count { it.ver == Verdict.GREEN }
+        val lb = b.h()
+        lb.addView(b.t("Ofertas boas", 12f, C.MUTED, 0), b.lp(0, weight = 1f))
+        lb.addView(b.t("$boas de ${hoje.size}", 12f, C.TEXT, 2))
+        turno.addView(lb, b.lp(top = 12))
+        val trilho = FrameLayout(ctx).apply { background = b.rr(C.LINE, 5) }
+        val frac = if (hoje.isEmpty()) 0f else boas.toFloat() / hoje.size
+        val barra = LinearLayout(ctx).apply { weightSum = 1f }
+        barra.addView(View(ctx).apply { background = b.rr(C.PURPLE, 5) }, LinearLayout.LayoutParams(0, b.dp(10), frac))
+        trilho.addView(barra, FrameLayout.LayoutParams(MATCH, b.dp(10)))
+        turno.addView(trilho, b.lp(h = b.dp(10), top = 6))
+        val cores = b.h()
+        listOf(Verdict.GREEN to "boas", Verdict.YELLOW to "no limite", Verdict.RED to "ruins").forEach { (v, n) ->
+            val q = b.h().apply { gravity = Gravity.CENTER_VERTICAL }
+            q.addView(b.dot(corDe(v), 8))
+            q.addView(b.t("${hoje.count { it.ver == v }} $n", 12f, C.TEXT, 1))
+            cores.addView(q, b.lp(0, weight = 1f))
+        }
+        turno.addView(cores, b.lp(top = 8))
+        c.addView(b.t("MEU TURNO", 12f, C.MUTED, 2), b.lp(top = 18))
+        c.addView(turno, b.lp(top = 8))
+
+        // últimas ofertas
+        val ht = b.h()
+        ht.addView(b.t("ÚLTIMAS OFERTAS", 12f, C.MUTED, 2), b.lp(0, weight = 1f))
+        if (hoje.size > 4) ht.addView(b.t("ver todas", 13f, C.PURPLE, 2).apply { setOnClickListener { a.ofertas() } })
+        c.addView(ht, b.lp(top = 18))
+        if (hoje.isEmpty()) c.addView(b.t("Quando chegar uma oferta, ela aparece aqui com a cor do semáforo.", 13f, C.MUTED, 0), b.lp(top = 8))
+        hoje.takeLast(4).reversed().forEach { c.addView(linhaOferta(b, it), b.lp(top = 8)) }
+
+        val atalhos = b.h().apply { gravity = Gravity.CENTER }
+        atalhos.addView(b.t("Testar semáforo", 13f, C.PURPLE, 2).apply { setPadding(b.dp(10), b.dp(12), b.dp(10), b.dp(12)); setOnClickListener { a.testar() } })
+        atalhos.addView(b.t("·", 13f, C.MUTED, 0))
+        atalhos.addView(b.t("Diagnóstico", 13f, C.PURPLE, 2).apply { setPadding(b.dp(10), b.dp(12), b.dp(10), b.dp(12)); setOnClickListener { a.diag() } })
+        c.addView(atalhos, b.lp(top = 10))
+        c.addView(footerView(b, a))
+
+        // barra de abas
+        val nav = b.h().apply {
+            setBackgroundColor(C.BG)
+            setPadding(0, b.dp(8), 0, b.dp(10))
+        }
+        listOf(
+            Triple("Início", android.R.drawable.ic_menu_mylocation, {}),
+            Triple("Ofertas", android.R.drawable.ic_menu_agenda, a.ofertas),
+            Triple("Ajustes", android.R.drawable.ic_menu_preferences, a.config),
+            Triple("Ajuda", android.R.drawable.ic_menu_help, a.help)
+        ).forEachIndexed { i, (label, res, f) ->
+            val col = b.v().apply { gravity = Gravity.CENTER_HORIZONTAL; minimumHeight = b.dp(48); setOnClickListener { f() } }
+            val tint = if (i == 0) C.PURPLE else C.MUTED
+            col.addView(b.icon(res, tint))
+            col.addView(b.t(label, 11f, tint, if (i == 0) 2 else 1, true), b.lp(top = 3))
+            nav.addView(col, b.lp(0, weight = 1f))
+        }
+        val navWrap = b.v()
+        navWrap.addView(View(ctx).apply { setBackgroundColor(C.LINE) }, b.lp(h = 1))
+        navWrap.addView(nav)
+        return scaffold(b, C.BG, c, navWrap)
     }
 
     // 1 · Cockpit --------------------------------------------------------
