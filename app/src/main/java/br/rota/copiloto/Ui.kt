@@ -380,8 +380,10 @@ object OverlayCard {
         // R$ por km, grande, ao lado
         val kmCol = ui.vbox().apply { gravity = Gravity.CENTER }
         val corKm = if (top) neon else verdict
-        kmCol.addView(ui.tv(String.format(br, "%.2f", a.perKm), size * 2.3f, corKm, 3, true).apply { setSingleLine(true); includeFontPadding = false })
-        kmCol.addView(ui.tv("R$/km", size * 0.6f, Color.WHITE, 2, true).apply { alpha = 0.85f })
+        // maxLines (não singleLine): singleLine + centralizado empurrava o número para fora da coluna
+        kmCol.addView(ui.tv(String.format(br, "%.2f", a.perKm), size * 2.3f, corKm, 3, true).apply { maxLines = 1; includeFontPadding = false },
+            LinearLayout.LayoutParams(wrap, wrap))
+        kmCol.addView(ui.tv("R$/km", size * 0.6f, Color.WHITE, 2, true).apply { alpha = 0.85f }, LinearLayout.LayoutParams(wrap, wrap))
         frame.addView(kmCol, LinearLayout.LayoutParams(wrap, ViewGroup.LayoutParams.MATCH_PARENT).also { it.marginStart = ui.dp(12) })
 
         if (a.verdict == Verdict.GREEN && p.eqOn) {
@@ -406,9 +408,20 @@ object OverlayCard {
             anim.start()
         }
 
+        // mercado no embarque: só uma faixa vermelha fina embaixo, sem o "NÃO VOU"
+        if (dest.negra == null && dest.mercado != null) {
+            val col = ui.vbox()
+            col.addView(frame)
+            val fbg = GradientDrawable().apply { setColor(Color.parseColor("#B91C1C")); cornerRadius = ui.dpf(16f) }
+            val faixa = ui.tv("⛔ " + p.mercadoLinha1, size * 0.62f, Color.WHITE, 3, true).apply {
+                background = fbg; setPadding(ui.dp(12), ui.dp(5), ui.dp(12), ui.dp(5)); maxLines = 2
+            }
+            col.addView(faixa, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, wrap).also { it.topMargin = ui.dp(4) })
+            piscar(faixa, fbg, Color.parseColor("#B91C1C"), Color.parseColor("#EF4444"), false, ui)
+            return col
+        }
         val negra = when {
             dest.negra != null -> Destino.Negra(p.avisoLinha1, p.avisoLinha2)
-            dest.mercado != null -> Destino.Negra(p.mercadoLinha1, p.avisoLinha2)
             p.paradasDemais(a.offer.stops) -> Destino.Negra("${a.offer.stops} PARADAS", p.avisoLinha2)
             else -> return frame
         }
