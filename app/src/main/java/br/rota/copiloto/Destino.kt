@@ -26,7 +26,8 @@ object Destino {
         val evitado: Boolean,
         val negra: Negra?,
         val condominio: String? = null,  // destino dentro de condomínio fechado
-        val mercado: String? = null      // destino é mercado / supermercado
+        val mercado: String? = null,     // embarque é mercado / supermercado
+        val motel: String? = null        // destino é motel (pelo nome ou pelo endereço)
     ) {
         val vazio get() = bairro == null && rua == null
     }
@@ -60,6 +61,8 @@ object Destino {
     @Volatile private var condominios: Map<String, String> = emptyMap()   // normalizado -> nome
     data class Mercado(val nome: String, val rua: String, val num: Int?)
     @Volatile private var mercados: List<Mercado> = emptyList()
+    @Volatile private var moteis: List<Mercado> = emptyList()
+    val qtdMoteis: Int get() = moteis.size
     @Volatile var dataBanco: String = ""
         private set
     @Volatile private var carregando = false
@@ -124,6 +127,12 @@ object Destino {
         for (i in 0 until ma.length()) ma.getJSONObject(i).let { x ->
             ml.add(Mercado(x.optString("nome"), x.optString("rua"), if (x.isNull("num")) null else x.optInt("num")))
         }
+        val mo = ArrayList<Mercado>()
+        val moa = o.optJSONArray("moteis") ?: JSONArray()
+        for (i in 0 until moa.length()) moa.getJSONObject(i).let { x ->
+            mo.add(Mercado(x.optString("nome"), x.optString("rua"), if (x.isNull("num")) null else x.optInt("num")))
+        }
+        moteis = mo
         ruas = m; bairros = bm; condominios = cs; mercados = ml
         dataBanco = o.optString("gerado_em").take(10)
     }
@@ -194,6 +203,28 @@ object Destino {
         return null
     }
 
+    private val CARA_DE_MOTEL = Regex("""(?i)\bmot[eé]is?\b|\bmotel\b|drive[\s-]?in\b|love\s*hotel""")
+
+    /** O destino é motel? Pelo nome, por um motel do mapa, pelo endereço (mesma rua, número perto) ou pela sua lista. */
+    private fun motelDe(dest: String, nd: String, ruaNorm: String?, lista: List<String>): String? {
+        CARA_DE_MOTEL.find(dest)?.let { return dest.substringBefore(",").trim().ifBlank { "Motel" } }
+        val alvo = " $nd "
+        moteis.firstOrNull { mk -> val n = norm(mk.nome); n.length >= 5 && n != "motel" && alvo.contains(" $n ") }?.let { return it.nome }
+        val num = if (ruaNorm != null) Regex("""(?:,|\s)\s*(\d{1,5})\b""").find(dest.substringAfter(ruaNorm.split(" ").last(), dest))?.groupValues?.get(1)?.toIntOrNull() else null
+        if (ruaNorm != null && num != null) moteis.firstOrNull { it.rua == ruaNorm && it.num != null && Math.abs(it.num - num) <= 30 }?.let { return it.nome }
+        // sua lista: nome ("Motel Tal") ou endereço ("Rua X, 123")
+        for (item in lista) {
+            val ni = norm(item)
+            if (ni.length < 4) continue
+            val numItem = Regex("""(\d{1,5})""").find(item)?.value?.toIntOrNull()
+            val ruaItem = ruaRx.find(item)?.value?.trim()?.let { norm(it) }
+            if (ruaItem != null && numItem != null) {
+                if (ruaItem == ruaNorm && num != null && Math.abs(num - numItem) <= 30) return item
+            } else if (alvo.contains(" $ni ")) return item
+        }
+        return null
+    }
+
     private val CARA_DE_CONDO = Regex("""(?i)condom|damha|alphavil|terras alpha|village|vilage|resid""")
 
     fun analisar(dest: String, p: Prefs, embarque: String = ""): Info {
@@ -219,6 +250,7 @@ object Destino {
         // mercado só importa no EMBARQUE (destino em mercado não tem problema)
         val mercado = if (p.mercadoOn && embarque.isNotBlank())
             mercadoDe(embarque, norm(embarque), ruaRx.find(embarque)?.value?.trim()?.let { norm(it) }) else null
-        return Info(bairro, rua?.nome ?: ruaTxt, pav, evitado, negra, condominio, mercado)
+        val motel = if (p.motelOn) motelDe(dest, nd, ruaTxt?.let { norm(it) }, p.motelLista) else null
+        return Info(bairro, rua?.nome ?: ruaTxt, pav, evitado, negra, condominio, mercado, motel)
     }
 }

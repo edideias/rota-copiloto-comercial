@@ -27,6 +27,9 @@ NOME_CONDO = re.compile(r"(?i)condom|resid|damha|dama|alphavil|village|vilage|vi
 MERCADOS = ('(nwr["shop"~"^(supermarket|wholesale|convenience|greengrocer)$"]' + BB + ';);out tags center;')
 NOME_MERC = re.compile(r"(?i)merc|super|atacad|assa[ií]|comper|carrefour|p[aã]o de a[cç][uú]car|fort|hipe?r|empor|sacol|quitand|minimerc")
 
+# Motéis (aviso rosa neon quando o destino é motel)
+MOTEIS = ('(nwr["tourism"="motel"]' + BB + ';nwr["amenity"="love_hotel"]' + BB + ';nwr["name"~"[Mm]otel"]' + BB + ';);out tags center;')
+
 PAVIM = {"asphalt", "paved", "concrete", "concrete:plates", "concrete:lanes", "paving_stones", "sett", "cobblestone",
          "unhewn_cobblestone", "metal", "wood", "chipseal"}
 TERRA = {"unpaved", "dirt", "earth", "ground", "gravel", "fine_gravel", "compacted", "sand", "grass", "mud", "pebblestone", "rock"}
@@ -192,6 +195,19 @@ def main():
         mercados.append({"nome": nome or "Mercado", "rua": norm(rua) if rua else "", "num": int(num) if num else None,
                          "lat": round(c["lat"], 6), "lon": round(c["lon"], 6)})
 
+    moteis = []
+    try:
+        for el in overpass(MOTEIS):
+            t = el.get("tags", {}); nome = t.get("name") or "Motel"
+            c = el.get("center") or {"lat": el.get("lat"), "lon": el.get("lon")}
+            if c.get("lat") is None: continue
+            rua = t.get("addr:street") or ""
+            num = re.sub(r"\D.*", "", t.get("addr:housenumber") or "")
+            moteis.append({"nome": nome, "rua": norm(rua) if rua else "", "num": int(num) if num else None,
+                           "lat": round(c["lat"], 6), "lon": round(c["lon"], 6)})
+    except Exception as e:
+        print("::warning::motéis não baixados:", e)
+
     saida = []
     for chave, r in sorted(ruas.items()):
         conhecido = r["km_pav"] + r["km_terra"]
@@ -217,6 +233,7 @@ def main():
                "bairros_pontos": [{"nome": n, "lon": round(x, 5), "lat": round(y, 5)} for n, x, y in pontos],
                "condominios": sorted({c["nome"] for c in condos}),
                "mercados": mercados,
+               "moteis": moteis,
                "ruas": saida}, open("dados/campo-grande-ruas.json", "w"), ensure_ascii=False, indent=0)
     print("::notice::" + json.dumps({"ruas": len(saida), **resumo, "bairros_poligono": len(bairros), "bairros_ponto": len(pontos), "ruas_com_bairro": sum(1 for x in saida if x["bairros"]), "ruas_oficiais": len(ofi), "condominios": len(condos), "ruas_em_condominio": sum(1 for x in saida if x["condominio"]), "mercados": len(mercados), "mercados_com_endereco": sum(1 for m in mercados if m["rua"] and m["num"])}))
 

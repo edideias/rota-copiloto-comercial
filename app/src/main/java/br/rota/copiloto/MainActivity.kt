@@ -487,8 +487,9 @@ class MainActivity : Activity() {
             Op("⭐", "Corrida TOP", "#9333EA") { openConfig("Corrida TOP") { topContent(it) } },
             Op("🛑", "Parada e app", "#DC2626") { openConfig("Parada e nome do app") { aparenciaContent(it) } },
             Op("🚗", "Uber e 99", "#EA580C") { openConfig("Uber e 99") { appsContent(it) } },
+            Op("🏩", "Motel", "#DB2777") { openConfig("Motel") { motelContent(it) } },
             Op("⏱️", "Tempo na tela", "#475569") { openConfig("Tempo na tela") { timeContent(it) } },
-            Op("📸", "Salvar prints", "#DB2777") { openConfig("Salvar prints") { captureContent(it) } },
+            Op("📸", "Salvar prints", "#0891B2") { openConfig("Salvar prints") { captureContent(it) } },
             Op("🏠", "Tela inicial", "#4F46E5") { push { templatePicker() } }
         )
         val box = ui.vbox()
@@ -998,6 +999,57 @@ class MainActivity : Activity() {
         c3.addView(switchRow("Sumir junto com a oferta", p.sumirJunto) { p.sumirJunto = it; render() })
         c3.addView(ui.tv("Quando a corrida sai da tela do Uber ou do 99, o quadro some em cerca de 1 segundo.", 12f, C.MUTED, 0), ui.lp(top = 4))
         box.addView(c3, ui.lp(top = 16))
+        return box
+    }
+
+    private fun motelContent(p: Prefs): View {
+        val box = ui.vbox()
+        box.addView(pageHeader("Motel", "Destino em motel: o quadro pisca em rosa neon, grande"))
+        // prévia: compacto e completo com destino em motel
+        val prev = ui.vbox().apply { background = ui.round(Color.parseColor("#2B3340"), 14); setPadding(dp(8), dp(14), dp(8), dp(14)) }
+        val antes = p.compacto
+        val o = Offer("99", 18.60, 2.0, 6.0, 7.4, 15.0, destText = "Motel Paraíso, Avenida Gury Marques, 6200")
+        for (modo in listOf(true, false)) {
+            p.compacto = modo
+            prev.addView(Encaixe(this, resources.displayMetrics.widthPixels - dp(100), dp(900)).apply { addView(OverlayCard.build(this@MainActivity, Calc.analyze(o, p), p)) },
+                LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).also { it.gravity = Gravity.CENTER_HORIZONTAL; it.bottomMargin = dp(12) })
+        }
+        p.compacto = antes
+        val c0 = ui.card(); c0.addView(ui.tv("Prévia: compacto e completo", 12f, C.MUTED, 0)); c0.addView(prev, ui.lp(top = 6))
+        box.addView(c0, ui.lp(top = 16))
+
+        val c1 = ui.card()
+        c1.addView(switchRow("Avisar quando o destino é motel", p.motelOn) { p.motelOn = it; render() })
+        c1.addView(ui.tv("Dispara pelo nome (motel, drive-in), pelos ${Destino.qtdMoteis} motéis do mapa de Campo Grande e pelo endereço deles (mesma rua, número perto), e pelos que você cadastrar abaixo.", 12f, C.MUTED, 0), ui.lp(top = 4))
+        c1.addView(corRow("Cor", p.motelCor) { p.motelCor = it }, ui.lp(top = 14))
+        c1.addView(velocidadeRow("Velocidade da piscada", p.motelMs) { p.motelMs = it }, ui.lp(top = 14))
+        c1.addView(stepperRow("Tamanho do aviso", "${p.motelTam}%", { p.motelTam = maxOf(60, p.motelTam - 10); render() }, { p.motelTam = minOf(220, p.motelTam + 10); render() }), ui.lp(top = 14))
+        c1.addView(stepperRow("Espessura da moldura", "${p.motelMoldura}", { p.motelMoldura = maxOf(2, p.motelMoldura - 1); render() }, { p.motelMoldura = minOf(20, p.motelMoldura + 1); render() }), ui.lp(top = 12))
+        c1.addView(switchRow("Vibrar", p.motelVibrar) { p.motelVibrar = it; render() }, ui.lp(top = 10))
+        val tx = campo("Texto do aviso").apply { setText(p.motelTexto) }
+        c1.addView(ui.tv("Texto do aviso", 14f, C.TEXT, 2), ui.lp(top = 14)); c1.addView(tx, ui.lp(top = 6))
+        c1.addView(ui.button("Salvar texto", false) { p.motelTexto = tx.text.toString().trim().ifEmpty { "MOTEL" }; render() }, ui.lp(top = 8))
+        box.addView(c1, ui.lp(top = 16))
+
+        val c2 = ui.card()
+        c2.addView(ui.tv("Seus motéis", 16f, C.TEXT, 3))
+        c2.addView(ui.tv("Nome (\"Motel Tal\") ou endereço (\"Rua X, 123\"). Use para motel que o mapa não conhece.", 12f, C.MUTED, 0), ui.lp(top = 4))
+        p.motelLista.forEach { m ->
+            val r = ui.hbox().apply { gravity = Gravity.CENTER_VERTICAL; background = ui.round(C.BG, 12); setPadding(dp(12), dp(4), dp(4), dp(4)) }
+            r.addView(ui.tv(m, 15f, C.TEXT, 2), ui.lp(0, weight = 1f))
+            r.addView(ui.tv("✕", 16f, C.MUTED, 2, true).apply {
+                contentDescription = "Remover $m"; layoutParams = LinearLayout.LayoutParams(dp(44), dp(44)); gravity = Gravity.CENTER
+                setOnClickListener { p.motelLista = p.motelLista.filter { it != m }; render() }
+            })
+            c2.addView(r, ui.lp(top = 8))
+        }
+        val novo = campo("Novo motel (nome ou endereço)")
+        c2.addView(novo, ui.lp(top = 10))
+        c2.addView(ui.button("Adicionar") {
+            val t = novo.text.toString().trim()
+            if (t.length >= 4) { p.motelLista = p.motelLista + t; render() }
+        }, ui.lp(top = 8))
+        box.addView(c2, ui.lp(top = 16))
         return box
     }
 

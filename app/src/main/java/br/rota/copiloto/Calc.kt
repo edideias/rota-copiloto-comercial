@@ -211,6 +211,33 @@ class Prefs(ctx: Context, override_: android.content.SharedPreferences? = null) 
     fun cpI(k: String, d: Int) = sp.getInt("cp_$k", d)
     fun setCpI(k: String, v: Int) { sp.edit().putInt("cp_$k", v).apply() }
 
+    // ---- motel no destino: aviso rosa neon piscando
+    var motelOn: Boolean
+        get() = sp.getBoolean("motelOn", true)
+        set(v) { sp.edit().putBoolean("motelOn", v).apply() }
+    var motelTexto: String
+        get() = sp.getString("motelTexto", "MOTEL") ?: "MOTEL"
+        set(v) { sp.edit().putString("motelTexto", v).apply() }
+    var motelCor: Int
+        get() = sp.getInt("motelCor", android.graphics.Color.parseColor("#FF1FA8"))
+        set(v) { sp.edit().putInt("motelCor", v).apply() }
+    var motelMs: Int
+        get() = sp.getInt("motelMs", 260)
+        set(v) { sp.edit().putInt("motelMs", v).apply() }
+    var motelTam: Int
+        get() = sp.getInt("motelTam", 100)
+        set(v) { sp.edit().putInt("motelTam", v).apply() }
+    var motelMoldura: Int
+        get() = sp.getInt("motelMoldura", 8)
+        set(v) { sp.edit().putInt("motelMoldura", v).apply() }
+    var motelVibrar: Boolean
+        get() = sp.getBoolean("motelVibrar", true)
+        set(v) { sp.edit().putBoolean("motelVibrar", v).apply() }
+    /** Seus motéis: nome ou endereço ("Rua X, 123"). */
+    var motelLista: List<String>
+        get() = try { val a = org.json.JSONArray(sp.getString("motelLista", "[]")); List(a.length()) { a.getString(it) } } catch (_: Exception) { emptyList() }
+        set(v) { sp.edit().putString("motelLista", org.json.JSONArray(v).toString()).apply() }
+
     var sumirJunto: Boolean
         get() = sp.getBoolean("sumirJunto", true)
         set(v) { sp.edit().putBoolean("sumirJunto", v).apply() }

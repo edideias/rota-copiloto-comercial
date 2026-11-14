@@ -295,6 +295,49 @@ object OverlayCard {
 
     fun build(ctx: Context, a: Analysis, p: Prefs): View {
         estiloIcone = p.cpI("estiloIcone", 0)
+        val motel = if (p.motelOn) Destino.analisar(a.offer.destText, p, a.offer.pickupText).motel else null
+        val v0 = montarComParada(ctx, a, p)
+        return if (motel != null) avisoMotel(ctx, v0, motel, p) else v0
+    }
+
+    /** Destino em motel: moldura grossa e faixa grande piscando em rosa neon. */
+    private fun avisoMotel(ctx: Context, conteudo: View, nome: String, p: Prefs): View {
+        val ui = Ui(ctx)
+        val cor = p.motelCor
+        val esc = p.motelTam / 100f
+        val size = p.cardFont.toFloat()
+        val esp = ui.dp(p.motelMoldura)
+        val bg = GradientDrawable().apply { setColor(Color.TRANSPARENT); cornerRadius = ui.dpf(30f); setStroke(esp, cor) }
+        val col = ui.vbox().apply { background = bg; setPadding(esp + ui.dp(3), esp + ui.dp(3), esp + ui.dp(3), esp + ui.dp(3)) }
+        val fbg = GradientDrawable().apply { setColor(cor); cornerRadius = ui.dpf(20f) }
+        val faixa = ui.vbox().apply { background = fbg; gravity = Gravity.CENTER; setPadding(ui.dp(14), ui.dp(6), ui.dp(14), ui.dp(8)) }
+        val t1 = ui.tv("🏩 " + p.motelTexto, size * 1.45f * esc, Color.WHITE, 3, true).apply { maxLines = 1; includeFontPadding = false }
+        faixa.addView(t1, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        if (!nome.equals("motel", true) && !nome.equals(p.motelTexto, true))
+            faixa.addView(ui.tv(nome, size * 0.62f * esc, Color.WHITE, 2, true).apply { maxLines = 2 }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        col.addView(faixa, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        col.addView(conteudo, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).also { it.topMargin = ui.dp(6); it.gravity = Gravity.CENTER_HORIZONTAL })
+        val escuro = Color.rgb(Color.red(cor) / 3, Color.green(cor) / 3, Color.blue(cor) / 3)
+        val anim = android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = p.motelMs.toLong(); repeatMode = android.animation.ValueAnimator.REVERSE; repeatCount = android.animation.ValueAnimator.INFINITE
+            addUpdateListener {
+                val f = it.animatedValue as Float
+                bg.setStroke(esp, Color.argb((60 + 195 * f).toInt(), Color.red(cor), Color.green(cor), Color.blue(cor)))
+                fbg.setColor(Color.rgb((Color.red(escuro) + (Color.red(cor) - Color.red(escuro)) * f).toInt(),
+                    (Color.green(escuro) + (Color.green(cor) - Color.green(escuro)) * f).toInt(),
+                    (Color.blue(escuro) + (Color.blue(cor) - Color.blue(escuro)) * f).toInt()))
+                t1.alpha = 0.55f + 0.45f * f
+            }
+        }
+        col.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(x: View) { if (!anim.isStarted) anim.start() }
+            override fun onViewDetachedFromWindow(x: View) { anim.cancel() }
+        })
+        anim.start()
+        return col
+    }
+
+    private fun montarComParada(ctx: Context, a: Analysis, p: Prefs): View {
         val v = montar(ctx, a, p)
         if (a.offer.stops <= 0 || !p.paradaOn) return v
         val ui = Ui(ctx)
