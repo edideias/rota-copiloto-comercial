@@ -76,7 +76,7 @@ class CopilotService : AccessibilityService() {
             fgPkg = pkg
             val pf = platformOf(pkg)
             // saiu do Uber/99 (galeria, prints, outro app): nada de leitura e o quadro some
-            if (pf == null && attached && !shownSimulated) hide()
+            if (pf == null && attached && !shownSimulated && alvoVisivel() == null) hide()
             if (pf != null && prefs.useOcr && ((pf == "99" && prefs.use99) || (pf == "Uber" && prefs.useUber))) { lastTargetEvent = SystemClock.uptimeMillis(); ensureOcrLoop() }
         }
         val platform = platformOf(pkg) ?: return
@@ -130,7 +130,8 @@ class CopilotService : AccessibilityService() {
             // qual app está na frente. Não depende de aviso do 99 (que quase nunca avisa).
             try {
                 val on = prefs.enabled && prefs.calcEnabled && prefs.useOcr
-                val fgAgora = if (on) appNaFrente() else ""
+                // o cartão do Uber/99 pode flutuar por cima de outro app (balão "Uber →"): enquanto a janela dele existe, vale como "na frente"
+                val fgAgora = if (on) (alvoVisivel() ?: appNaFrente()) else ""
                 if (fgAgora.isNotEmpty()) fgPkg = fgAgora
                 Estado.loopVivo = SystemClock.uptimeMillis(); Estado.appFrente = fgPkg
                 val fg = platformOf(fgPkg)
@@ -148,6 +149,17 @@ class CopilotService : AccessibilityService() {
                 handler.postDelayed(this, 1000)
             }
         }
+    }
+
+    /** Pacote do Uber/99 se alguma janela dele (inclusive flutuante, sobre outro app) está na tela agora. */
+    private fun alvoVisivel(): String? {
+        try {
+            for (w in windows) {
+                val pk = w.root?.packageName?.toString() ?: continue
+                if (pk != packageName && platformOf(pk) != null) return pk
+            }
+        } catch (_: Exception) {}
+        return null
     }
 
     /** Pacote do app que está de fato na frente agora (janela ativa), sem esperar evento. */
