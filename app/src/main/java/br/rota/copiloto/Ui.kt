@@ -30,7 +30,7 @@ object C {
     var MUTED = Color.parseColor("#6B7280")
     var LINE = Color.parseColor("#E5E1F0")
     val GOOD = Color.parseColor("#16A34A")
-    val MID = Color.parseColor("#F2B600")
+    val MID = Color.parseColor("#FFE500") // amarelo puro (não âmbar)
     val BAD = Color.parseColor("#DC2626")
 }
 
@@ -732,7 +732,7 @@ object OverlayCard {
     private fun bairroCompacto(ctx: Context, ui: Ui, d: Destino.Info, size: Float, p: Prefs): View {
         val condo = d.condominio != null
         val principal = d.rua ?: d.condominio ?: d.bairro ?: ""
-        val sub = if (!p.cpB("bairro", true)) "" else listOfNotNull(d.condominio?.takeIf { it != principal }, d.bairro?.takeIf { it != principal }).joinToString(" · ")
+        val sub = if (!p.cpB("bairro", true)) "" else listOfNotNull(d.condominio?.takeIf { it != principal }, d.bairro?.takeIf { it != principal }).distinct().joinToString(" · ")
         val azul = p.cpI("azul", AZUL)
         val bg = GradientDrawable().apply { setColor(azul); cornerRadius = ui.dpf(20f) }
         val r = ui.hbox().apply { background = bg; setPadding(ui.dp(14), ui.dp(6), ui.dp(8), ui.dp(6)); gravity = Gravity.CENTER_VERTICAL }
