@@ -336,56 +336,58 @@ object OverlayCard {
             setColor(Color.parseColor("#17142A")); cornerRadius = ui.dpf(24f)
             setStroke(ui.dp(4), if (top) neon else verdict)
         }
-        val frame = ui.hbox().apply { background = frameBg; setPadding(ui.dp(10), ui.dp(10), ui.dp(10), ui.dp(10)) }
+        // ocupa a largura da tela (menos uma margem pequena), sem buracos
+        val frame = ui.hbox().apply {
+            background = frameBg; setPadding(ui.dp(10), ui.dp(8), ui.dp(10), ui.dp(8))
+            minimumWidth = ctx.resources.displayMetrics.widthPixels - ui.dp(16)
+        }
         val esq = ui.vbox()
 
-        // linha 1: etiqueta do app (+ paradas / super)
+        // linha 1: etiqueta do app, km, valor e o R$/km grande — tudo numa linha
         val l1 = ui.hbox().apply { gravity = Gravity.CENTER_VERTICAL }
         val tagCor = if (a.offer.platform == "Uber") p.tagCorUber else if (a.offer.platform == "99") p.tagCor99 else Color.GRAY
         val clara = (Color.red(tagCor) * 299 + Color.green(tagCor) * 587 + Color.blue(tagCor) * 114) / 1000 > 160
-        val tagEsc = when (p.appTagSize) { 0 -> 0.55f; 1 -> 0.75f; else -> 0.95f }
-        l1.addView(ui.tv(when (a.offer.platform) { "Uber" -> "UBER"; "99" -> "99"; else -> "TESTE" }, size * tagEsc,
-            if (clara) Color.parseColor("#1B1F24") else Color.WHITE, 3).apply {
-            background = ui.round(tagCor, 8); setPadding(ui.dp(10), ui.dp(2), ui.dp(10), ui.dp(2)); setSingleLine(true)
-        })
+        val tagEsc = when (p.appTagSize) { 0 -> 0.6f; 1 -> 0.75f; else -> 0.9f }
+        val coluna1 = ui.vbox().apply { gravity = Gravity.CENTER_HORIZONTAL }
+        coluna1.addView(ui.tv(when (a.offer.platform) { "Uber" -> "UBER"; "99" -> "99"; else -> "TESTE" }, size * tagEsc,
+            if (clara) Color.parseColor("#1B1F24") else Color.WHITE, 3, true).apply {
+            background = ui.round(tagCor, 8); setPadding(ui.dp(8), ui.dp(2), ui.dp(8), ui.dp(2)); maxLines = 1
+        }, LinearLayout.LayoutParams(wrap, wrap))
         val stops = a.offer.stops
-        if (stops > 0) l1.addView(ui.tv(if (stops == 1) "PARADA" else "$stops PARADAS", size * 0.55f, Color.WHITE, 3).apply {
-            background = ui.round(Color.rgb(224, 16, 16), 6); setPadding(ui.dp(8), ui.dp(2), ui.dp(8), ui.dp(2))
-        }, LinearLayout.LayoutParams(wrap, wrap).also { it.marginStart = ui.dp(8) })
+        if (stops > 0) coluna1.addView(ui.tv(if (stops == 1) "PARADA" else "$stops PARADAS", size * 0.42f, Color.WHITE, 3, true).apply {
+            background = ui.round(Color.rgb(224, 16, 16), 6); setPadding(ui.dp(5), ui.dp(1), ui.dp(5), ui.dp(1)); maxLines = 1
+        }, LinearLayout.LayoutParams(wrap, wrap).also { it.topMargin = ui.dp(3) })
         var superTag: View? = null
         if (top) {
-            superTag = ui.tv("⚡ SUPER", size * 0.55f, neon, 3).apply { background = ui.round(ink, 6); setPadding(ui.dp(8), ui.dp(2), ui.dp(8), ui.dp(2)) }
-            l1.addView(superTag, LinearLayout.LayoutParams(wrap, wrap).also { it.marginStart = ui.dp(8) })
+            superTag = ui.tv("⚡ SUPER", size * 0.42f, neon, 3, true).apply { background = ui.round(ink, 6); setPadding(ui.dp(5), ui.dp(1), ui.dp(5), ui.dp(1)); maxLines = 1 }
+            coluna1.addView(superTag, LinearLayout.LayoutParams(wrap, wrap).also { it.topMargin = ui.dp(3) })
         }
-        esq.addView(l1)
+        l1.addView(coluna1, LinearLayout.LayoutParams(wrap, wrap))
 
-        // linha 2: km e valor, sem rótulos
-        val pills = ui.hbox()
-        fun pill(value: String, fill: Int, txt: Int): View = ui.tv(value, size * 1.1f, txt, 3).apply {
+        fun pill(value: String, fill: Int, txt: Int): View = ui.tv(value, size * 1.0f, txt, 3, true).apply {
             background = GradientDrawable().apply { setColor(fill); cornerRadius = ui.dpf(40f) }
-            setPadding(ui.dp(14), ui.dp(4), ui.dp(14), ui.dp(5)); setSingleLine(true); maxLines = 1; ellipsize = null
+            setPadding(ui.dp(10), ui.dp(4), ui.dp(10), ui.dp(5)); maxLines = 1
         }
-        pills.addView(pill(String.format(br, "%.1f km", a.totalKm), Color.parseColor("#000000"), Color.WHITE), LinearLayout.LayoutParams(wrap, wrap, 1f))
+        l1.addView(pill(String.format(br, "%.1f km", a.totalKm), Color.BLACK, Color.WHITE), LinearLayout.LayoutParams(wrap, wrap).also { it.marginStart = ui.dp(6) })
         val vFill = if (top) neon else verdict
-        pills.addView(pill(String.format(br, "R$ %.2f", a.offer.value), vFill, if (top || a.verdict == Verdict.YELLOW) ink else Color.WHITE),
-            LinearLayout.LayoutParams(wrap, wrap, 1f).also { it.marginStart = ui.dp(6) })
-        esq.addView(pills, ui.lp(top = 8))
-
-        // linha 3: destino com ícone do piso
-        val dest = Destino.analisar(a.offer.destText, p, a.offer.pickupText)
-        if (p.bairroOn && !dest.vazio) esq.addView(bairroCompacto(ctx, ui, dest, size), ui.lp(top = 8))
-
-        frame.addView(esq, LinearLayout.LayoutParams(wrap, wrap))
-
-        // R$ por km, grande, ao lado
+        l1.addView(pill(String.format(br, "R$ %.2f", a.offer.value), vFill, if (top || a.verdict == Verdict.YELLOW) ink else Color.WHITE),
+            LinearLayout.LayoutParams(wrap, wrap).also { it.marginStart = ui.dp(6) })
+        l1.addView(View(ctx), LinearLayout.LayoutParams(0, 1, 1f))
         val kmCol = ui.vbox().apply { gravity = Gravity.CENTER }
         val corKm = if (top) neon else verdict
         // maxLines (não singleLine): singleLine + centralizado empurrava o número para fora da coluna
-        kmCol.addView(ui.tv(String.format(br, "%.2f", a.perKm), size * 2.3f, corKm, 3, true).apply { maxLines = 1; includeFontPadding = false },
+        kmCol.addView(ui.tv(String.format(br, "%.2f", a.perKm), size * 2.0f, corKm, 3, true).apply { maxLines = 1; includeFontPadding = false },
             LinearLayout.LayoutParams(wrap, wrap))
-        kmCol.addView(ui.tv("R$/km", size * 0.6f, Color.WHITE, 2, true).apply { alpha = 0.85f }, LinearLayout.LayoutParams(wrap, wrap))
-        frame.addView(kmCol, LinearLayout.LayoutParams(wrap, ViewGroup.LayoutParams.MATCH_PARENT).also { it.marginStart = ui.dp(12) })
+        kmCol.addView(ui.tv("R$/km", size * 0.5f, Color.WHITE, 2, true).apply { alpha = 0.85f }, LinearLayout.LayoutParams(wrap, wrap))
+        l1.addView(kmCol, LinearLayout.LayoutParams(wrap, wrap).also { it.marginStart = ui.dp(8) })
+        esq.addView(l1, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, wrap))
 
+        // linha 2: caixa azul em largura total, nome da rua grande + ícone do piso
+        val dest = Destino.analisar(a.offer.destText, p, a.offer.pickupText)
+        if (p.bairroOn && !dest.vazio) esq.addView(bairroCompacto(ctx, ui, dest, size),
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, wrap).also { it.topMargin = ui.dp(6) })
+
+        frame.addView(esq, LinearLayout.LayoutParams(0, wrap, 1f))
         if (a.verdict == Verdict.GREEN && p.eqOn) {
             val lo = p.eqMinC / 100.0; val hi = maxOf(p.eqMaxC / 100.0, lo + 0.01)
             val frac = ((a.perKm - lo) / (hi - lo)).coerceIn(0.0, 1.0)
@@ -715,15 +717,18 @@ object OverlayCard {
         else -> null
     }
 
-    /** Destino no modo compacto: só o nome e o ícone do piso, sem rótulo nem alfinete. */
+    /** Destino no modo compacto: nome da rua grande, bairro menor embaixo, ícone do piso à direita. */
     private fun bairroCompacto(ctx: Context, ui: Ui, d: Destino.Info, size: Float): View {
-        val nome = d.condominio ?: d.bairro ?: d.rua ?: ""
         val condo = d.condominio != null
-        val bg = GradientDrawable().apply { setColor(AZUL); cornerRadius = ui.dpf(22f) }
-        val r = ui.hbox().apply { background = bg; setPadding(ui.dp(16), ui.dp(6), ui.dp(12), ui.dp(6)); gravity = Gravity.CENTER_VERTICAL }
-        r.addView(ui.tv((if (d.evitado) "⚠ " else "") + nome, size * 0.95f, Color.WHITE, 3).apply { maxLines = 2; maxWidth = ui.dp(270) },
-            LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-        iconePiso(ctx, ui, d.pavimento, size)?.let { r.addView(it, LinearLayout.LayoutParams(ui.dp((size * 2.0f).toInt()), ui.dp((size * 2.0f).toInt())).also { lp -> lp.marginStart = ui.dp(10) }) }
+        val principal = d.rua ?: d.condominio ?: d.bairro ?: ""
+        val sub = listOfNotNull(d.condominio?.takeIf { it != principal }, d.bairro?.takeIf { it != principal }).joinToString(" · ")
+        val bg = GradientDrawable().apply { setColor(AZUL); cornerRadius = ui.dpf(20f) }
+        val r = ui.hbox().apply { background = bg; setPadding(ui.dp(14), ui.dp(6), ui.dp(8), ui.dp(6)); gravity = Gravity.CENTER_VERTICAL }
+        val col = ui.vbox()
+        col.addView(ui.tv((if (d.evitado) "⚠ " else "") + principal, size * 1.05f, Color.WHITE, 3).apply { maxLines = 2; includeFontPadding = false })
+        if (sub.isNotBlank()) col.addView(ui.tv(sub, size * 0.62f, Color.WHITE, 2).apply { alpha = 0.9f; maxLines = 1 }, ui.lp(top = 2))
+        r.addView(col, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        iconePiso(ctx, ui, d.pavimento, size)?.let { r.addView(it, LinearLayout.LayoutParams(ui.dp((size * 2.4f).toInt()), ui.dp((size * 2.4f).toInt())).also { lp -> lp.marginStart = ui.dp(8) }) }
         if (d.evitado) piscar(r, bg, AZUL, VERMELHO, true, ui) else if (condo) bg.setStroke(ui.dp(3), Color.parseColor("#7C3AED"))
         return r
     }

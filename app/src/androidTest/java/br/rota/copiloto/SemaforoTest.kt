@@ -22,6 +22,7 @@ class SemaforoTest {
         Destino.iniciar(app)
         Thread.sleep(4000) // banco de ruas carrega em segundo plano
         val ofertas = listOf(
+            Offer("99", 23.40, 5.0, 11.0, 12.2, 22.0, pickupText = "Rua Pres. Artur Bernardes, 1096, Vila Santo Amaro", destText = "Rua Dos Cafezeiros, 64, Jardim São Conrado"),
             Offer("99", 19.90, 0.995, 4.0, 6.7, 16.0, pickupText = "Shopping Norte Sul Plaza, Avenida Pres. Ernesto Geisel, 2300 - Jardim Joquei Club", destText = "RUA_ASFALTO, 120 - Centro"),
             Offer("99", 12.40, 1.5, 5.0, 5.2, 14.0, pickupText = "Rua Bahia, 1491, Monte Castelo", destText = "RUA_TERRA, 55"),
             Offer("Uber", 8.10, 2.4, 6.0, 3.3, 9.0, pickupText = "Supermercado Comper, Avenida Afonso Pena, 4000", destText = "Rua 26 de Agosto, 2315 - Centro", stops = 1)
