@@ -1026,9 +1026,9 @@ class MainActivity : Activity() {
         c1.addView(stepperRow("Tamanho do aviso", "${p.motelTam}%", { p.motelTam = maxOf(60, p.motelTam - 10); render() }, { p.motelTam = minOf(220, p.motelTam + 10); render() }), ui.lp(top = 14))
         c1.addView(stepperRow("Espessura da moldura", "${p.motelMoldura}", { p.motelMoldura = maxOf(2, p.motelMoldura - 1); render() }, { p.motelMoldura = minOf(20, p.motelMoldura + 1); render() }), ui.lp(top = 12))
         c1.addView(switchRow("Vibrar", p.motelVibrar) { p.motelVibrar = it; render() }, ui.lp(top = 10))
-        val tx = campo("Texto do aviso").apply { setText(p.motelTexto) }
-        c1.addView(ui.tv("Texto do aviso", 14f, C.TEXT, 2), ui.lp(top = 14)); c1.addView(tx, ui.lp(top = 6))
-        c1.addView(ui.button("Salvar texto", false) { p.motelTexto = tx.text.toString().trim().ifEmpty { "MOTEL" }; render() }, ui.lp(top = 8))
+        val tx = campo("Letra do aviso (ex.: M)").apply { setText(p.motelTexto) }
+        c1.addView(ui.tv("Letra do aviso (ex.: M)", 14f, C.TEXT, 2), ui.lp(top = 14)); c1.addView(tx, ui.lp(top = 6))
+        c1.addView(ui.button("Salvar texto", false) { p.motelTexto = tx.text.toString().trim().ifEmpty { "M" }; render() }, ui.lp(top = 8))
         box.addView(c1, ui.lp(top = 16))
 
         val c2 = ui.card()
@@ -1328,7 +1328,7 @@ class MainActivity : Activity() {
             })
             c3.addView(r, ui.lp(top = 10))
         }
-        c3.addView(ui.tv("Texto do aviso", 14f, C.TEXT, 2), ui.lp(top = 16))
+        c3.addView(ui.tv("Letra do aviso (ex.: M)", 14f, C.TEXT, 2), ui.lp(top = 16))
         val l1 = campo("Primeira linha").apply { setText(p.avisoLinha1) }
         val l2 = campo("Segunda linha").apply { setText(p.avisoLinha2) }
         c3.addView(l1, ui.lp(top = 8)); c3.addView(l2, ui.lp(top = 8))

@@ -216,7 +216,7 @@ class Prefs(ctx: Context, override_: android.content.SharedPreferences? = null) 
         get() = sp.getBoolean("motelOn", true)
         set(v) { sp.edit().putBoolean("motelOn", v).apply() }
     var motelTexto: String
-        get() = sp.getString("motelTexto", "MOTEL") ?: "MOTEL"
+        get() = sp.getString("motelTexto", "M")?.takeIf { it != "MOTEL" } ?: "M"
         set(v) { sp.edit().putString("motelTexto", v).apply() }
     var motelCor: Int
         get() = sp.getInt("motelCor", android.graphics.Color.parseColor("#FF1FA8"))
