@@ -485,7 +485,7 @@ class MainActivity : Activity() {
             Op("💰", "Metas e custo", "#0D9488") { openConfig("Metas e custo") { goalsContent(it) } },
             Op("📍", "Destino", "#2563EB") { openConfig("Destino da corrida") { destinoContent(it) } },
             Op("⭐", "Corrida TOP", "#9333EA") { openConfig("Corrida TOP") { topContent(it) } },
-            Op("🛑", "Parada e nome do app", "#DC2626") { openConfig("Parada e nome do app") { aparenciaContent(it) } },
+            Op("🛑", "Parada e app", "#DC2626") { openConfig("Parada e nome do app") { aparenciaContent(it) } },
             Op("🚗", "Uber e 99", "#EA580C") { openConfig("Uber e 99") { appsContent(it) } },
             Op("⏱️", "Tempo na tela", "#475569") { openConfig("Tempo na tela") { timeContent(it) } },
             Op("📸", "Salvar prints", "#DB2777") { openConfig("Salvar prints") { captureContent(it) } },
@@ -504,7 +504,7 @@ class MainActivity : Activity() {
                     contentDescription = op.nome
                 }
                 t.addView(ui.tv(op.icone, 40f, Color.WHITE, 0, true), LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT))
-                t.addView(ui.tv(op.nome, 18f, Color.WHITE, 3, true).apply { maxLines = 2 }, ui.lp(top = 8))
+                t.addView(ui.tv(op.nome, 18f, Color.WHITE, 3, true).apply { maxLines = 3 }, ui.lp(top = 8))
                 linha.addView(t, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f).also { if (j == 1) it.marginStart = dp(12) })
             }
             box.addView(linha, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).also { it.topMargin = dp(if (i == 0) 4 else 12) })
