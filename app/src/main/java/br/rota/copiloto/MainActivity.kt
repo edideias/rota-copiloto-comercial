@@ -1061,6 +1061,30 @@ class MainActivity : Activity() {
         sw(c2, "Mostrar a caixa da rua", "rua"); tam(c2, "Tamanho do nome da rua", "tamRua", 50, 200)
         sw(c2, "Bairro embaixo da rua", "bairro"); tam(c2, "Tamanho do bairro", "tamBairro")
         sw(c2, "Ícone de terra / asfalto", "icone"); tam(c2, "Tamanho do ícone", "tamIcone", 50, 250)
+        c2.addView(ui.tv("Modelo do ícone (vale também para o semáforo completo)", 14f, C.TEXT, 2), ui.lp(top = 14))
+        val nomesIcone = listOf("Estrada", "Letra A / T", "Vista de cima", "Placa", "Carrinho", "Traço")
+        val grade = ui.vbox()
+        nomesIcone.chunked(2).forEachIndexed { li, par ->
+            val linha = ui.hbox()
+            par.forEachIndexed { ci, nome ->
+                val idx = li * 2 + ci
+                val sel = p.cpI("estiloIcone", 0) == idx
+                val op = ui.vbox().apply {
+                    gravity = Gravity.CENTER_HORIZONTAL
+                    background = ui.round(if (sel) C.PURPLE_LIGHT else C.BG, 14, if (sel) 3 else 1, if (sel) C.PURPLE else C.LINE)
+                    setPadding(dp(8), dp(10), dp(8), dp(10))
+                    setOnClickListener { p.setCpI("estiloIcone", idx); render() }
+                }
+                val par2 = ui.hbox().apply { gravity = Gravity.CENTER; background = ui.round(Color.parseColor("#1D4ED8"), 12); setPadding(dp(8), dp(6), dp(8), dp(6)) }
+                par2.addView(IconePiso(this, false, idx), LinearLayout.LayoutParams(dp(44), dp(44)))
+                par2.addView(IconePiso(this, true, idx), LinearLayout.LayoutParams(dp(44), dp(44)).also { it.marginStart = dp(10) })
+                op.addView(par2)
+                op.addView(ui.tv("${idx + 1} · $nome", 13f, C.TEXT, if (sel) 3 else 1, true), ui.lp(top = 6))
+                linha.addView(op, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).also { if (ci == 1) it.marginStart = dp(8) })
+            }
+            grade.addView(linha, ui.lp(top = if (li == 0) 0 else 8))
+        }
+        c2.addView(grade, ui.lp(top = 8))
         c2.addView(corRow("Cor da caixa", p.cpI("azul", Color.parseColor("#1D4ED8"))) { p.setCpI("azul", it) }, ui.lp(top = 14))
         box.addView(c2, ui.lp(top = 16))
 

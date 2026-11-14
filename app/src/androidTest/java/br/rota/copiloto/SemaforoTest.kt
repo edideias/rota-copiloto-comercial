@@ -46,6 +46,21 @@ class SemaforoTest {
             }
         }
         prefs.compacto = false
+        inst.runOnMainSync {
+            val ui = Ui(app)
+            val g = LinearLayout(app).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(Color.parseColor("#2B3340")); setPadding(ui.dp(12), ui.dp(12), ui.dp(12), ui.dp(12)) }
+            for (e in 0 until 6) {
+                val r = LinearLayout(app).apply { setBackgroundColor(Color.parseColor("#1D4ED8")); setPadding(ui.dp(10), ui.dp(8), ui.dp(10), ui.dp(8)) }
+                r.addView(IconePiso(app, false, e), LinearLayout.LayoutParams(ui.dp(56), ui.dp(56)))
+                r.addView(IconePiso(app, true, e), LinearLayout.LayoutParams(ui.dp(56), ui.dp(56)).also { it.marginStart = ui.dp(16) })
+                g.addView(r, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).also { it.bottomMargin = ui.dp(6) })
+            }
+            g.measure(View.MeasureSpec.makeMeasureSpec(600, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+            g.layout(0, 0, 600, g.measuredHeight)
+            val bmp = Bitmap.createBitmap(600, g.measuredHeight, Bitmap.Config.ARGB_8888)
+            g.draw(Canvas(bmp))
+            File(app.filesDir, "tela-icones.png").outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        }
     }
 
     private fun intent(t: String) = if (t == "TERRA") NOME_TERRA else NOME_ASF

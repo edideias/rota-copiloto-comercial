@@ -290,7 +290,11 @@ class RangeBar(
 /** Cartão que aparece por cima do Uber/99 (e na prévia das configurações). */
 object OverlayCard {
     /** Quadro completo; com parada, ganha a moldura piscante em volta de tudo. */
+    /** Modelo do ícone de piso escolhido em Configurar (0 a 5). */
+    private var estiloIcone = 0
+
     fun build(ctx: Context, a: Analysis, p: Prefs): View {
+        estiloIcone = p.cpI("estiloIcone", 0)
         val v = montar(ctx, a, p)
         if (a.offer.stops <= 0 || !p.paradaOn) return v
         val ui = Ui(ctx)
@@ -723,8 +727,8 @@ object OverlayCard {
 
     /** Ícone do piso da rua de destino: terra (também para trecho de terra) ou asfalto. */
     private fun iconePiso(ctx: Context, ui: Ui, pav: String?, size: Float): View? = when (pav) {
-        "terra", "misto" -> IconePiso(ctx, true).apply { contentDescription = if (pav == "terra") "Rua de terra" else "Rua com trecho de terra" }
-        "pavimentada" -> IconePiso(ctx, false).apply { contentDescription = "Rua asfaltada" }
+        "terra", "misto" -> IconePiso(ctx, true, estiloIcone).apply { contentDescription = if (pav == "terra") "Rua de terra" else "Rua com trecho de terra" }
+        "pavimentada" -> IconePiso(ctx, false, estiloIcone).apply { contentDescription = "Rua asfaltada" }
         else -> null
     }
 
@@ -904,43 +908,110 @@ class Encaixe(ctx: Context, private val maxW: Int, private val maxH: Int) : andr
 
 
 
-/** Ícone do piso: uma estrada em perspectiva. Asfalto cinza com faixas; terra marrom com marcas de pneu. */
-class IconePiso(ctx: Context, private val terra: Boolean) : View(ctx) {
+/**
+ * Ícone do piso da rua de destino, em 6 modelos (desenhados numa grade de 56 x 56):
+ * 0 estrada em perspectiva · 1 só a letra (A / T) · 2 vista de cima · 3 placa de trânsito · 4 carrinho · 5 traço minimalista.
+ */
+class IconePiso(ctx: Context, private val terra: Boolean, private val estilo: Int = 0) : View(ctx) {
     private val p = Paint(Paint.ANTI_ALIAS_FLAG)
+    private fun cor(h: String) = Color.parseColor(h)
+    private fun fill(c: Int) { p.style = Paint.Style.FILL; p.color = c }
+    private fun stroke(c: Int, w: Float) { p.style = Paint.Style.STROKE; p.color = c; p.strokeWidth = w; p.strokeCap = Paint.Cap.ROUND; p.strokeJoin = Paint.Join.ROUND }
+    private fun linha(c: Canvas, x1: Float, y1: Float, x2: Float, y2: Float) = c.drawLine(x1, y1, x2, y2, p)
+
     override fun onDraw(c: Canvas) {
-        val w = width.toFloat(); val h = height.toFloat()
-        // fundo redondo claro para destacar sobre o azul
-        p.style = Paint.Style.FILL
-        p.color = if (terra) Color.parseColor("#FFF4E5") else Color.parseColor("#EEF2F7")
-        c.drawRoundRect(RectF(0f, 0f, w, h), w * 0.26f, w * 0.26f, p)
-        // estrada: trapézio do horizonte (fino) até embaixo (largo)
-        val topoE = w * 0.42f; val topoD = w * 0.58f; val baseE = w * 0.1f; val baseD = w * 0.9f
-        val yT = h * 0.16f; val yB = h * 0.9f
-        val estrada = Path().apply { moveTo(topoE, yT); lineTo(topoD, yT); lineTo(baseD, yB); lineTo(baseE, yB); close() }
-        p.color = if (terra) Color.parseColor("#B7793F") else Color.parseColor("#3B4250")
-        c.drawPath(estrada, p)
+        val k = minOf(width, height) / 56f
+        c.save()
+        c.translate((width - 56 * k) / 2f, (height - 56 * k) / 2f)
+        c.scale(k, k)
+        when (estilo) {
+            1 -> letra(c)
+            2 -> deCima(c)
+            3 -> placa(c)
+            4 -> carrinho(c)
+            5 -> traco(c)
+            else -> estrada(c)
+        }
+        c.restore()
+    }
+
+    private fun estrada(c: Canvas) {
+        fill(cor(if (terra) "#FFF4E5" else "#EEF2F7")); c.drawRoundRect(RectF(1f, 1f, 55f, 55f), 14f, 14f, p)
+        val road = Path().apply { moveTo(23f, 9f); lineTo(33f, 9f); lineTo(49f, 49f); lineTo(7f, 49f); close() }
+        fill(cor(if (terra) "#B7793F" else "#3B4250")); c.drawPath(road, p)
         if (terra) {
-            // duas marcas de pneu e pedrinhas
-            p.style = Paint.Style.STROKE; p.strokeCap = Paint.Cap.ROUND
-            p.color = Color.parseColor("#7A4A1E"); p.strokeWidth = w * 0.055f
-            c.drawLine(w * 0.47f, yT + h * 0.04f, w * 0.33f, yB - h * 0.03f, p)
-            c.drawLine(w * 0.53f, yT + h * 0.04f, w * 0.67f, yB - h * 0.03f, p)
-            p.style = Paint.Style.FILL; p.color = Color.parseColor("#8C5A2B")
-            listOf(0.5f to 0.55f, 0.42f to 0.78f, 0.6f to 0.72f, 0.5f to 0.35f).forEach { (x, y) -> c.drawCircle(w * x, h * y, w * 0.035f, p) }
-            // tufos de mato nas beiras
-            p.color = Color.parseColor("#4E9A3A")
-            c.drawCircle(w * 0.12f, h * 0.62f, w * 0.06f, p); c.drawCircle(w * 0.88f, h * 0.55f, w * 0.06f, p)
+            stroke(cor("#7A4A1E"), 3f); linha(c, 26f, 12f, 18f, 46f); linha(c, 30f, 12f, 38f, 46f)
+            fill(cor("#7A4A1E")); c.drawCircle(28f, 30f, 1.8f, p); c.drawCircle(24f, 40f, 1.8f, p); c.drawCircle(33f, 38f, 1.8f, p)
+            fill(cor("#4E9A3A")); c.drawCircle(7f, 34f, 3.5f, p); c.drawCircle(49f, 30f, 3.5f, p)
         } else {
-            // faixas brancas nas bordas e tracejado central amarelo, em perspectiva
-            p.style = Paint.Style.STROKE; p.strokeCap = Paint.Cap.ROUND
-            p.color = Color.WHITE; p.strokeWidth = w * 0.04f
-            c.drawLine(topoE + w * 0.02f, yT + h * 0.02f, baseE + w * 0.06f, yB - h * 0.02f, p)
-            c.drawLine(topoD - w * 0.02f, yT + h * 0.02f, baseD - w * 0.06f, yB - h * 0.02f, p)
-            p.color = Color.parseColor("#FACC15")
-            listOf(0.2f to 0.32f, 0.42f to 0.56f, 0.66f to 0.86f).forEachIndexed { i, (a0, b0) ->
-                p.strokeWidth = w * (0.035f + i * 0.02f)
-                c.drawLine(w * 0.5f, h * a0, w * 0.5f, h * b0, p)
-            }
+            stroke(Color.WHITE, 2.2f); linha(c, 24f, 11f, 11f, 47f); linha(c, 32f, 11f, 45f, 47f)
+            stroke(cor("#FACC15"), 3f); linha(c, 28f, 13f, 28f, 19f); linha(c, 28f, 25f, 28f, 32f); linha(c, 28f, 38f, 28f, 47f)
+        }
+    }
+
+    private fun letra(c: Canvas) {
+        fill(cor(if (terra) "#A0582A" else "#2F3540")); c.drawCircle(28f, 28f, 26f, p)
+        stroke(Color.WHITE, 3f); c.drawCircle(28f, 28f, 26f, p)
+        fill(Color.WHITE); p.textSize = 30f; p.textAlign = Paint.Align.CENTER; p.typeface = android.graphics.Typeface.DEFAULT_BOLD
+        c.drawText(if (terra) "T" else "A", 28f, 38.5f, p)
+    }
+
+    private fun deCima(c: Canvas) {
+        fill(cor(if (terra) "#B7793F" else "#2F3540")); c.drawRoundRect(RectF(2f, 2f, 54f, 54f), 12f, 12f, p)
+        if (terra) {
+            stroke(cor("#7A4A1E"), 4f)
+            c.drawPath(Path().apply { moveTo(19f, 4f); cubicTo(13f, 18f, 25f, 30f, 17f, 52f) }, p)
+            c.drawPath(Path().apply { moveTo(37f, 4f); cubicTo(31f, 18f, 43f, 30f, 35f, 52f) }, p)
+            fill(cor("#8C5A2B")); listOf(9f to 14f, 47f to 22f, 27f to 27f, 10f to 40f, 46f to 44f).forEach { (x, y) -> c.drawCircle(x, y, 2.2f, p) }
+        } else {
+            stroke(Color.WHITE, 2.5f); linha(c, 12f, 6f, 12f, 50f); linha(c, 44f, 6f, 44f, 50f)
+            stroke(cor("#FACC15"), 4f); linha(c, 28f, 8f, 28f, 17f); linha(c, 28f, 23f, 28f, 33f); linha(c, 28f, 39f, 28f, 48f)
+        }
+        stroke(Color.WHITE, 2.5f); c.drawRoundRect(RectF(2f, 2f, 54f, 54f), 12f, 12f, p)
+    }
+
+    private fun placa(c: Canvas) {
+        if (terra) {
+            c.save(); c.rotate(45f, 28f, 28f)
+            fill(cor("#FFD600")); c.drawRoundRect(RectF(10f, 10f, 46f, 46f), 5f, 5f, p)
+            stroke(cor("#111111"), 2.5f); c.drawRoundRect(RectF(10f, 10f, 46f, 46f), 5f, 5f, p)
+            c.restore()
+            stroke(cor("#111111"), 3f)
+            c.drawPath(Path().apply { moveTo(14f, 32f); quadTo(18.5f, 23f, 23f, 32f); quadTo(27.5f, 23f, 32f, 32f); quadTo(36.5f, 23f, 41f, 32f) }, p)
+            stroke(cor("#111111"), 2.5f); linha(c, 16f, 36f, 40f, 36f)
+        } else {
+            fill(cor("#1E5BB8")); c.drawRoundRect(RectF(3f, 3f, 53f, 53f), 8f, 8f, p)
+            stroke(Color.WHITE, 3f); c.drawRoundRect(RectF(3f, 3f, 53f, 53f), 8f, 8f, p)
+            fill(Color.WHITE); c.drawPath(Path().apply { moveTo(25f, 12f); lineTo(31f, 12f); lineTo(42f, 46f); lineTo(14f, 46f); close() }, p)
+            stroke(cor("#1E5BB8"), 2.6f); linha(c, 28f, 16f, 28f, 22f); linha(c, 28f, 27f, 28f, 33f); linha(c, 28f, 38f, 28f, 44f)
+        }
+    }
+
+    private fun carrinho(c: Canvas) {
+        fill(cor(if (terra) "#FFF4E5" else "#EEF2F7")); c.drawCircle(28f, 28f, 26f, p)
+        if (terra) {
+            c.save(); c.rotate(-8f, 28f, 21f)
+            fill(cor("#2F3540")); c.drawRoundRect(RectF(13f, 16f, 43f, 27f), 4f, 4f, p)
+            c.restore()
+            fill(cor("#111111")); c.drawCircle(19f, 29f, 4f, p); c.drawCircle(37f, 27f, 4f, p)
+            stroke(cor("#A0582A"), 4f)
+            c.drawPath(Path().apply { moveTo(5f, 38f); quadTo(11f, 31f, 17f, 38f); quadTo(23f, 45f, 29f, 38f); quadTo(35f, 31f, 41f, 38f); quadTo(46f, 44f, 51f, 37f) }, p)
+            fill(cor("#C98A4B")); c.drawCircle(45f, 30f, 2.5f, p); c.drawCircle(49f, 25f, 1.8f, p)
+        } else {
+            fill(cor("#2F3540")); c.drawRoundRect(RectF(13f, 20f, 43f, 31f), 4f, 4f, p)
+            fill(cor("#111111")); c.drawCircle(19f, 32f, 4f, p); c.drawCircle(37f, 32f, 4f, p)
+            stroke(cor("#2F3540"), 4f); linha(c, 6f, 39f, 50f, 39f)
+        }
+    }
+
+    private fun traco(c: Canvas) {
+        val corT = if (terra) cor("#FFC98F") else Color.WHITE
+        stroke(corT, 3.5f); linha(c, 22f, 6f, 8f, 50f); linha(c, 34f, 6f, 48f, 50f)
+        if (terra) {
+            fill(corT); listOf(Triple(28f, 12f, 2f), Triple(25f, 22f, 2.4f), Triple(31f, 27f, 2.4f), Triple(26f, 35f, 2.8f), Triple(32f, 42f, 2.8f), Triple(24f, 46f, 2.4f))
+                .forEach { (x, y, r) -> c.drawCircle(x, y, r, p) }
+        } else {
+            linha(c, 28f, 8f, 28f, 16f); linha(c, 28f, 23f, 28f, 32f); linha(c, 28f, 39f, 28f, 49f)
         }
     }
 }
