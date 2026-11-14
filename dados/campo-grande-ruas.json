@@ -1,7 +1,7 @@
 {
 "versao": 4,
 "cidade": "Campo Grande - MS",
-"gerado_em": "2026-11-13T13:38:10Z",
+"gerado_em": "2026-11-14T23:28:15Z",
 "fonte": "Pavimentação: Agetran/Sisgran - Prefeitura de Campo Grande. Ruas e bairros: © colaboradores do OpenStreetMap (ODbL)",
 "resumo": {
 "ruas": 8924,
@@ -5065,6 +5065,15 @@
 "num": null,
 "lat": -20.430191,
 "lon": -54.590207
+}
+],
+"moteis": [
+{
+"nome": "Motel Lago do Amor",
+"rua": "",
+"num": null,
+"lat": -20.501332,
+"lon": -54.619149
 }
 ],
 "ruas": [
