@@ -56,7 +56,12 @@ object OfferParser {
         return when { u > n -> "Uber"; n > u -> "99"; else -> padrao }
     }
 
-    fun parse(platform: String, text: String): Offer? {
+    /** O OCR troca "1" por "l"/"I" no meio de número ("1l.7 km" = 11.7 km). */
+    private fun consertaDigitos(t: String) =
+        t.replace(Regex("""(?<=\d)[lI](?=[.,]?\d)"""), "1").replace(Regex("""(?<=\d[.,])[lI](?=\s*km)"""), "1")
+
+    fun parse(platform: String, texto: String): Offer? {
+        val text = consertaDigitos(texto)
         val o = parseBase(platform, text) ?: return null
         val s = readStops(text)
         return o.copy(stops = if (s > 0) s else o.stops, destText = readDest(text), pickupText = readPickup(text))
