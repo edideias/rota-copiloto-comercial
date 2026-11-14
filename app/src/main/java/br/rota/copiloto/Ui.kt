@@ -311,7 +311,7 @@ object OverlayCard {
         val col = ui.vbox().apply { background = bg; setPadding(esp + ui.dp(3), esp + ui.dp(3), esp + ui.dp(3), esp + ui.dp(3)) }
         val fbg = GradientDrawable().apply { setColor(cor); cornerRadius = ui.dpf(20f) }
         val faixa = ui.vbox().apply { background = fbg; gravity = Gravity.CENTER; setPadding(ui.dp(14), ui.dp(6), ui.dp(14), ui.dp(8)) }
-        val t1 = ui.tv("🏩 " + p.motelTexto, size * 1.45f * esc, Color.WHITE, 3, true).apply { maxLines = 1; includeFontPadding = false }
+        val t1 = ui.tv((if (Regex("(?i)mot[eé]l|drive|love").containsMatchIn(nome) || nome.equals("motel", true)) "🏩 " + p.motelTexto else "🔞 CASA ADULTA"), size * 1.45f * esc, Color.WHITE, 3, true).apply { maxLines = 1; includeFontPadding = false }
         faixa.addView(t1, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         if (!nome.equals("motel", true) && !nome.equals(p.motelTexto, true))
             faixa.addView(ui.tv(nome, size * 0.62f * esc, Color.WHITE, 2, true).apply { maxLines = 2 }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))

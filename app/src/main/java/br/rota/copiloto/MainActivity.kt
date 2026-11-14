@@ -1004,7 +1004,7 @@ class MainActivity : Activity() {
 
     private fun motelContent(p: Prefs): View {
         val box = ui.vbox()
-        box.addView(pageHeader("Motel", "Destino em motel: o quadro pisca em rosa neon, grande"))
+        box.addView(pageHeader("Motel", "Motel, puteiro, swing, casa de massagem: o quadro pisca em rosa neon, grande"))
         // prévia: compacto e completo com destino em motel
         val prev = ui.vbox().apply { background = ui.round(Color.parseColor("#2B3340"), 14); setPadding(dp(8), dp(14), dp(8), dp(14)) }
         val antes = p.compacto
@@ -1019,8 +1019,8 @@ class MainActivity : Activity() {
         box.addView(c0, ui.lp(top = 16))
 
         val c1 = ui.card()
-        c1.addView(switchRow("Avisar quando o destino é motel", p.motelOn) { p.motelOn = it; render() })
-        c1.addView(ui.tv("Dispara pelo nome (motel, drive-in), pelos ${Destino.qtdMoteis} motéis do mapa de Campo Grande e pelo endereço deles (mesma rua, número perto), e pelos que você cadastrar abaixo.", 12f, C.MUTED, 0), ui.lp(top = 4))
+        c1.addView(switchRow("Avisar: motel, puteiro, swing, massagem", p.motelOn) { p.motelOn = it; render() })
+        c1.addView(ui.tv("Dispara pelo nome (motel, puteiro, swing, casa de massagem, cabaré, privê, strip club), pelos ${Destino.qtdMoteis} motéis do mapa de Campo Grande e pelo endereço deles (mesma rua, número perto), e pelos que você cadastrar abaixo.", 12f, C.MUTED, 0), ui.lp(top = 4))
         c1.addView(corRow("Cor", p.motelCor) { p.motelCor = it }, ui.lp(top = 14))
         c1.addView(velocidadeRow("Velocidade da piscada", p.motelMs) { p.motelMs = it }, ui.lp(top = 14))
         c1.addView(stepperRow("Tamanho do aviso", "${p.motelTam}%", { p.motelTam = maxOf(60, p.motelTam - 10); render() }, { p.motelTam = minOf(220, p.motelTam + 10); render() }), ui.lp(top = 14))
@@ -1032,8 +1032,8 @@ class MainActivity : Activity() {
         box.addView(c1, ui.lp(top = 16))
 
         val c2 = ui.card()
-        c2.addView(ui.tv("Seus motéis", 16f, C.TEXT, 3))
-        c2.addView(ui.tv("Nome (\"Motel Tal\") ou endereço (\"Rua X, 123\"). Use para motel que o mapa não conhece.", 12f, C.MUTED, 0), ui.lp(top = 4))
+        c2.addView(ui.tv("Seus locais", 16f, C.TEXT, 3))
+        c2.addView(ui.tv("Nome (\"Motel Tal\") ou endereço (\"Rua X, 123\"). Use para local que o mapa não conhece.", 12f, C.MUTED, 0), ui.lp(top = 4))
         p.motelLista.forEach { m ->
             val r = ui.hbox().apply { gravity = Gravity.CENTER_VERTICAL; background = ui.round(C.BG, 12); setPadding(dp(12), dp(4), dp(4), dp(4)) }
             r.addView(ui.tv(m, 15f, C.TEXT, 2), ui.lp(0, weight = 1f))
@@ -1043,7 +1043,7 @@ class MainActivity : Activity() {
             })
             c2.addView(r, ui.lp(top = 8))
         }
-        val novo = campo("Novo motel (nome ou endereço)")
+        val novo = campo("Novo local (nome ou endereço)")
         c2.addView(novo, ui.lp(top = 10))
         c2.addView(ui.button("Adicionar") {
             val t = novo.text.toString().trim()

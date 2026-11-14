@@ -28,7 +28,7 @@ MERCADOS = ('(nwr["shop"~"^(supermarket|wholesale|convenience|greengrocer)$"]' +
 NOME_MERC = re.compile(r"(?i)merc|super|atacad|assa[ií]|comper|carrefour|p[aã]o de a[cç][uú]car|fort|hipe?r|empor|sacol|quitand|minimerc")
 
 # Motéis (aviso rosa neon quando o destino é motel)
-MOTEIS = ('(nwr["tourism"="motel"]' + BB + ';nwr["amenity"="love_hotel"]' + BB + ';nwr["name"~"[Mm]otel"]' + BB + ';);out tags center;')
+MOTEIS = ('(nwr["tourism"="motel"]' + BB + ';nwr["amenity"="love_hotel"]' + BB + ';nwr["name"~"[Mm]otel|[Pp]uteiro|[Ss]wing|[Cc]abar[eé]|[Pp]riv[eê]|[Mm]assagem [Ee]r[oó]tica|[Ss]trip"]' + BB + ';nwr["amenity"="brothel"]' + BB + ';nwr["amenity"="swingerclub"]' + BB + ';nwr["amenity"="stripclub"]' + BB + ';nwr["shop"="erotic"]["name"]' + BB + ';);out tags center;')
 
 PAVIM = {"asphalt", "paved", "concrete", "concrete:plates", "concrete:lanes", "paving_stones", "sett", "cobblestone",
          "unhewn_cobblestone", "metal", "wood", "chipseal"}
@@ -198,7 +198,7 @@ def main():
     moteis = []
     try:
         for el in overpass(MOTEIS):
-            t = el.get("tags", {}); nome = t.get("name") or "Motel"
+            t = el.get("tags", {}); nome = t.get("name") or ("Casa adulta" if t.get("amenity") in ("brothel","swingerclub","stripclub") else "Motel")
             c = el.get("center") or {"lat": el.get("lat"), "lon": el.get("lon")}
             if c.get("lat") is None: continue
             rua = t.get("addr:street") or ""

@@ -203,7 +203,7 @@ object Destino {
         return null
     }
 
-    private val CARA_DE_MOTEL = Regex("""(?i)\bmot[eé]is?\b|\bmotel\b|drive[\s-]?in\b|love\s*hotel""")
+    private val CARA_DE_MOTEL = Regex("""(?i)\bmot[eé]is?\b|drive[\s-]?in\b|love\s*hotel|puteiro|prost[ií]bulo|bordel|\bcabar[eé]\b|\bswing(er)?\b|casa\s+de\s+(swing|massagem|prostitui|encontro)|massagem\s+(er[oó]tica|tantra|tântrica|sensual)|\btantra\b|\bpriv[eê]\b|boate\s+(adulta|er[oó]tica|de\s+striptease)|\bstrip\s?club\b|clube\s+(de\s+)?(swing|striptease|liberal)|sauna\s+(er[oó]tica|gay|mista|liberal)|zona\s+(de\s+)?meretr[ií]cio""")
 
     /** O destino é motel? Pelo nome, por um motel do mapa, pelo endereço (mesma rua, número perto) ou pela sua lista. */
     private fun motelDe(dest: String, nd: String, ruaNorm: String?, lista: List<String>): String? {
