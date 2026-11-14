@@ -1022,6 +1022,31 @@ class MainActivity : Activity() {
             c.addView(stepperRow(label, pct(k), { p.setCpI(k, maxOf(min, p.cpI(k, 100) - 10)); render() }, { p.setCpI(k, minOf(max, p.cpI(k, 100) + 10)); render() }), ui.lp(top = 12))
         fun sw(c: LinearLayout, label: String, k: String) = c.addView(switchRow(label, p.cpB(k, true)) { p.setCpB(k, it); render() }, ui.lp(top = 6))
 
+        // tamanho e posição na tela
+        val cp = ui.card()
+        cp.addView(ui.tv("Tamanho e posição na tela", 16f, C.TEXT, 2))
+        cp.addView(ui.tv("O quadro sempre se ajusta à tela: se algo não couber, ele encolhe inteiro, sem cortar texto.", 12f, C.MUTED, 0), ui.lp(top = 4))
+        fun numP(c: LinearLayout, label: String, k: String, d: Int, passo: Int, min: Int, max: Int, fmt: (Int) -> String = { "$it" }) =
+            c.addView(stepperRow(label, fmt(p.cpI(k, d)), { p.setCpI(k, maxOf(min, p.cpI(k, d) - passo)); render() }, { p.setCpI(k, minOf(max, p.cpI(k, d) + passo)); render() }), ui.lp(top = 12))
+        numP(cp, "Tamanho geral", "escala", 100, 10, 50, 200) { "$it%" }
+        cp.addView(switchRow("Largura fixa", p.cpB("largTotal", true)) { p.setCpB("largTotal", it); render() }, ui.lp(top = 8))
+        numP(cp, "Largura (% da tela)", "larguraPct", 100, 5, 40, 100) { "$it%" }
+        numP(cp, "Altura mínima", "alturaMin", 0, 10, 0, 400) { if (it == 0) "automática" else "$it" }
+        numP(cp, "Altura máxima", "alturaMax", 0, 20, 0, 800) { if (it == 0) "sem limite" else "$it" }
+        cp.addView(ui.tv("Preso em", 14f, C.TEXT, 2), ui.lp(top = 14))
+        cp.addView(ui.segmented(listOf("Em cima", "Embaixo"), p.cpI("ancora", 0)) { p.setCpI("ancora", it); render() }, ui.lp(top = 8))
+        if (p.cpI("ancora", 0) == 0) numP(cp, "Distância do topo", "distTopo", p.overlayTopDp.toInt(), 10, 0, 900)
+        else numP(cp, "Distância da parte de baixo", "distBase", 140, 10, 0, 900)
+        cp.addView(ui.tv("Lado", 14f, C.TEXT, 2), ui.lp(top = 14))
+        cp.addView(ui.segmented(listOf("Esquerda", "Centro", "Direita"), p.cardPos) { p.cardPos = it; render() }, ui.lp(top = 8))
+        cp.addView(ui.button("Salvar e ver na tela (6 s)") {
+            prefs.commitFrom(p.store)
+            val sv = CopilotService.instance
+            if (sv == null) Toast.makeText(this, "Ligue a acessibilidade primeiro.", Toast.LENGTH_LONG).show()
+            else { sv.showSimulation(); Toast.makeText(this, "Salvo. Saia do app para ver o quadro por 6 segundos.", Toast.LENGTH_LONG).show() }
+        }, ui.lp(top = 14))
+        box.addView(cp, ui.lp(top = 16))
+
         val c1 = ui.card()
         c1.addView(ui.tv("Linha de cima", 16f, C.TEXT, 2))
         sw(c1, "Nome do app (99 / UBER)", "tag"); tam(c1, "Tamanho do nome do app", "tamTag")

@@ -328,7 +328,7 @@ object OverlayCard {
         val top = p.isTop(a)
         val neon = p.topCorInt
         val ink = Color.parseColor("#06210A")
-        val size = p.cardFont.toFloat()
+        val size = p.cardFont.toFloat() * p.cpI("escala", 100) / 100f
         val br = java.util.Locale("pt", "BR")
         val wrap = ViewGroup.LayoutParams.WRAP_CONTENT
         fun esc(k: String) = p.cpI(k, 100) / 100f
@@ -341,7 +341,9 @@ object OverlayCard {
         val pad = p.cpI("respiro", 10)
         val frame = ui.hbox().apply {
             background = frameBg; setPadding(ui.dp(pad), ui.dp(maxOf(4, pad - 2)), ui.dp(pad), ui.dp(maxOf(4, pad - 2)))
-            if (p.cpB("largTotal", true)) minimumWidth = ctx.resources.displayMetrics.widthPixels - ui.dp(p.cpI("margem", 8) * 2)
+            // largura escolhida (% da tela); se o conteúdo for maior, o quadro encolhe inteiro em vez de cortar
+            if (p.cpB("largTotal", true)) minimumWidth = (ctx.resources.displayMetrics.widthPixels * p.cpI("larguraPct", 100) / 100) - ui.dp(p.cpI("margem", 8) * 2)
+            minimumHeight = ui.dp(p.cpI("alturaMin", 0))
         }
         val esq = ui.vbox()
 
@@ -734,9 +736,9 @@ object OverlayCard {
         val azul = p.cpI("azul", AZUL)
         val bg = GradientDrawable().apply { setColor(azul); cornerRadius = ui.dpf(20f) }
         val r = ui.hbox().apply { background = bg; setPadding(ui.dp(14), ui.dp(6), ui.dp(8), ui.dp(6)); gravity = Gravity.CENTER_VERTICAL }
-        val col = ui.vbox()
-        col.addView(ui.tv((if (d.evitado) "⚠ " else "") + principal, size * 1.05f * p.cpI("tamRua", 100) / 100f, Color.WHITE, 3).apply { maxLines = 2; includeFontPadding = false })
-        if (sub.isNotBlank()) col.addView(ui.tv(sub, size * 0.62f * p.cpI("tamBairro", 100) / 100f, Color.WHITE, 2).apply { alpha = 0.9f; maxLines = 1 }, ui.lp(top = 2))
+        val col = ui.vbox().apply { gravity = Gravity.CENTER_VERTICAL }
+        col.addView(ui.tv((if (d.evitado) "⚠ " else "") + principal, size * 1.05f * p.cpI("tamRua", 100) / 100f, Color.WHITE, 3).apply { maxLines = 3; includeFontPadding = false })
+        if (sub.isNotBlank()) col.addView(ui.tv(sub, size * 0.62f * p.cpI("tamBairro", 100) / 100f, Color.WHITE, 2).apply { alpha = 0.9f; maxLines = 2 }, ui.lp(top = 2))
         r.addView(col, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         if (p.cpB("icone", true)) iconePiso(ctx, ui, d.pavimento, size)?.let {
             val lado = ui.dp((size * 2.4f * p.cpI("tamIcone", 100) / 100f).toInt())

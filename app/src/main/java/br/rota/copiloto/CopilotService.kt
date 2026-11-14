@@ -481,8 +481,13 @@ class CopilotService : AccessibilityService() {
             box.removeAllViews()
             // nunca cortado: se não couber entre a posição escolhida e a borda da tela, o quadro encolhe por igual
             val dm = resources.displayMetrics
-            val maxW = dm.widthPixels - dp(24)
-            val maxH = dm.heightPixels - dp(prefs.overlayTopDp.toInt()) - dp(24)
+            val comp = prefs.compacto
+            val margem = if (comp) dp(prefs.cpI("margem", 8)) else dp(12)
+            val base = comp && prefs.cpI("ancora", 0) == 1
+            val dist = if (!comp) dp(prefs.overlayTopDp.toInt()) else if (base) dp(prefs.cpI("distBase", 140)) else dp(prefs.cpI("distTopo", prefs.overlayTopDp.toInt()))
+            val maxW = dm.widthPixels - margem * 2
+            var maxH = dm.heightPixels - dist - dp(24)
+            if (comp && prefs.cpI("alturaMax", 0) > 0) maxH = minOf(maxH, dp(prefs.cpI("alturaMax", 0)))
             box.addView(Encaixe(this, maxW, maxH).apply { addView(OverlayCard.build(this@CopilotService, a, prefs)) })
             box.setOnClickListener { dismiss() }
 
@@ -499,13 +504,15 @@ class CopilotService : AccessibilityService() {
                 )
                 overlayLp = lp
             }
-            lp.gravity = Gravity.TOP or when (prefs.cardPos) {
+            val horiz = when (prefs.cardPos) {
                 0 -> Gravity.START
                 2 -> Gravity.END
                 else -> Gravity.CENTER_HORIZONTAL
             }
-            lp.x = dp(12)
-            lp.y = dp(prefs.overlayTopDp.toInt())
+            lp.gravity = (if (base) Gravity.BOTTOM else Gravity.TOP) or horiz
+            // no centro o x desloca a partir do meio: fica 0 para não empurrar o quadro para o lado
+            lp.x = if (horiz == Gravity.CENTER_HORIZONTAL) 0 else margem
+            lp.y = dist
             if (prefs.telaTopOn && prefs.isTop(a)) mostrarContorno() else tirarContorno()
             if (!attached) {
                 wm.addView(box, lp)
