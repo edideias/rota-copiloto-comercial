@@ -160,7 +160,8 @@ class MainActivity : Activity() {
             stack.add { wizardStep(0) }
         }
         render()
-        if (!prefs.termsAccepted) showTerms()
+        if (intent?.getStringExtra("abrir") == "compacto") openConfig("Modo compacto") { compactoContent(it) }
+        else if (!prefs.termsAccepted) showTerms()
     }
 
     override fun onResume() {
@@ -1047,21 +1048,79 @@ class MainActivity : Activity() {
         }, ui.lp(top = 14))
         box.addView(cp, ui.lp(top = 16))
 
-        val c1 = ui.card()
-        c1.addView(ui.tv("Linha de cima", 16f, C.TEXT, 2))
-        sw(c1, "Nome do app (99 / UBER)", "tag"); tam(c1, "Tamanho do nome do app", "tamTag")
-        sw(c1, "Km total", "km"); sw(c1, "Valor da corrida", "valor"); tam(c1, "Tamanho do km e do valor", "tamNumeros")
-        c1.addView(corRow("Cor da pílula do km", p.cpI("corKm", Color.BLACK)) { p.setCpI("corKm", it) }, ui.lp(top = 14))
-        sw(c1, "R$ por km grande", "rsKm"); tam(c1, "Tamanho do R$ por km", "tamRsKm", 50, 250)
-        sw(c1, "Texto \"R$/km\" embaixo do número", "rsKmRotulo")
-        box.addView(c1, ui.lp(top = 16))
+        // ---- peças do semáforo: cada uma aparece como ela é; toque liga/desliga; − e + mudam o tamanho
+        val br2 = Locale("pt", "BR")
+        fun peca(visual: View, ligKey: String, tamKey: String?, tamMin: Int = 50, tamMax: Int = 200, nome: String): View {
+            val on = p.cpB(ligKey, true)
+            val t = ui.vbox().apply {
+                background = ui.round(if (on) Color.parseColor("#17142A") else C.BG, 16, if (on) 3 else 2, if (on) C.GOOD else C.LINE)
+                setPadding(dp(8), dp(8), dp(8), dp(8))
+            }
+            val topo = FrameLayout(this).apply { minimumHeight = dp(76); setOnClickListener { p.setCpB(ligKey, !on); render() } }
+            topo.addView(visual.apply { alpha = if (on) 1f else 0.25f }, FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT, Gravity.CENTER))
+            topo.addView(ui.tv(if (on) "✓" else "✕", 15f, Color.WHITE, 3, true).apply {
+                background = ui.round(if (on) C.GOOD else Color.parseColor("#6B7280"), 12)
+            }, FrameLayout.LayoutParams(dp(26), dp(26), Gravity.TOP or Gravity.END))
+            t.addView(topo, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(84)))
+            t.addView(ui.tv(nome, 14f, if (on) Color.WHITE else C.MUTED, 3, true).apply { maxLines = 1 }, ui.lp(top = 4))
+            if (tamKey != null && on) {
+                val r = ui.hbox().apply { gravity = Gravity.CENTER }
+                fun bt(txt: String, f: () -> Unit) = ui.tv(txt, 24f, Color.WHITE, 3, true).apply {
+                    background = ui.round(Color.parseColor("#2E2A47"), 12); setOnClickListener { f() }
+                }
+                val v = p.cpI(tamKey, 100)
+                r.addView(bt("−") { p.setCpI(tamKey, maxOf(tamMin, v - 10)); render() }, LinearLayout.LayoutParams(dp(48), dp(44)))
+                r.addView(ui.tv("$v%", 15f, Color.WHITE, 3, true), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+                r.addView(bt("+") { p.setCpI(tamKey, minOf(tamMax, v + 10)); render() }, LinearLayout.LayoutParams(dp(48), dp(44)))
+                t.addView(r, ui.lp(top = 6))
+            }
+            return t
+        }
+        fun pilula(txt: String, fundo: Int, cor: Int, tam: Float) = ui.tv(txt, tam, cor, 3, true).apply {
+            background = ui.round(fundo, 20); setPadding(dp(10), dp(4), dp(10), dp(4)); maxLines = 1
+        }
+        fun grade(vararg pecas: View): View {
+            val col = ui.vbox()
+            pecas.toList().chunked(2).forEachIndexed { i, par ->
+                val l = ui.hbox()
+                par.forEachIndexed { j, v -> l.addView(v, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).also { if (j == 1) it.marginStart = dp(8) }) }
+                if (par.size == 1) l.addView(View(this), LinearLayout.LayoutParams(0, 1, 1f).also { it.marginStart = dp(8) })
+                col.addView(l, ui.lp(top = if (i == 0) 0 else 8))
+            }
+            return col
+        }
+        val cv = ui.card()
+        cv.addView(ui.tv("O que aparece", 18f, C.TEXT, 3))
+        cv.addView(ui.tv("Toque na peça para ligar ou desligar. Verde = aparece. Use − e + para o tamanho.", 13f, C.MUTED, 0), ui.lp(top = 4))
+        val eq = FrameLayout(this).apply { addView(Equalizador(this@MainActivity, 0.7, false, p.eqCor, p.eqMs.toLong()), FrameLayout.LayoutParams(dp(24), dp(64))) }
+        val rua = ui.vbox().apply { background = ui.round(p.cpI("azul", Color.parseColor("#1D4ED8")), 12); setPadding(dp(10), dp(6), dp(10), dp(6)) }
+        rua.addView(ui.tv("Rua dos Cafezeiros", 14f, Color.WHITE, 3))
+        val bairro = ui.tv("Jardim São Conrado", 13f, Color.parseColor("#DBE4FF"), 2).apply { background = ui.round(p.cpI("azul", Color.parseColor("#1D4ED8")), 10); setPadding(dp(10), dp(6), dp(10), dp(6)) }
+        val numKm = ui.vbox().apply { gravity = Gravity.CENTER_HORIZONTAL }
+        numKm.addView(ui.tv("1,36", 34f, C.MID, 3, true).apply { includeFontPadding = false })
+        val rotulo = ui.tv("R$/km", 15f, Color.WHITE, 2, true)
+        val icone = ui.hbox().apply { gravity = Gravity.CENTER }
+        icone.addView(IconePiso(this, false, p.cpI("estiloIcone", 0)), LinearLayout.LayoutParams(dp(44), dp(44)))
+        icone.addView(IconePiso(this, true, p.cpI("estiloIcone", 0)), LinearLayout.LayoutParams(dp(44), dp(44)).also { it.marginStart = dp(8) })
+        cv.addView(grade(
+            peca(pilula("99", p.tagCor99, Color.WHITE, 18f), "tag", "tamTag", nome = "Nome do app"),
+            peca(pilula("17,2 km", p.cpI("corKm", Color.BLACK), Color.WHITE, 17f), "km", "tamNumeros", nome = "Km total"),
+            peca(pilula(String.format(br2, "R$ %.2f", 23.4), C.GOOD, Color.WHITE, 17f), "valor", "tamNumeros", nome = "Valor"),
+            peca(numKm, "rsKm", "tamRsKm", 50, 250, nome = "R$ por km"),
+            peca(rotulo, "rsKmRotulo", null, nome = "Texto R$/km"),
+            peca(eq, "eq", null, nome = "Barra de lucro"),
+            peca(rua, "rua", "tamRua", nome = "Nome da rua"),
+            peca(bairro, "bairro", "tamBairro", nome = "Bairro"),
+            peca(icone, "icone", "tamIcone", 50, 250, nome = "Ícone do piso"),
+            peca(pilula("⛔ MERCADO", Color.parseColor("#B91C1C"), Color.WHITE, 14f), "mercadoFaixa", "tamFaixa", nome = "Faixa do mercado")
+        ), ui.lp(top = 12))
+        cv.addView(ui.tv("Faixa do mercado desligada = aviso grande \"NÃO VOU\".", 12f, C.MUTED, 0), ui.lp(top = 8))
+        box.addView(cv, ui.lp(top = 16))
 
-        val c2 = ui.card()
-        c2.addView(ui.tv("Caixa da rua", 16f, C.TEXT, 2))
-        sw(c2, "Mostrar a caixa da rua", "rua"); tam(c2, "Tamanho do nome da rua", "tamRua", 50, 200)
-        sw(c2, "Bairro embaixo da rua", "bairro"); tam(c2, "Tamanho do bairro", "tamBairro")
-        sw(c2, "Ícone de terra / asfalto", "icone"); tam(c2, "Tamanho do ícone", "tamIcone", 50, 250)
-        c2.addView(ui.tv("Modelo do ícone (vale também para o semáforo completo)", 14f, C.TEXT, 2), ui.lp(top = 14))
+        // ---- modelo do ícone
+        val ci = ui.card()
+        ci.addView(ui.tv("Modelo do ícone do piso", 18f, C.TEXT, 3))
+        ci.addView(ui.tv("Vale também para o semáforo completo.", 13f, C.MUTED, 0), ui.lp(top = 4))
         val nomesIcone = listOf("Estrada", "Letra A / T", "Vista de cima", "Placa", "Carrinho", "Traço")
         val grade = ui.vbox()
         nomesIcone.chunked(2).forEachIndexed { li, par ->
@@ -1084,16 +1143,27 @@ class MainActivity : Activity() {
             }
             grade.addView(linha, ui.lp(top = if (li == 0) 0 else 8))
         }
-        c2.addView(grade, ui.lp(top = 8))
-        c2.addView(corRow("Cor da caixa", p.cpI("azul", Color.parseColor("#1D4ED8"))) { p.setCpI("azul", it) }, ui.lp(top = 14))
-        box.addView(c2, ui.lp(top = 16))
+        ci.addView(grade, ui.lp(top = 8))
+        box.addView(ci, ui.lp(top = 16))
 
-        val c3 = ui.card()
-        c3.addView(ui.tv("Barra de lucro e avisos", 16f, C.TEXT, 2))
-        sw(c3, "Barra de lucro (quadro verde)", "eq")
-        c3.addView(stepperRow("Largura da barra", "${p.cpI("largEq", 30)}", { p.setCpI("largEq", maxOf(14, p.cpI("largEq", 30) - 4)); render() }, { p.setCpI("largEq", minOf(70, p.cpI("largEq", 30) + 4)); render() }), ui.lp(top = 12))
-        sw(c3, "Mercado como faixa fina (desligado = aviso grande)", "mercadoFaixa"); tam(c3, "Tamanho da faixa do mercado", "tamFaixa")
-        box.addView(c3, ui.lp(top = 16))
+        // ---- cores: amostra grande, toque para trocar
+        val cc = ui.card()
+        cc.addView(ui.tv("Cores", 18f, C.TEXT, 3))
+        fun amostra(nome: String, cor: Int, f: (Int) -> Unit): View {
+            val t = ui.vbox().apply { gravity = Gravity.CENTER_HORIZONTAL; setOnClickListener { escolherCor(nome, cor, f) } }
+            t.addView(View(this).apply { background = ui.round(cor, 14, 2, C.LINE) }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(56)))
+            t.addView(ui.tv(nome, 14f, C.TEXT, 2, true), ui.lp(top = 6))
+            return t
+        }
+        val linhaCores = ui.hbox()
+        listOf(
+            amostra("Fundo", p.cpI("fundo", Color.parseColor("#17142A"))) { p.setCpI("fundo", it) },
+            amostra("Caixa da rua", p.cpI("azul", Color.parseColor("#1D4ED8"))) { p.setCpI("azul", it) },
+            amostra("Pílula do km", p.cpI("corKm", Color.BLACK)) { p.setCpI("corKm", it) }
+        ).forEachIndexed { i, v -> linhaCores.addView(v, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).also { if (i > 0) it.marginStart = dp(8) }) }
+        cc.addView(linhaCores, ui.lp(top = 10))
+        cc.addView(stepperRow("Largura da barra de lucro", "${p.cpI("largEq", 30)}", { p.setCpI("largEq", maxOf(14, p.cpI("largEq", 30) - 4)); render() }, { p.setCpI("largEq", minOf(70, p.cpI("largEq", 30) + 4)); render() }), ui.lp(top = 14))
+        box.addView(cc, ui.lp(top = 16))
 
         val c4 = ui.card()
         c4.addView(ui.tv("Quadro", 16f, C.TEXT, 2))
