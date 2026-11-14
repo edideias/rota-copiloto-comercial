@@ -1040,15 +1040,14 @@ class MainActivity : Activity() {
             t.addView(topo, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(84)))
             t.addView(ui.tv(nome, 14f, if (on) Color.WHITE else C.MUTED, 3, true).apply { maxLines = 2 }, ui.lp(top = 4))
             if (tamKey != null && on) {
-                val r = ui.hbox().apply { gravity = Gravity.CENTER }
-                fun bt(txt: String, f: () -> Unit) = ui.tv(txt, 22f, Color.WHITE, 3, true).apply {
+                val v = p.cpI(tamKey, 100)
+                t.addView(ui.tv("Tamanho $v%", 14f, C.MID, 3, true).apply { maxLines = 1 }, ui.lp(top = 4))
+                val r = ui.hbox()
+                fun bt(txt: String, f: () -> Unit) = ui.tv(txt, 24f, Color.WHITE, 3, true).apply {
                     background = ui.round(Color.parseColor("#2E2A47"), 12); setOnClickListener { f() }; includeFontPadding = false
                 }
-                val v = p.cpI(tamKey, 100)
-                r.addView(bt("−") { p.setCpI(tamKey, maxOf(tamMin, v - 10)); render() }, LinearLayout.LayoutParams(dp(42), dp(44)))
-                r.addView(ui.tv("$v%", 14f, Color.WHITE, 3, true).apply { maxLines = 1; setSingleLine(true); ellipsize = null },
-                    LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).also { it.marginStart = dp(2); it.marginEnd = dp(2) })
-                r.addView(bt("+") { p.setCpI(tamKey, minOf(tamMax, v + 10)); render() }, LinearLayout.LayoutParams(dp(42), dp(44)))
+                r.addView(bt("−") { p.setCpI(tamKey, maxOf(tamMin, v - 10)); render() }, LinearLayout.LayoutParams(0, dp(46), 1f))
+                r.addView(bt("+") { p.setCpI(tamKey, minOf(tamMax, v + 10)); render() }, LinearLayout.LayoutParams(0, dp(46), 1f).also { it.marginStart = dp(6) })
                 t.addView(r, ui.lp(top = 6))
             }
             return t
