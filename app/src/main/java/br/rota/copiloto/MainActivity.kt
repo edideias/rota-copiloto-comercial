@@ -495,7 +495,8 @@ class MainActivity : Activity() {
         item("Metas e custo", "Ganho por km, por hora e custo do carro") { openConfig("Metas e custo") { goalsContent(it) } }
         item("Aparência do quadro", "Métricas, posição, tema e fonte") { openConfig("Aparência do quadro") { cardContent(it) } }
         item("Aparência do quadro", "Nome do app, moldura da parada e quando o quadro some") { openConfig("Aparência do quadro") { aparenciaContent(it) } }
-        item("Destino da corrida", "Bairro, rua de terra, bairros evitados e lista negra") { openConfig("Destino da corrida") { destinoContent(it) } }
+        item("Modo compacto", "Cada peça do semáforo compacto: mostrar, tamanho, cor e espaço") { openConfig("Modo compacto") { compactoContent(it) } }
+                item("Destino da corrida", "Bairro, rua de terra, bairros evitados e lista negra") { openConfig("Destino da corrida") { destinoContent(it) } }
         item("Destaque corrida TOP", "Verde neon piscando e km total/valor") { openConfig("Destaque corrida TOP") { topContent(it) } }
         item("Tempo na tela", "Quanto tempo o quadro fica visível") { openConfig("Tempo na tela") { timeContent(it) } }
         item("Captura de tela", "Salvar cada oferta na galeria") { openConfig("Captura de tela") { captureContent(it) } }
@@ -988,6 +989,75 @@ class MainActivity : Activity() {
         c3.addView(switchRow("Sumir junto com a oferta", p.sumirJunto) { p.sumirJunto = it; render() })
         c3.addView(ui.tv("Quando a corrida sai da tela do Uber ou do 99, o quadro some em cerca de 1 segundo.", 12f, C.MUTED, 0), ui.lp(top = 4))
         box.addView(c3, ui.lp(top = 16))
+        return box
+    }
+
+    private fun compactoContent(p: Prefs): View {
+        val box = ui.vbox()
+        box.addView(pageHeader("Modo compacto", "Escolha o que aparece, o tamanho de cada coisa, as cores e os espaços"))
+        val br = Locale("pt", "BR")
+
+        // prévia sempre no compacto
+        val prev = ui.vbox().apply { background = ui.round(Color.parseColor("#2B3340"), 14); setPadding(dp(8), dp(14), dp(8), dp(14)) }
+        val antes = p.compacto
+        p.compacto = true
+        listOf(
+            Offer("99", 23.40, 5.0, 11.0, 12.2, 22.0, destText = "Rua Dos Cafezeiros, 64, Jardim São Conrado"),
+            Offer("99", 12.40, 1.5, 5.0, 5.2, 14.0, destText = "Rua 13 de Novembro, 55"),
+            Offer("Uber", 8.10, 2.4, 6.0, 3.3, 9.0, pickupText = "Supermercado Comper, Avenida Afonso Pena, 4000", destText = "Rua 26 de Agosto, 2315 - Centro")
+        ).forEach { o ->
+            prev.addView(Encaixe(this, resources.displayMetrics.widthPixels - dp(60), dp(900)).apply { addView(OverlayCard.build(this@MainActivity, Calc.analyze(o, p), p)) },
+                LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).also { it.gravity = Gravity.CENTER_HORIZONTAL; it.bottomMargin = dp(10) })
+        }
+        p.compacto = antes
+        val c0 = ui.card(); c0.addView(ui.tv("Prévia (3 corridas de exemplo)", 12f, C.MUTED, 0)); c0.addView(prev, ui.lp(top = 6))
+        box.addView(c0, ui.lp(top = 16))
+
+        val cl = ui.card()
+        cl.addView(switchRow("Usar o modo compacto", p.compacto) { p.compacto = it; render() })
+        box.addView(cl, ui.lp(top = 16))
+
+        fun pct(k: String) = "${p.cpI(k, 100)}%"
+        fun tam(c: LinearLayout, label: String, k: String, min: Int = 50, max: Int = 200) =
+            c.addView(stepperRow(label, pct(k), { p.setCpI(k, maxOf(min, p.cpI(k, 100) - 10)); render() }, { p.setCpI(k, minOf(max, p.cpI(k, 100) + 10)); render() }), ui.lp(top = 12))
+        fun sw(c: LinearLayout, label: String, k: String) = c.addView(switchRow(label, p.cpB(k, true)) { p.setCpB(k, it); render() }, ui.lp(top = 6))
+
+        val c1 = ui.card()
+        c1.addView(ui.tv("Linha de cima", 16f, C.TEXT, 2))
+        sw(c1, "Nome do app (99 / UBER)", "tag"); tam(c1, "Tamanho do nome do app", "tamTag")
+        sw(c1, "Km total", "km"); sw(c1, "Valor da corrida", "valor"); tam(c1, "Tamanho do km e do valor", "tamNumeros")
+        c1.addView(corRow("Cor da pílula do km", p.cpI("corKm", Color.BLACK)) { p.setCpI("corKm", it) }, ui.lp(top = 14))
+        sw(c1, "R$ por km grande", "rsKm"); tam(c1, "Tamanho do R$ por km", "tamRsKm", 50, 250)
+        sw(c1, "Texto \"R$/km\" embaixo do número", "rsKmRotulo")
+        box.addView(c1, ui.lp(top = 16))
+
+        val c2 = ui.card()
+        c2.addView(ui.tv("Caixa da rua", 16f, C.TEXT, 2))
+        sw(c2, "Mostrar a caixa da rua", "rua"); tam(c2, "Tamanho do nome da rua", "tamRua", 50, 200)
+        sw(c2, "Bairro embaixo da rua", "bairro"); tam(c2, "Tamanho do bairro", "tamBairro")
+        sw(c2, "Ícone de terra / asfalto", "icone"); tam(c2, "Tamanho do ícone", "tamIcone", 50, 250)
+        c2.addView(corRow("Cor da caixa", p.cpI("azul", Color.parseColor("#1D4ED8"))) { p.setCpI("azul", it) }, ui.lp(top = 14))
+        box.addView(c2, ui.lp(top = 16))
+
+        val c3 = ui.card()
+        c3.addView(ui.tv("Barra de lucro e avisos", 16f, C.TEXT, 2))
+        sw(c3, "Barra de lucro (quadro verde)", "eq")
+        c3.addView(stepperRow("Largura da barra", "${p.cpI("largEq", 30)}", { p.setCpI("largEq", maxOf(14, p.cpI("largEq", 30) - 4)); render() }, { p.setCpI("largEq", minOf(70, p.cpI("largEq", 30) + 4)); render() }), ui.lp(top = 12))
+        sw(c3, "Mercado como faixa fina (desligado = aviso grande)", "mercadoFaixa"); tam(c3, "Tamanho da faixa do mercado", "tamFaixa")
+        box.addView(c3, ui.lp(top = 16))
+
+        val c4 = ui.card()
+        c4.addView(ui.tv("Quadro", 16f, C.TEXT, 2))
+        sw(c4, "Largura total da tela", "largTotal")
+        fun num(label: String, k: String, d: Int, passo: Int, min: Int, max: Int) =
+            c4.addView(stepperRow(label, "${p.cpI(k, d)}", { p.setCpI(k, maxOf(min, p.cpI(k, d) - passo)); render() }, { p.setCpI(k, minOf(max, p.cpI(k, d) + passo)); render() }), ui.lp(top = 12))
+        num("Margem nas laterais", "margem", 8, 2, 0, 40)
+        num("Respiro dentro do quadro", "respiro", 10, 2, 2, 30)
+        num("Espaço entre as linhas", "espaco", 6, 2, 0, 30)
+        num("Espessura da moldura", "moldura", 4, 1, 0, 14)
+        num("Arredondamento", "raio", 24, 4, 0, 48)
+        c4.addView(corRow("Cor do fundo", p.cpI("fundo", Color.parseColor("#17142A"))) { p.setCpI("fundo", it) }, ui.lp(top = 14))
+        box.addView(c4, ui.lp(top = 16))
         return box
     }
 

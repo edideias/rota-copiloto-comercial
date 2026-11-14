@@ -205,6 +205,12 @@ class Prefs(ctx: Context, override_: android.content.SharedPreferences? = null) 
         get() = sp.getBoolean("compacto", false)
         set(v) { sp.edit().putBoolean("compacto", v).apply() }
 
+    // ---- modo compacto: cada peça liga/desliga e tem tamanho, cor e espaço próprios
+    fun cpB(k: String, d: Boolean) = sp.getBoolean("cp_$k", d)
+    fun setCpB(k: String, v: Boolean) { sp.edit().putBoolean("cp_$k", v).apply() }
+    fun cpI(k: String, d: Int) = sp.getInt("cp_$k", d)
+    fun setCpI(k: String, v: Int) { sp.edit().putInt("cp_$k", v).apply() }
+
     var sumirJunto: Boolean
         get() = sp.getBoolean("sumirJunto", true)
         set(v) { sp.edit().putBoolean("sumirJunto", v).apply() }
