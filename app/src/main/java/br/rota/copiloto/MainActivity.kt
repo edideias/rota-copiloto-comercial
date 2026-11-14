@@ -1067,7 +1067,7 @@ class MainActivity : Activity() {
         }
         val cv = ui.card()
         cv.addView(ui.tv("O que aparece", 18f, C.TEXT, 3))
-        cv.addView(ui.tv("Toque na peça para ligar ou desligar. Verde = aparece. Use − e + para o tamanho.", 13f, C.MUTED, 0), ui.lp(top = 4))
+        cv.addView(ui.tv("Toque na peça para ligar ou desligar. Verde = aparece. O número amarelo é o tamanho: use − e +.", 13f, C.MUTED, 0), ui.lp(top = 4))
         val eq = FrameLayout(this).apply { addView(Equalizador(this@MainActivity, 0.7, false, p.eqCor, p.eqMs.toLong()), FrameLayout.LayoutParams(dp(24), dp(64))) }
         val rua = ui.vbox().apply { background = ui.round(p.cpI("azul", Color.parseColor("#1D4ED8")), 12); setPadding(dp(10), dp(6), dp(10), dp(6)) }
         rua.addView(ui.tv("Rua dos Cafezeiros", 14f, Color.WHITE, 3))
