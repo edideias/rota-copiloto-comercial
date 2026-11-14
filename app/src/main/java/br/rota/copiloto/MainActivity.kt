@@ -1041,7 +1041,7 @@ class MainActivity : Activity() {
             t.addView(ui.tv(nome, 14f, if (on) Color.WHITE else C.MUTED, 3, true).apply { maxLines = 2 }, ui.lp(top = 4))
             if (tamKey != null && on) {
                 val v = p.cpI(tamKey, 100)
-                t.addView(ui.tv("Tamanho $v%", 14f, C.MID, 3, true).apply { maxLines = 1 }, ui.lp(top = 4))
+                t.addView(ui.tv("$v%", 18f, C.MID, 3, true).apply { maxLines = 1 }, ui.lp(top = 4))
                 val r = ui.hbox()
                 fun bt(txt: String, f: () -> Unit) = ui.tv(txt, 24f, Color.WHITE, 3, true).apply {
                     background = ui.round(Color.parseColor("#2E2A47"), 12); setOnClickListener { f() }; includeFontPadding = false
