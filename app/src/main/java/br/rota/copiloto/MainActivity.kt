@@ -161,6 +161,7 @@ class MainActivity : Activity() {
         }
         render()
         if (intent?.getStringExtra("abrir") == "compacto") openConfig("Modo compacto") { compactoContent(it) }
+        else if (intent?.getStringExtra("abrir") == "config") push { configMenu() }
         else if (!prefs.termsAccepted) showTerms()
     }
 
@@ -476,31 +477,38 @@ class MainActivity : Activity() {
     // ---------------------------------------------------------------- configurar (com Salvar)
 
     private fun configMenu(): View {
+        // grade de botões grandes: cor + ícone + nome curto, para achar de relance
+        data class Op(val icone: String, val nome: String, val cor: String, val abrir: () -> Unit)
+        val ops = listOf(
+            Op("🚦", "Semáforo", "#16A34A") { openConfig("Semáforo") { cardContent(it) } },
+            Op("🧩", "Compacto", "#CA8A04") { openConfig("Modo compacto") { compactoContent(it) } },
+            Op("💰", "Metas e custo", "#0D9488") { openConfig("Metas e custo") { goalsContent(it) } },
+            Op("📍", "Destino", "#2563EB") { openConfig("Destino da corrida") { destinoContent(it) } },
+            Op("⭐", "Corrida TOP", "#9333EA") { openConfig("Corrida TOP") { topContent(it) } },
+            Op("🛑", "Parada e nome do app", "#DC2626") { openConfig("Parada e nome do app") { aparenciaContent(it) } },
+            Op("🚗", "Uber e 99", "#EA580C") { openConfig("Uber e 99") { appsContent(it) } },
+            Op("⏱️", "Tempo na tela", "#475569") { openConfig("Tempo na tela") { timeContent(it) } },
+            Op("📸", "Salvar prints", "#DB2777") { openConfig("Salvar prints") { captureContent(it) } },
+            Op("🏠", "Tela inicial", "#4F46E5") { push { templatePicker() } }
+        )
         val box = ui.vbox()
-        fun item(title: String, sub: String, onClick: () -> Unit) {
-            val r = ui.hbox().apply {
-                background = ui.round(C.WHITE, 18)
-                elevation = ui.dpf(2f)
-                setPadding(dp(18), dp(16), dp(14), dp(16))
-                setOnClickListener { onClick() }
+        ops.chunked(2).forEachIndexed { i, par ->
+            val linha = ui.hbox()
+            par.forEachIndexed { j, op ->
+                val t = ui.vbox().apply {
+                    gravity = Gravity.CENTER
+                    background = ui.round(Color.parseColor(op.cor), 22)
+                    minimumHeight = dp(132)
+                    setPadding(dp(10), dp(14), dp(10), dp(14))
+                    setOnClickListener { op.abrir() }
+                    contentDescription = op.nome
+                }
+                t.addView(ui.tv(op.icone, 40f, Color.WHITE, 0, true), LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+                t.addView(ui.tv(op.nome, 18f, Color.WHITE, 3, true).apply { maxLines = 2 }, ui.lp(top = 8))
+                linha.addView(t, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f).also { if (j == 1) it.marginStart = dp(12) })
             }
-            val l = ui.vbox()
-            l.addView(ui.tv(title, 16f, C.TEXT, 2))
-            l.addView(ui.tv(sub, 12f, C.MUTED, 0))
-            r.addView(l, ui.lp(0, weight = 1f))
-            r.addView(ui.tv("›", 26f, C.PURPLE, 2))
-            box.addView(r, ui.lp(top = 12))
+            box.addView(linha, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).also { it.topMargin = dp(if (i == 0) 4 else 12) })
         }
-        item("Modelo do aplicativo", "10 estilos de tela inicial") { push { templatePicker() } }
-        item("Apps de trabalho", "Uber, 99 e leitura por imagem") { openConfig("Apps de trabalho") { appsContent(it) } }
-        item("Metas e custo", "Ganho por km, por hora e custo do carro") { openConfig("Metas e custo") { goalsContent(it) } }
-        item("Aparência do quadro", "Métricas, posição, tema e fonte") { openConfig("Aparência do quadro") { cardContent(it) } }
-        item("Aparência do quadro", "Nome do app, moldura da parada e quando o quadro some") { openConfig("Aparência do quadro") { aparenciaContent(it) } }
-        item("Modo compacto", "Cada peça do semáforo compacto: mostrar, tamanho, cor e espaço") { openConfig("Modo compacto") { compactoContent(it) } }
-                item("Destino da corrida", "Bairro, rua de terra, bairros evitados e lista negra") { openConfig("Destino da corrida") { destinoContent(it) } }
-        item("Destaque corrida TOP", "Verde neon piscando e km total/valor") { openConfig("Destaque corrida TOP") { topContent(it) } }
-        item("Tempo na tela", "Quanto tempo o quadro fica visível") { openConfig("Tempo na tela") { timeContent(it) } }
-        item("Captura de tela", "Salvar cada oferta na galeria") { openConfig("Captura de tela") { captureContent(it) } }
         return screen("Configurar", box)
     }
 

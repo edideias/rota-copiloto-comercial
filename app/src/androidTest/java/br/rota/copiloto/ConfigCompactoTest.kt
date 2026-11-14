@@ -22,6 +22,24 @@ class ConfigCompactoTest {
     }
 
     @Test
+    fun fotografarMenu() {
+        val inst = InstrumentationRegistry.getInstrumentation()
+        val app = inst.targetContext
+        val act = inst.startActivitySync(Intent(app, MainActivity::class.java).putExtra("abrir", "config").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        Thread.sleep(2500)
+        inst.runOnMainSync {
+            val sv = achar(act.window.decorView) ?: return@runOnMainSync
+            val c = sv.getChildAt(0); val w = sv.width
+            c.measure(View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+            c.layout(0, 0, w, c.measuredHeight)
+            val bmp = Bitmap.createBitmap(w, c.measuredHeight, Bitmap.Config.ARGB_8888)
+            val cv = Canvas(bmp); cv.drawColor(C.BG); c.draw(cv)
+            File(app.filesDir, "tela-menu.png").outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 90, it) }
+        }
+        act.finish()
+    }
+
+    @Test
     fun fotografar() {
         val inst = InstrumentationRegistry.getInstrumentation()
         val app = inst.targetContext
