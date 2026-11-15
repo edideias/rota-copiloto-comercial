@@ -56,7 +56,8 @@ object Destino {
     private const val URL_BANCO =
         "https://raw.githubusercontent.com/edideias/rota-copiloto-comercial/main/dados/campo-grande-ruas.json"
 
-    @Volatile private var ruas: Map<String, Rua> = emptyMap()
+    @Volatile private var ruas: Map<String, List<Rua>> = emptyMap()
+    @Volatile private var bairroPav: Map<String, Pair<Double, Double>> = emptyMap()
     @Volatile private var bairros: Map<String, String> = emptyMap()   // normalizado -> nome
     @Volatile private var condominios: Map<String, String> = emptyMap()   // normalizado -> nome
     data class Mercado(val nome: String, val rua: String, val num: Int?)
@@ -108,13 +109,13 @@ object Destino {
     private fun ler(txt: String) {
         val o = JSONObject(txt)
         val arr = o.getJSONArray("ruas")
-        val m = HashMap<String, Rua>(arr.length() * 2)
+        val m = HashMap<String, MutableList<Rua>>(arr.length() * 2)
         for (i in 0 until arr.length()) {
             val r = arr.getJSONObject(i)
             val bs = r.optJSONArray("bairros")
             val nome = r.getString("nome")
             val cd = if (r.isNull("condominio")) null else r.optString("condominio").takeIf { it.isNotBlank() }
-            m[norm(nome)] = Rua(nome, r.optString("pavimento"), if (bs != null && bs.length() > 0) bs.getString(0) else null, cd)
+            m.getOrPut(norm(nome)) { ArrayList() }.add(Rua(nome, r.optString("pavimento"), if (bs != null && bs.length() > 0) bs.getString(0) else null, cd))
         }
         val bm = HashMap<String, String>()
         val ba = o.optJSONArray("bairros") ?: JSONArray()
@@ -133,6 +134,9 @@ object Destino {
             mo.add(Mercado(x.optString("nome"), x.optString("rua"), if (x.isNull("num")) null else x.optInt("num")))
         }
         moteis = mo
+        val bp = HashMap<String, Pair<Double, Double>>()
+        o.optJSONObject("bairros_pav")?.let { j -> j.keys().forEach { k -> j.optJSONArray(k)?.let { a -> bp[norm(k)] = a.optDouble(0) to a.optDouble(1) } } }
+        bairroPav = bp
         ruas = m; bairros = bm; condominios = cs; mercados = ml
         dataBanco = o.optString("gerado_em").take(10)
     }
@@ -203,6 +207,19 @@ object Destino {
         return null
     }
 
+    /** Várias ruas têm o mesmo nome em bairros diferentes: escolhe a do bairro do endereço. */
+    private fun escolherRua(c: List<Rua>?, bairro: String?): Rua? {
+        if (c.isNullOrEmpty()) return null
+        val nb = bairro?.let { norm(it) }
+        if (nb != null) {
+            c.firstOrNull { it.bairro != null && norm(it.bairro).let { b -> b == nb || b.startsWith("$nb ") || nb.startsWith("$b ") } }?.let { return it }
+            if (c.size == 1 && c[0].bairro == null) return c[0]
+            return null   // existe rua com esse nome, mas em outro bairro: não é a mesma
+        }
+        if (c.size == 1) return c[0]
+        return c.map { it.pavimento }.distinct().singleOrNull()?.let { c[0] }
+    }
+
     private val CARA_DE_MOTEL = Regex("""(?i)\bmot[eé]is?\b|drive[\s-]?in\b|love\s*hotel|puteiro|prost[ií]bulo|bordel|\bcabar[eé]\b|\bswing(er)?\b|casa\s+de\s+(swing|massagem|prostitui|encontro)|massagem\s+(er[oó]tica|tantra|tântrica|sensual)|\btantra\b|\bpriv[eê]\b|boate\s+(adulta|er[oó]tica|de\s+striptease)|\bstrip\s?club\b|clube\s+(de\s+)?(swing|striptease|liberal)|sauna\s+(er[oó]tica|gay|mista|liberal)|zona\s+(de\s+)?meretr[ií]cio""")
 
     /** O destino é motel? Pelo nome, por um motel do mapa, pelo endereço (mesma rua, número perto) ou pela sua lista. */
@@ -230,8 +247,9 @@ object Destino {
     fun analisar(dest: String, p: Prefs, embarque: String = ""): Info {
         if (dest.isBlank()) return Info(null, null, null, false, null)
         val ruaTxt = ruaRx.find(dest)?.value?.trim()
-        val rua = ruaTxt?.let { ruas[norm(it)] }
-        val bairro = bairroDoTexto(dest) ?: rua?.bairro
+        val bairroTxt = bairroDoTexto(dest)
+        val rua = ruaTxt?.let { escolherRua(ruas[norm(it)], bairroTxt) }
+        val bairro = bairroTxt ?: rua?.bairro
         val nd = norm(dest)
         val nb = bairro?.let { norm(it) } ?: ""
         val evitado = p.bairrosEvitados.any { e ->
@@ -246,7 +264,12 @@ object Destino {
         val tudo = norm(listOfNotNull(dest, bairro, condominio, rua?.bairro).joinToString(" "))
         val negra = p.listaNegra.firstOrNull { bate(it.nome, tudo) }
         // terra, misto (trecho de terra) ou pavimentada: vira ícone no quadro
-        val pav = if (p.avisarTerra && rua?.pavimento in setOf("terra", "misto", "pavimentada")) rua?.pavimento else null
+        // sem dado da rua: usa o que o bairro costuma ser (só quando é claramente de um tipo só)
+        val pavRua = rua?.pavimento?.takeIf { it in setOf("terra", "misto", "pavimentada") }
+        val pavBairro = if (pavRua == null) bairroPav[norm(bairro ?: "")]?.let { (a, t) ->
+            if (a + t < 3.0) null else if (t / (a + t) >= 0.75) "terra" else if (a / (a + t) >= 0.9) "pavimentada" else null
+        } else null
+        val pav = if (p.avisarTerra) (pavRua ?: pavBairro) else null
         // mercado só importa no EMBARQUE (destino em mercado não tem problema)
         val mercado = if (p.mercadoOn && embarque.isNotBlank())
             mercadoDe(embarque, norm(embarque), ruaRx.find(embarque)?.value?.trim()?.let { norm(it) }) else null

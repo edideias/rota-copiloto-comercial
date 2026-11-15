@@ -145,13 +145,14 @@ def main():
     for el in overpass(RUAS):
         t = el.get("tags", {}); g = el.get("geometry") or []
         if len(g) < 2: continue
-        nome = t["name"]; chave = norm(nome)
+        nome = t["name"]; mid = g[len(g)//2]
+        b = bairro_de(mid["lon"], mid["lat"]) or ""
+        chave = norm(nome) + "|" + b   # mesma rua em bairros diferentes = ruas diferentes
         r = ruas.setdefault(chave, {"nome": nome, "bairros": {}, "km_pav": 0.0, "km_terra": 0.0, "km_sem": 0.0, "tipos": set(), "condo": {}, "km_osm": 0.0})
-        comp = km(g); mid = g[len(g)//2]
+        comp = km(g)
         r["km_osm"] += comp
         cd = condo_de(mid["lon"], mid["lat"])
         if cd: r["condo"][cd] = r["condo"].get(cd, 0) + comp
-        b = bairro_de(mid["lon"], mid["lat"])
         if b: r["bairros"][b] = r["bairros"].get(b, 0) + comp
         sup = (t.get("surface") or "").split(";")[0]
         if sup in PAVIM: r["km_pav"] += comp
@@ -164,21 +165,22 @@ def main():
     for f in oficial():
         pr = f.get("properties", {}); nome = (pr.get("n_logra") or "").strip()
         if not nome: continue
-        chave = norm(nome); g = f.get("geometry") or {}
-        o = ofi.setdefault(chave, {"nome": nome, "pav": 0.0, "terra": 0.0, "meio": None})
+        g = f.get("geometry") or {}
+        cs = g.get("coordinates") or []
+        if g.get("type") == "MultiLineString" and cs: cs = cs[0]
+        meio = cs[len(cs)//2] if cs else None
+        b = (bairro_de(meio[0], meio[1]) or "") if meio else ""
+        chave = norm(nome) + "|" + b
+        o = ofi.setdefault(chave, {"nome": nome, "pav": 0.0, "terra": 0.0, "meio": meio, "b": b})
         ext = (pr.get("extensao") or 0) / 1000.0
         if pr.get("situacao") == "PAVIMENTADA": o["pav"] += ext
         else: o["terra"] += ext
-        cs = g.get("coordinates") or []
-        if g.get("type") == "MultiLineString" and cs: cs = cs[0]
-        if cs and not o["meio"]: o["meio"] = cs[len(cs)//2]
     for chave, o in ofi.items():
         r = ruas.get(chave)
         if r is None:
             r = ruas[chave] = {"nome": o["nome"].title(), "bairros": {}, "km_pav": 0.0, "km_terra": 0.0, "km_sem": 0.0, "tipos": set(), "condo": {}, "km_osm": 0.0}
+            if o["b"]: r["bairros"][o["b"]] = 1
             if o["meio"]:
-                b = bairro_de(o["meio"][0], o["meio"][1])
-                if b: r["bairros"][b] = 1
                 cd = condo_de(o["meio"][0], o["meio"][1])
                 if cd: r["condo"][cd] = 1.0; r["km_osm"] = 1.0
         r["km_pav"], r["km_terra"], r["km_sem"] = o["pav"], o["terra"], 0.0
@@ -215,12 +217,16 @@ def main():
         elif r["km_terra"] / conhecido < 0.1: pav = "pavimentada"
         elif r["km_pav"] / conhecido < 0.1: pav = "terra"
         else: pav = "misto"
-        saida.append({"nome": r["nome"], "chave": chave, "pavimento": pav,
+        saida.append({"nome": r["nome"], "chave": chave.split("|")[0], "pavimento": pav,
                       "km_pavimentado": round(r["km_pav"], 2), "km_terra": round(r["km_terra"], 2), "km_sem_info": round(r["km_sem"], 2),
                       "bairros": [b for b, _ in sorted(r["bairros"].items(), key=lambda x: -x[1])],
                       "fonte": "agetran" if r.get("oficial") else "osm",
                       # rua que fica (quase toda) dentro de um condomínio
                       "condominio": next((c for c, k in sorted(r["condo"].items(), key=lambda x: -x[1]) if r["km_osm"] and k / r["km_osm"] >= 0.6), None)})
+    bp = {}
+    for r in ruas.values():
+        for b, _ in sorted(r["bairros"].items(), key=lambda x: -x[1])[:1]:
+            x = bp.setdefault(b, [0.0, 0.0]); x[0] += r["km_pav"]; x[1] += r["km_terra"]
     resumo = {p: sum(1 for s in saida if s["pavimento"] == p) for p in ("pavimentada", "terra", "misto", "sem_info")}
     import os; os.makedirs("dados", exist_ok=True)
     json.dump({"versao": 4, "cidade": "Campo Grande - MS",
@@ -234,6 +240,8 @@ def main():
                "condominios": sorted({c["nome"] for c in condos}),
                "mercados": mercados,
                "moteis": moteis,
+               # km pavimentado / km de terra por bairro: estimativa quando a rua não tem dado
+               "bairros_pav": {b: [round(v[0], 1), round(v[1], 1)] for b, v in bp.items() if v[0] + v[1] >= 1.0},
                "ruas": saida}, open("dados/campo-grande-ruas.json", "w"), ensure_ascii=False, indent=0)
     print("::notice::" + json.dumps({"ruas": len(saida), **resumo, "bairros_poligono": len(bairros), "bairros_ponto": len(pontos), "ruas_com_bairro": sum(1 for x in saida if x["bairros"]), "ruas_oficiais": len(ofi), "condominios": len(condos), "ruas_em_condominio": sum(1 for x in saida if x["condominio"]), "mercados": len(mercados), "mercados_com_endereco": sum(1 for m in mercados if m["rua"] and m["num"])}))
 

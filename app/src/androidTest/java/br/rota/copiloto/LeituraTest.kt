@@ -37,6 +37,7 @@ class LeituraTest {
             }
             val res = if (o == null) "NAO LEU ($motivo)" else "LEU ${o.platform} R$${o.value} emb ${"%.2f".format(o.pickupKm)}km corrida ${"%.2f".format(o.tripKm)}km paradas ${o.stops} | $painel"
             Log.i("LEITOR", "### $n => $res")
+            if (o != null) { val di = Destino.analisar(o.destText, prefs, o.pickupText); Log.i("LEITOR", "    destino='${o.destText}' bairro=${di.bairro} rua=${di.rua} pav=${di.pavimento}") }
             Log.i("LEITOR", "    texto: ${joined.take(700)}")
         }
     }
