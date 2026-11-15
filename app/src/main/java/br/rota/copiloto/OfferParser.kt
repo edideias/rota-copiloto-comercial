@@ -58,7 +58,9 @@ object OfferParser {
 
     /** O OCR troca "1" por "l"/"I" no meio de número ("1l.7 km" = 11.7 km). */
     private fun consertaDigitos(t: String) =
-        t.replace(Regex("""(?<=\d)[lI](?=[.,]?\d)"""), "1").replace(Regex("""(?<=\d[.,])[lI](?=\s*km)"""), "1")
+        t.replace(Regex("""(?<![A-Za-z\d])[lI](?=\d+[.,]\d)"""), "1")          // "l2.5 km" = 12.5 km
+            .replace(Regex("""(?<![A-Za-z\d])[lI](\d)(?=\s*km\b)"""), "1.$1")   // "l9 km" = 1.9 km (OCR perdeu o ponto)
+            .replace(Regex("""(?<=\d)[lI](?=[.,]?\d)"""), "1").replace(Regex("""(?<=\d[.,])[lI](?=\s*km)"""), "1")
 
     fun parse(platform: String, texto: String): Offer? {
         val text = consertaDigitos(texto)
