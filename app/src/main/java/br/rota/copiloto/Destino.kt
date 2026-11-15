@@ -267,7 +267,7 @@ object Destino {
         // sem dado da rua: usa o que o bairro costuma ser (só quando é claramente de um tipo só)
         val pavRua = rua?.pavimento?.takeIf { it in setOf("terra", "misto", "pavimentada") }
         val pavBairro = if (pavRua == null) bairroPav[norm(bairro ?: "")]?.let { (a, t) ->
-            if (a + t < 3.0) null else if (t / (a + t) >= 0.75) "terra" else if (a / (a + t) >= 0.9) "pavimentada" else null
+            if (a + t < 3.0) null else if (t / (a + t) >= 0.75) "terra" else if (t / (a + t) >= 0.25) "misto" else if (a / (a + t) >= 0.9) "pavimentada" else null
         } else null
         val pav = if (p.avisarTerra) (pavRua ?: pavBairro) else null
         // mercado só importa no EMBARQUE (destino em mercado não tem problema)
