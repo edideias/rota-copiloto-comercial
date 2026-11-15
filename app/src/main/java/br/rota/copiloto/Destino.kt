@@ -57,7 +57,7 @@ object Destino {
         "https://raw.githubusercontent.com/edideias/rota-copiloto-comercial/main/dados/campo-grande-ruas.json"
 
     @Volatile private var ruas: Map<String, List<Rua>> = emptyMap()
-    @Volatile private var bairroPav: Map<String, Pair<Double, Double>> = emptyMap()
+    @Volatile private var bairroPav: Map<String, Triple<Int, Int, Int>> = emptyMap()
     @Volatile private var bairros: Map<String, String> = emptyMap()   // normalizado -> nome
     @Volatile private var condominios: Map<String, String> = emptyMap()   // normalizado -> nome
     data class Mercado(val nome: String, val rua: String, val num: Int?)
@@ -134,8 +134,13 @@ object Destino {
             mo.add(Mercado(x.optString("nome"), x.optString("rua"), if (x.isNull("num")) null else x.optInt("num")))
         }
         moteis = mo
-        val bp = HashMap<String, Pair<Double, Double>>()
-        o.optJSONObject("bairros_pav")?.let { j -> j.keys().forEach { k -> j.optJSONArray(k)?.let { a -> bp[norm(k)] = a.optDouble(0) to a.optDouble(1) } } }
+        // por bairro: quantas ruas são de terra / mistas / pavimentadas (contando ruas, não km: avenidas não escondem as ruas de terra)
+        val bp = HashMap<String, Triple<Int, Int, Int>>()
+        for (lst in m.values) for (r in lst) {
+            val b = r.bairro ?: continue
+            val k = norm(b); val c = bp[k] ?: Triple(0, 0, 0)
+            bp[k] = when (r.pavimento) { "terra" -> c.copy(first = c.first + 1); "misto" -> c.copy(second = c.second + 1); "pavimentada" -> c.copy(third = c.third + 1); else -> c }
+        }
         bairroPav = bp
         ruas = m; bairros = bm; condominios = cs; mercados = ml
         dataBanco = o.optString("gerado_em").take(10)
@@ -147,7 +152,8 @@ object Destino {
         "um" to "1", "primeiro" to "1", "dois" to "2", "tres" to "3", "quatro" to "4", "cinco" to "5", "seis" to "6",
         "sete" to "7", "oito" to "8", "nove" to "9", "dez" to "10", "onze" to "11", "doze" to "12", "treze" to "13",
         "quatorze" to "14", "catorze" to "14", "quinze" to "15", "dezesseis" to "16", "dezessete" to "17",
-        "dezoito" to "18", "dezenove" to "19", "vinte" to "20", "trinta" to "30"
+        "dezoito" to "18", "dezenove" to "19", "vinte" to "20", "trinta" to "30", "quarenta" to "40", "cinquenta" to "50", "cincoenta" to "50",
+        "sessenta" to "60", "setenta" to "70", "oitenta" to "80", "noventa" to "90", "cem" to "100"
     )
 
     fun norm(s: String): String {
@@ -157,7 +163,7 @@ object Destino {
             .replace(Regex("\\b(tv|trav|travessa)\\b"), "travessa").replace(Regex("\\b(al|alameda)\\b"), "alameda")
         t = t.split(Regex("\\s+")).joinToString(" ") { NUM[it] ?: it }
         // "vinte e cinco" -> "20 5" -> "25"
-        t = t.replace(Regex("\\b([2-3])0 e ([1-9])\\b")) { "${it.groupValues[1]}${it.groupValues[2]}" }
+        t = t.replace(Regex("\\b([2-9])0 e ([1-9])\\b")) { "${it.groupValues[1]}${it.groupValues[2]}" }
         return t.replace(Regex("\\s+"), " ").trim()
     }
 
@@ -177,6 +183,8 @@ object Destino {
             val n = norm(p)
             bairros[n]?.let { return it }
             bairros.entries.firstOrNull { it.key.length >= 4 && (n == it.key || n.startsWith(it.key + " ")) }?.let { return it.value }
+            // "Vila Nova Campo Grande" = Nova Campo Grande (prefixo Vila/Jardim/Parque na frente do nome)
+            bairros.entries.filter { it.key.length >= 10 && n.endsWith(" " + it.key) }.maxByOrNull { it.key.length }?.let { return it.value }
         }
         // 2) não está no banco: só confia no texto que vem logo depois do número da casa
         for (i in 1 until partes.size) {
@@ -266,8 +274,9 @@ object Destino {
         // terra, misto (trecho de terra) ou pavimentada: vira ícone no quadro
         // sem dado da rua: usa o que o bairro costuma ser (só quando é claramente de um tipo só)
         val pavRua = rua?.pavimento?.takeIf { it in setOf("terra", "misto", "pavimentada") }
-        val pavBairro = if (pavRua == null) bairroPav[norm(bairro ?: "")]?.let { (a, t) ->
-            if (a + t < 3.0) null else if (t / (a + t) >= 0.75) "terra" else if (t / (a + t) >= 0.25) "misto" else if (a / (a + t) >= 0.9) "pavimentada" else null
+        val pavBairro = if (pavRua == null) bairroPav[norm(bairro ?: "")]?.let { (t, m, pv) ->
+            val n = t + m + pv
+            if (n < 5) null else if (t * 100 >= n * 55) "terra" else if ((t + m) * 100 >= n * 30) "misto" else if (pv * 100 >= n * 90) "pavimentada" else null
         } else null
         val pav = if (p.avisarTerra) (pavRua ?: pavBairro) else null
         // mercado só importa no EMBARQUE (destino em mercado não tem problema)
