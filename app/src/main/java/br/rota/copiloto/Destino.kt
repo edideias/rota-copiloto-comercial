@@ -281,18 +281,19 @@ object Destino {
         // sem dado da rua: usa o que o bairro costuma ser (só quando é claramente de um tipo só)
         val validos = setOf("terra", "misto", "pavimentada")
         var pavRua = rua?.pavimento?.takeIf { it in validos }
-        // mesmo nome de rua só em 1-2 bairros (o app do motorista pode chamar o bairro de outro jeito) e todos concordam: vale essa rua
-        if (pavRua == null) {
+        // quantas ruas com dado o DB tem nesse bairro (soma "Portal Caiobá I" e "II" para "Portal Caioba")
+        val nb = norm(bairro ?: "")
+        var t = 0; var m = 0; var pv = 0
+        if (nb.isNotEmpty()) for ((k, v) in bairroPav) if (k == nb || k.startsWith("$nb ")) { t += v.first; m += v.second; pv += v.third }
+        val n = t + m + pv
+        // bairro que o DB não conhece (o app do motorista chama de outro jeito): rua de mesmo nome em 1-2 bairros, todas iguais, vale
+        if (pavRua == null && n == 0) {
             val cs = ruaTxt?.let { ruas[norm(it)] }.orEmpty().filter { it.pavimento in validos }
             if (cs.isNotEmpty() && cs.map { it.bairro }.distinct().size <= 2) cs.map { it.pavimento }.distinct().singleOrNull()?.let { pavRua = it }
         }
-        // sem dado da rua: o que a maioria das ruas do bairro é (soma "Portal Caiobá I" e "II" para "Portal Caioba")
-        val pavBairro = if (pavRua == null) {
-            val nb = norm(bairro ?: "")
-            var t = 0; var m = 0; var pv = 0
-            if (nb.isNotEmpty()) for ((k, v) in bairroPav) if (k == nb || k.startsWith("$nb ")) { t += v.first; m += v.second; pv += v.third }
-            val n = t + m + pv
-            if (n < 1) null else if (t * 100 >= n * 55) "terra" else if ((t + m) * 100 >= n * 30) "misto" else "pavimentada"
+        // sem dado da rua: o que a maioria das ruas do bairro é
+        val pavBairro = if (pavRua == null && n > 0) {
+            if (t * 100 >= n * 55) "terra" else if ((t + m) * 100 >= n * 30) "misto" else "pavimentada"
         } else null
         // sempre mostra terra ou asfalto: sem nenhum dado da rua nem do bairro, vale o mais comum da cidade (asfalto)
         val pav = if (p.avisarTerra) (pavRua ?: pavBairro ?: "pavimentada") else null
