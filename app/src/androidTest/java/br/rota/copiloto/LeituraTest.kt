@@ -23,6 +23,8 @@ class LeituraTest {
         val prefs = Prefs(app)
         val rec = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
         val nomes = testCtx.assets.list("prints")!!.sorted()
+        for (q in listOf("Rua Cento e Cinquenta", "Rua Cento e Cinquenta e Sete", "Rua Cento e Vinte e Cinco", "Rua Cem", "Rua Cinqüenta e Sete", "Rua Cento e Dez"))
+            Log.i("LEITOR", "### NORM $q => ${Destino.norm(q)}")
         for (n in nomes) {
             val bmp = testCtx.assets.open("prints/$n").use { BitmapFactory.decodeStream(it) }
             val (small, _) = Leitor.recortar(bmp)

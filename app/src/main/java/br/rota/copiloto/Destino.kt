@@ -153,7 +153,7 @@ object Destino {
         "sete" to "7", "oito" to "8", "nove" to "9", "dez" to "10", "onze" to "11", "doze" to "12", "treze" to "13",
         "quatorze" to "14", "catorze" to "14", "quinze" to "15", "dezesseis" to "16", "dezessete" to "17",
         "dezoito" to "18", "dezenove" to "19", "vinte" to "20", "trinta" to "30", "quarenta" to "40", "cinquenta" to "50", "cincoenta" to "50",
-        "sessenta" to "60", "setenta" to "70", "oitenta" to "80", "noventa" to "90", "cem" to "100"
+        "sessenta" to "60", "setenta" to "70", "oitenta" to "80", "noventa" to "90", "cem" to "100", "cento" to "100", "duzentos" to "200", "trezentos" to "300", "quatrocentos" to "400", "quinhentos" to "500"
     )
 
     fun norm(s: String): String {
@@ -164,6 +164,8 @@ object Destino {
         t = t.split(Regex("\\s+")).joinToString(" ") { NUM[it] ?: it }
         // "vinte e cinco" -> "20 5" -> "25"
         t = t.replace(Regex("\\b([2-9])0 e ([1-9])\\b")) { "${it.groupValues[1]}${it.groupValues[2]}" }
+        // "cento e cinquenta e sete" -> "100 e 50 e 7" -> "100 e 57" -> "157"
+        t = t.replace(Regex("\\b([1-9]00) e ([1-9][0-9]?)\\b")) { (it.groupValues[1].toInt() + it.groupValues[2].toInt()).toString() }
         return t.replace(Regex("\\s+"), " ").trim()
     }
 
