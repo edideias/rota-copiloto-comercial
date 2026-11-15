@@ -153,6 +153,10 @@ object Destino {
         "sete" to "7", "oito" to "8", "nove" to "9", "dez" to "10", "onze" to "11", "doze" to "12", "treze" to "13",
         "quatorze" to "14", "catorze" to "14", "quinze" to "15", "dezesseis" to "16", "dezessete" to "17",
         "dezoito" to "18", "dezenove" to "19", "vinte" to "20", "trinta" to "30", "quarenta" to "40", "cinquenta" to "50", "cincoenta" to "50",
+        // abreviações de título: "R. Jorn. José Filinto" = "Rua Jornalista José Filinto"
+        "jorn" to "jornalista", "sen" to "senador", "dr" to "doutor", "dra" to "doutora", "prof" to "professor", "profa" to "professora",
+        "cel" to "coronel", "gen" to "general", "eng" to "engenheiro", "pres" to "presidente", "sta" to "santa", "sto" to "santo",
+        "dep" to "deputado", "gov" to "governador", "alm" to "almirante", "ver" to "vereador",
         "sessenta" to "60", "setenta" to "70", "oitenta" to "80", "noventa" to "90", "cem" to "100", "cento" to "100", "duzentos" to "200", "trezentos" to "300", "quatrocentos" to "400", "quinhentos" to "500"
     )
 
@@ -275,8 +279,18 @@ object Destino {
         val negra = p.listaNegra.firstOrNull { bate(it.nome, tudo) }
         // terra, misto (trecho de terra) ou pavimentada: vira ícone no quadro
         // sem dado da rua: usa o que o bairro costuma ser (só quando é claramente de um tipo só)
-        val pavRua = rua?.pavimento?.takeIf { it in setOf("terra", "misto", "pavimentada") }
-        val pavBairro = if (pavRua == null) bairroPav[norm(bairro ?: "")]?.let { (t, m, pv) ->
+        val validos = setOf("terra", "misto", "pavimentada")
+        var pavRua = rua?.pavimento?.takeIf { it in validos }
+        // mesmo nome de rua só em 1-2 bairros (o app do motorista pode chamar o bairro de outro jeito) e todos concordam: vale essa rua
+        if (pavRua == null) {
+            val cs = ruaTxt?.let { ruas[norm(it)] }.orEmpty().filter { it.pavimento in validos }
+            if (cs.isNotEmpty() && cs.map { it.bairro }.distinct().size <= 2) cs.map { it.pavimento }.distinct().singleOrNull()?.let { pavRua = it }
+        }
+        // sem dado da rua: o que a maioria das ruas do bairro é (soma "Portal Caiobá I" e "II" para "Portal Caioba")
+        val pavBairro = if (pavRua == null) {
+            val nb = norm(bairro ?: "")
+            var t = 0; var m = 0; var pv = 0
+            if (nb.isNotEmpty()) for ((k, v) in bairroPav) if (k == nb || k.startsWith("$nb ")) { t += v.first; m += v.second; pv += v.third }
             val n = t + m + pv
             if (n < 1) null else if (t * 100 >= n * 55) "terra" else if ((t + m) * 100 >= n * 30) "misto" else "pavimentada"
         } else null
