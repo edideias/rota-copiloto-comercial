@@ -770,6 +770,7 @@ object OverlayCard {
     private fun iconePiso(ctx: Context, ui: Ui, pav: String?, size: Float): View? = when (pav) {
         "terra", "misto" -> IconePiso(ctx, true, estiloIcone).apply { contentDescription = if (pav == "terra") "Rua de terra" else "Rua com trecho de terra" }
         "pavimentada" -> IconePiso(ctx, false, estiloIcone).apply { contentDescription = "Rua asfaltada" }
+        "desconhecida" -> IconeDesconhecido(ctx).apply { contentDescription = "Piso da rua desconhecido" }
         else -> null
     }
 
@@ -1054,5 +1055,19 @@ class IconePiso(ctx: Context, private val terra: Boolean, private val estilo: In
         } else {
             linha(c, 28f, 8f, 28f, 16f); linha(c, 28f, 23f, 28f, 32f); linha(c, 28f, 39f, 28f, 49f)
         }
+    }
+}
+
+
+/** Piso sem nenhum dado: quadrado cinza com "?" (o aviso nunca some). */
+class IconeDesconhecido(ctx: Context) : View(ctx) {
+    private val p = Paint(Paint.ANTI_ALIAS_FLAG)
+    override fun onDraw(c: Canvas) {
+        val k = minOf(width, height) / 56f
+        c.save(); c.translate((width - 56 * k) / 2f, (height - 56 * k) / 2f); c.scale(k, k)
+        p.style = Paint.Style.FILL; p.color = Color.parseColor("#6B7280"); c.drawRoundRect(RectF(1f, 1f, 55f, 55f), 14f, 14f, p)
+        p.color = Color.WHITE; p.textSize = 40f; p.textAlign = Paint.Align.CENTER; p.typeface = android.graphics.Typeface.DEFAULT_BOLD
+        c.drawText("?", 28f, 41f, p)
+        c.restore()
     }
 }

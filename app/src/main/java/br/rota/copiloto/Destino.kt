@@ -278,9 +278,10 @@ object Destino {
         val pavRua = rua?.pavimento?.takeIf { it in setOf("terra", "misto", "pavimentada") }
         val pavBairro = if (pavRua == null) bairroPav[norm(bairro ?: "")]?.let { (t, m, pv) ->
             val n = t + m + pv
-            if (n < 5) null else if (t * 100 >= n * 55) "terra" else if ((t + m) * 100 >= n * 30) "misto" else if (pv * 100 >= n * 90) "pavimentada" else null
+            if (n < 2) null else if (t * 100 >= n * 55) "terra" else if ((t + m) * 100 >= n * 30) "misto" else if (pv * 100 >= n * 70) "pavimentada" else null
         } else null
-        val pav = if (p.avisarTerra) (pavRua ?: pavBairro) else null
+        // nunca some: sem nenhum dado vira "desconhecida" (ícone "?")
+        val pav = if (p.avisarTerra) (pavRua ?: pavBairro ?: "desconhecida") else null
         // mercado só importa no EMBARQUE (destino em mercado não tem problema)
         val mercado = if (p.mercadoOn && embarque.isNotBlank())
             mercadoDe(embarque, norm(embarque), ruaRx.find(embarque)?.value?.trim()?.let { norm(it) }) else null
