@@ -283,7 +283,9 @@ object Destino {
         var pavRua = rua?.pavimento?.takeIf { it in validos }
         // quantas ruas com dado o DB tem nesse bairro (soma "Portal Caiobá I" e "II" para "Portal Caioba")
         var t = 0; var m = 0; var pv = 0
-        if (nb.isNotEmpty()) for ((k, v) in bairroPav) if (k == nb || k.startsWith("$nb ")) { t += v.first; m += v.second; pv += v.third }
+        val exato = bairroPav[nb]
+        if (exato != null) { t = exato.first; m = exato.second; pv = exato.third }
+        else if (nb.length >= 8) for ((k, v) in bairroPav) if (k.startsWith("$nb ")) { t += v.first; m += v.second; pv += v.third }   // "Portal Caioba" = "Portal Caiobá I" + "II"
         val n = t + m + pv
         // bairro que o DB não conhece (o app do motorista chama de outro jeito): rua de mesmo nome em 1-2 bairros, todas iguais, vale
         if (pavRua == null && n == 0) {
