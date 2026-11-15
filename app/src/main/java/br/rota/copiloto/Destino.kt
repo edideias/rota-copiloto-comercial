@@ -282,7 +282,6 @@ object Destino {
         val validos = setOf("terra", "misto", "pavimentada")
         var pavRua = rua?.pavimento?.takeIf { it in validos }
         // quantas ruas com dado o DB tem nesse bairro (soma "Portal Caiobá I" e "II" para "Portal Caioba")
-        val nb = norm(bairro ?: "")
         var t = 0; var m = 0; var pv = 0
         if (nb.isNotEmpty()) for ((k, v) in bairroPav) if (k == nb || k.startsWith("$nb ")) { t += v.first; m += v.second; pv += v.third }
         val n = t + m + pv
