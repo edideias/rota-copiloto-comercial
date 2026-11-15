@@ -171,7 +171,7 @@ object Destino {
     private val soNumero = Regex("""^\s*(n[º°o.]*\s*)?\d+[a-zA-Z]?\s*$""")
 
     /** Palavras de botão e de tela que nunca são bairro. */
-    private val NAO_BAIRRO = Regex("""(?i)interesse|aceitar|recusar|verificad|corrida|passageiro|selecionar|confirmar|minuto|\bmin\b|\bkm\b|uberx|comfort|black|flash|negocia|pgto|dinheiro|cart[aã]o|pix|parada|campo grande|\bms\b|brasil|cep""")
+    private val NAO_BAIRRO = Regex("""(?i)interesse|aceitar|recusar|verificad|corrida|passageiro|selecionar|confirmar|minuto|\bmin\b|\bkm\b|uberx|comfort|black|flash|negocia|pgto|dinheiro|cart[aã]o|pix|parada|^\s*campo grande\s*$|\bms\b|brasil|cep""")
 
     /** Bairro escrito no próprio destino: "Rua Igarapé, 92 , Guanandi", "..., 4747, Vila Planalto, Campo Grande" ou "..., 5089 - Centro". */
     private fun bairroDoTexto(dest: String): String? {
