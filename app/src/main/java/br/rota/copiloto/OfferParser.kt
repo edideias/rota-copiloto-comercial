@@ -100,8 +100,17 @@ object OfferParser {
     }
 
     private fun parseBase(platform: String, text: String): Offer? {
-        val lido = readValue(text)
-        if (lido != null) return parseCom(platform, text, lido)
+        val lidos = readValues(text)
+        if (lidos.isNotEmpty()) {
+            var lido = lidos[0]
+            // Vários R$ na tela (promoção "Ganhe R$3,00 a R$8,00", "R$2,29 a mais"...): vale o que fecha com o "R$/km" e a distância da própria tela.
+            val ref = perKmRx.find(text)?.groupValues?.get(1)?.let { num(it) }
+            val total = parseCom(platform, text, 1.0)?.let { it.pickupKm + it.tripKm } ?: 0.0
+            if (lidos.size > 1 && ref != null && ref > 0.0 && total > 0.0) {
+                lido = lidos.minByOrNull { Math.abs(it / ref - total) / total } ?: lido
+            }
+            return parseCom(platform, text, lido)
+        }
         // Valor ilegível no OCR: o 99 mostra "R$ x/km", então valor = R$/km × distância total.
         val ref = perKmRx.find(text)?.groupValues?.get(1)?.let { num(it) } ?: return null
         val o = parseCom(platform, text, 1.0) ?: return null
@@ -172,19 +181,32 @@ object OfferParser {
     /** Primeiro valor em R$ que não seja "por km" / "por hora". */
     private val acceptRx = Regex("""aceitar\s*por\s*R\$\s*(\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d+(?:,\d{1,2})?)""", RegexOption.IGNORE_CASE)
 
-    private fun readValue(text: String): Double? {
+    private fun readValue(text: String): Double? = readValues(text).firstOrNull()
+
+    /** Contextos que NÃO são o preço da corrida: promoção/bônus, faixa "R$3 a R$8", "a mais por corrida", tarifa base. */
+    private val promoAntes = Regex("""(ganhe|ganhos?|b[oô]nus|extra|promo\w*|at[eé]|meta|garanta|receba|adicional|tarifa|incentivo|din[aâ]mic\w*)\W{0,12}$|\d\s+a\s*$""", RegexOption.IGNORE_CASE)
+    private val promoDepois = Regex("""^\s*(a\s+R\s?[${'$'}S5]|a\s+mais|de\s+b[oô]nus|extra|de\s+ganho|tarifa|por\s+corrida)""", RegexOption.IGNORE_CASE)
+
+    /** Todos os valores em R$ da tela que podem ser o preço da corrida, na ordem em que aparecem. */
+    private fun readValues(text: String): List<Double> {
         // "Aceitar por R$17,19" e o valor real da oferta: tem prioridade sobre qualquer outro R$.
-        acceptRx.find(text)?.groupValues?.get(1)?.replace(".", "")?.replace(",", ".")?.toDoubleOrNull()?.let { if (it > 0.0) return it }
+        acceptRx.find(text)?.groupValues?.get(1)?.replace(".", "")?.replace(",", ".")?.toDoubleOrNull()?.let { if (it > 0.0) return listOf(it) }
         val text = text.replace(Regex("""(R\s?[${'$'}S5]\s*\d+[,.]\d)[Oo]""")) { it.groupValues[1] + "0" }
+        val out = ArrayList<Double>()
+        val ruins = ArrayList<Double>()
         for (m in moneyRx.findAll(text)) {
             val after = text.substring(m.range.last + 1, minOf(text.length, m.range.last + 9)).lowercase()
             if (after.contains("/km") || after.contains("/h") || after.trimStart().startsWith("por ")) continue
             val g = m.groupValues[1]
             // "25,10" e "1.250,00" (vírgula decimal); "25.10" quando o OCR troca a vírgula por ponto
             val v = (if (g.contains(",") || !Regex("""\.\d{2}$""").containsMatchIn(g)) g.replace(".", "").replace(",", ".") else g).toDoubleOrNull() ?: continue
-            if (v > 0.0) return v
+            if (v <= 0.0) continue
+            val antes = text.substring(maxOf(0, m.range.first - 20), m.range.first)
+            val depois = text.substring(m.range.last + 1, minOf(text.length, m.range.last + 22))
+            if (promoAntes.containsMatchIn(antes) || promoDepois.containsMatchIn(depois)) ruins.add(v) else out.add(v)
         }
-        return null
+        // se só sobrou "promoção" (tela estranha), não inventa preço: devolve vazio
+        return out
     }
 
     private fun num(s: String): Double = s.replace(",", ".").toDouble()
