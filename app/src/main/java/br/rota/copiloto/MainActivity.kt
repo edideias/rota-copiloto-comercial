@@ -1138,6 +1138,9 @@ class MainActivity : Activity() {
         val icone = ui.hbox().apply { gravity = Gravity.CENTER }
         icone.addView(IconePiso(this, false, p.cpI("estiloIcone", 0)), LinearLayout.LayoutParams(dp(44), dp(44)))
         icone.addView(IconePiso(this, true, p.cpI("estiloIcone", 0)), LinearLayout.LayoutParams(dp(44), dp(44)).also { it.marginStart = dp(8) })
+        val saida = ui.hbox().apply { gravity = Gravity.CENTER; background = ui.round(Color.parseColor("#111418"), 12); setPadding(dp(10), dp(6), dp(8), dp(6)) }
+        saida.addView(ui.tv("Rua Bahia", 13f, Color.WHITE, 3))
+        saida.addView(IconePiso(this, true, p.cpI("estiloIcone", 0)), LinearLayout.LayoutParams(dp(30), dp(30)).also { it.marginStart = dp(8) })
         cv.addView(grade(
             peca(pilula("99", p.tagCor99, Color.WHITE, 18f), "tag", "tamTag", nome = "Nome do app"),
             peca(pilula("17,2 km", p.cpI("corKm", Color.BLACK), Color.WHITE, 17f), "km", "tamNumeros", nome = "Km total"),
@@ -1148,6 +1151,7 @@ class MainActivity : Activity() {
             peca(rua, "rua", "tamRua", nome = "Nome da rua"),
             peca(bairro, "bairro", "tamBairro", nome = "Bairro"),
             peca(icone, "icone", "tamIcone", 50, 250, nome = "Ícone do piso"),
+            peca(saida, "bolaSaida", "tamBolaSaida", 50, 250, nome = "Bolinha da saída"),
             peca(pilula("MERCADO", Color.parseColor("#B91C1C"), Color.WHITE, 14f), "mercadoFaixa", "tamFaixa", nome = "Aviso mercado")
         ), ui.lp(top = 12))
         cv.addView(ui.tv("Faixa do mercado desligada = aviso grande \"NÃO VOU\".", 12f, C.MUTED, 0), ui.lp(top = 8))

@@ -437,6 +437,11 @@ object OverlayCard {
         }
         if (l1.childCount > 1) esq.addView(l1, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, wrap))
 
+        // saída: rua de embarque com a bolinha de piso (nova; desligável)
+        if (a.offer.pickupText.isNotBlank()) saidaLinha(ctx, ui, Destino.analisar(a.offer.pickupText, p), size, p)?.let {
+            esq.addView(it, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, wrap).also { lp -> if (esq.childCount > 0) lp.topMargin = ui.dp(gap) })
+        }
+
         // linha 2: caixa azul em largura total, nome da rua grande + ícone do piso
         val dest = Destino.analisar(a.offer.destText, p, a.offer.pickupText)
         if (p.bairroOn && p.cpB("rua", true) && !dest.vazio) esq.addView(bairroCompacto(ctx, ui, dest, size, p, verdict),
@@ -635,6 +640,7 @@ object OverlayCard {
             box.addView(pills, ui.lp(top = p.espacoCards))
         }
 
+        if (a.offer.pickupText.isNotBlank()) saidaLinha(ctx, ui, Destino.analisar(a.offer.pickupText, p), size, p)?.let { box.addView(it, ui.lp(top = p.espacoCards)) }
         if (comBairro) box.addView(if (compacto) bairroCompacto(ctx, ui, dest, size, p, verdict) else bairroCard(ctx, ui, dest, p.bairroStyle, size, verdict), ui.lp(top = p.espacoCards))
 
         if (top) {
@@ -794,6 +800,23 @@ object OverlayCard {
             r.addView(it, LinearLayout.LayoutParams(lado, lado).also { lp -> lp.marginStart = ui.dp(8) })
         }
         if (d.evitado) piscar(r, bg, azul, if (azul == VERMELHO) Color.parseColor("#7F1D1D") else VERMELHO, true, ui) else if (condo) bg.setStroke(ui.dp(3), Color.parseColor("#7C3AED"))
+        return r
+    }
+
+    /** Endereço de saída (embarque): nome da rua com a bolinha de piso (terra/asfalto) ao lado. Desligável em "O que aparece". */
+    private fun saidaLinha(ctx: Context, ui: Ui, ds: Destino.Info, size: Float, p: Prefs): View? {
+        if (!p.cpB("bolaSaida", true)) return null
+        val nome = ds.rua ?: ds.bairro ?: return null
+        val esc = p.cpI("tamBolaSaida", 100) / 100f
+        val bg = GradientDrawable().apply { setColor(Color.argb(205, 17, 20, 24)); cornerRadius = ui.dpf(20f) }
+        val r = ui.hbox().apply { background = bg; setPadding(ui.dp(12), ui.dp(4), ui.dp(8), ui.dp(4)); gravity = Gravity.CENTER_VERTICAL }
+        r.addView(ui.tv("SAÍDA", size * 0.42f, Color.WHITE, 3, true).apply { alpha = 0.7f; maxLines = 1 })
+        r.addView(ui.tv(nome, size * 0.8f, Color.WHITE, 3).apply { maxLines = 1; includeFontPadding = false; ellipsize = android.text.TextUtils.TruncateAt.END },
+            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).also { it.marginStart = ui.dp(8) })
+        iconePiso(ctx, ui, ds.pavimento, size)?.let {
+            val lado = ui.dp((size * 1.7f * esc).toInt())
+            r.addView(it, LinearLayout.LayoutParams(lado, lado).also { lp -> lp.marginStart = ui.dp(8) })
+        }
         return r
     }
 
