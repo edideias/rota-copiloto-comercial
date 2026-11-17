@@ -439,7 +439,7 @@ object OverlayCard {
 
         // linha 2: caixa azul em largura total, nome da rua grande + ícone do piso
         val dest = Destino.analisar(a.offer.destText, p, a.offer.pickupText)
-        if (p.bairroOn && p.cpB("rua", true) && !dest.vazio) esq.addView(bairroCompacto(ctx, ui, dest, size, p),
+        if (p.bairroOn && p.cpB("rua", true) && !dest.vazio) esq.addView(bairroCompacto(ctx, ui, dest, size, p, verdict),
             LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, wrap).also { if (esq.childCount > 0) it.topMargin = ui.dp(gap) })
 
         frame.addView(esq, LinearLayout.LayoutParams(0, wrap, 1f))
@@ -635,7 +635,7 @@ object OverlayCard {
             box.addView(pills, ui.lp(top = p.espacoCards))
         }
 
-        if (comBairro) box.addView(if (compacto) bairroCompacto(ctx, ui, dest, size, p) else bairroCard(ctx, ui, dest, p.bairroStyle, size), ui.lp(top = p.espacoCards))
+        if (comBairro) box.addView(if (compacto) bairroCompacto(ctx, ui, dest, size, p, verdict) else bairroCard(ctx, ui, dest, p.bairroStyle, size, verdict), ui.lp(top = p.espacoCards))
 
         if (top) {
             val period = p.topMs.toLong()
@@ -671,6 +671,8 @@ object OverlayCard {
     }
 
     private val AZUL = Color.parseColor("#1D4ED8")
+    /** Texto sobre a cor do semáforo: escuro no amarelo, branco nos demais. */
+    private fun corSobre(fundo: Int): Int = if (fundo == C.MID) Color.parseColor("#1A1A1A") else Color.WHITE
     private val VERMELHO = Color.parseColor("#DC2626")
     private val AMBAR = Color.parseColor("#F59E0B")
 
@@ -702,37 +704,38 @@ object OverlayCard {
         }
 
     /** Card azul do bairro de destino nos 3 modelos (A faixa larga, B pílula fina, C placa com status). */
-    private fun bairroCard(ctx: Context, ui: Ui, d: Destino.Info, estilo: Int, size: Float): View {
+    private fun bairroCard(ctx: Context, ui: Ui, d: Destino.Info, estilo: Int, size: Float, fundo: Int = AZUL): View {
+        val txt = corSobre(fundo)
         val nome = d.condominio ?: d.bairro ?: d.rua ?: ""
         val condo = d.condominio != null
         val roxo = Color.parseColor("#7C3AED")
         // só a RUA do destino: aparece apenas quando ela é de terra (asfalto não precisa aviso)
         val terraTxt: String? = null
         val piso = iconePiso(ctx, ui, d.pavimento, size)
-        val bg = GradientDrawable().apply { setColor(AZUL) }
+        val bg = GradientDrawable().apply { setColor(fundo) }
         val wrap = ViewGroup.LayoutParams.WRAP_CONTENT
-        val nomeTv = ui.tv(nome, size * 0.95f, Color.WHITE, 3).apply { maxLines = 2; maxWidth = ui.dp(270) }
+        val nomeTv = ui.tv(nome, size * 0.95f, txt, 3).apply { maxLines = 2; maxWidth = ui.dp(270) }
         when (estilo) {
             1 -> {
                 bg.cornerRadius = ui.dpf(40f)
                 val r = ui.hbox().apply { background = bg; setPadding(ui.dp(16), ui.dp(6), ui.dp(16), ui.dp(6)); gravity = Gravity.CENTER_VERTICAL }
-                r.addView(ui.tv(if (d.evitado) "⚠ EVITAR" else if (condo) "Condomínio" else if (d.bairro == null) "Destino" else "Bairro", size * 0.5f, Color.WHITE, 2).apply { alpha = 0.9f })
+                r.addView(ui.tv(if (d.evitado) "⚠ EVITAR" else if (condo) "Condomínio" else if (d.bairro == null) "Destino" else "Bairro", size * 0.5f, txt, 2).apply { alpha = 0.9f })
                 r.addView(nomeTv, LinearLayout.LayoutParams(wrap, wrap).also { it.marginStart = ui.dp(8) })
                 if (piso != null) r.addView(piso, LinearLayout.LayoutParams(ui.dp((size * 2.0f).toInt()), ui.dp((size * 2.0f).toInt())).also { it.marginStart = ui.dp(8) })
-                if (d.evitado) piscar(r, bg, AZUL, VERMELHO, true, ui) else if (condo) bg.setStroke(ui.dp(3), roxo)
+                if (d.evitado) piscar(r, bg, fundo, if (fundo == VERMELHO) Color.parseColor("#7F1D1D") else VERMELHO, true, ui) else if (condo) bg.setStroke(ui.dp(3), roxo)
                 return r
             }
             2 -> {
                 bg.cornerRadius = ui.dpf(20f)
                 val r = ui.hbox().apply { background = bg; clipToOutline = true }
                 val esq = ui.vbox().apply { setPadding(ui.dp(14), ui.dp(6), ui.dp(12), ui.dp(6)) }
-                esq.addView(ui.tv(if (condo) "CONDOMÍNIO FECHADO" else "BAIRRO DE DESTINO", size * 0.42f, Color.WHITE, 2).apply { alpha = 0.85f })
+                esq.addView(ui.tv(if (condo) "CONDOMÍNIO FECHADO" else "BAIRRO DE DESTINO", size * 0.42f, txt, 2).apply { alpha = 0.85f })
                 esq.addView(nomeTv)
                 val sub2 = if (condo) listOfNotNull(d.rua, d.bairro?.takeIf { it != d.condominio }).joinToString(" · ") else if (d.bairro != null) d.rua ?: "" else ""
-                if (sub2.isNotBlank()) esq.addView(ui.tv(sub2, size * 0.48f, Color.WHITE, 0).apply { alpha = 0.9f; maxLines = 2; maxWidth = ui.dp(270) })
+                if (sub2.isNotBlank()) esq.addView(ui.tv(sub2, size * 0.48f, txt, 0).apply { alpha = 0.9f; maxLines = 2; maxWidth = ui.dp(270) })
                 r.addView(esq, LinearLayout.LayoutParams(wrap, wrap, 1f))
                 if (piso != null) r.addView(piso, LinearLayout.LayoutParams(ui.dp((size * 2.0f).toInt()), ui.dp((size * 2.0f).toInt())).also { it.gravity = Gravity.CENTER_VERTICAL; it.marginEnd = ui.dp(8) })
-                val (tag, cor) = when { d.evitado -> "EVITAR" to VERMELHO; condo -> "CONDOM." to roxo; terraTxt != null -> terraTxt to AMBAR; else -> "OK" to Color.parseColor("#60A5FA") }
+                val (tag, cor) = when { d.evitado -> "EVITAR" to VERMELHO; condo -> "CONDOM." to roxo; terraTxt != null -> terraTxt to AMBAR; else -> "OK" to Color.argb(70, 0, 0, 0) }
                 val ladoBg = GradientDrawable().apply { setColor(cor); cornerRadii = floatArrayOf(0f, 0f, ui.dpf(20f), ui.dpf(20f), ui.dpf(20f), ui.dpf(20f), 0f, 0f) }
                 val lado = ui.tv(tag, size * 0.55f, if (cor == AMBAR) Color.parseColor("#2A1600") else Color.WHITE, 3, true).apply {
                     background = ladoBg; gravity = Gravity.CENTER; setPadding(ui.dp(12), ui.dp(4), ui.dp(12), ui.dp(4)); maxLines = 3; maxWidth = ui.dp(120)
@@ -750,17 +753,17 @@ object OverlayCard {
                     layoutParams = LinearLayout.LayoutParams(ui.dp(38), ui.dp(38))
                 })
                 val col = ui.vbox().apply { setPadding(ui.dp(10), 0, 0, 0) }
-                col.addView(ui.tv(if (d.evitado) "BAIRRO QUE VOCÊ EVITA" else if (condo) "CONDOMÍNIO FECHADO" else "DESTINO", size * 0.42f, Color.WHITE, 3).apply { alpha = 0.9f })
+                col.addView(ui.tv(if (d.evitado) "BAIRRO QUE VOCÊ EVITA" else if (condo) "CONDOMÍNIO FECHADO" else "DESTINO", size * 0.42f, txt, 3).apply { alpha = 0.9f })
                 col.addView(nomeTv)
                 val linha = ui.hbox().apply { gravity = Gravity.CENTER_VERTICAL }
                 val sub3 = if (condo) listOfNotNull(d.rua, d.bairro?.takeIf { it != d.condominio }).joinToString(" · ") else if (d.bairro != null) d.rua ?: "" else ""
-                if (sub3.isNotBlank()) linha.addView(ui.tv(sub3, size * 0.48f, Color.WHITE, 0).apply { maxLines = 2; maxWidth = ui.dp(240) })
+                if (sub3.isNotBlank()) linha.addView(ui.tv(sub3, size * 0.48f, txt, 0).apply { maxLines = 2; maxWidth = ui.dp(240) })
 
                 if (condo && !d.evitado) bg.setStroke(ui.dp(3), roxo)
                 if (linha.childCount > 0) col.addView(linha)
                 r.addView(col, LinearLayout.LayoutParams(wrap, wrap, 1f))
                 if (piso != null) r.addView(piso, LinearLayout.LayoutParams(ui.dp((size * 2.0f).toInt()), ui.dp((size * 2.0f).toInt())).also { it.marginStart = ui.dp(10) })
-                if (d.evitado) piscar(r, bg, AZUL, VERMELHO, true, ui)
+                if (d.evitado) piscar(r, bg, fundo, if (fundo == VERMELHO) Color.parseColor("#7F1D1D") else VERMELHO, true, ui)
                 return r
             }
         }
@@ -774,22 +777,23 @@ object OverlayCard {
     }
 
     /** Destino no modo compacto: nome da rua grande, bairro menor embaixo, ícone do piso à direita. */
-    private fun bairroCompacto(ctx: Context, ui: Ui, d: Destino.Info, size: Float, p: Prefs): View {
+    private fun bairroCompacto(ctx: Context, ui: Ui, d: Destino.Info, size: Float, p: Prefs, fundo: Int? = null): View {
         val condo = d.condominio != null
         val principal = d.rua ?: d.condominio ?: d.bairro ?: ""
         val sub = if (!p.cpB("bairro", true)) "" else listOfNotNull(d.condominio?.takeIf { it != principal }, d.bairro?.takeIf { it != principal }).distinct().joinToString(" · ")
-        val azul = p.cpI("azul", AZUL)
+        val azul = fundo ?: p.cpI("azul", AZUL)
+        val txt = if (fundo != null) corSobre(fundo) else Color.WHITE
         val bg = GradientDrawable().apply { setColor(azul); cornerRadius = ui.dpf(20f) }
         val r = ui.hbox().apply { background = bg; setPadding(ui.dp(14), ui.dp(6), ui.dp(8), ui.dp(6)); gravity = Gravity.CENTER_VERTICAL }
         val col = ui.vbox().apply { gravity = Gravity.CENTER_VERTICAL }
-        col.addView(ui.tv((if (d.evitado) "⚠ " else "") + principal, size * 1.05f * p.cpI("tamRua", 100) / 100f, Color.WHITE, 3).apply { maxLines = 3; includeFontPadding = false })
-        if (sub.isNotBlank()) col.addView(ui.tv(sub, size * 0.62f * p.cpI("tamBairro", 100) / 100f, Color.WHITE, 2).apply { alpha = 0.9f; maxLines = 2 }, ui.lp(top = 2))
+        col.addView(ui.tv((if (d.evitado) "⚠ " else "") + principal, size * 1.05f * p.cpI("tamRua", 100) / 100f, txt, 3).apply { maxLines = 3; includeFontPadding = false })
+        if (sub.isNotBlank()) col.addView(ui.tv(sub, size * 0.62f * p.cpI("tamBairro", 100) / 100f, txt, 2).apply { alpha = 0.9f; maxLines = 2 }, ui.lp(top = 2))
         r.addView(col, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         if (p.cpB("icone", true)) iconePiso(ctx, ui, d.pavimento, size)?.let {
             val lado = ui.dp((size * 2.4f * p.cpI("tamIcone", 100) / 100f).toInt())
             r.addView(it, LinearLayout.LayoutParams(lado, lado).also { lp -> lp.marginStart = ui.dp(8) })
         }
-        if (d.evitado) piscar(r, bg, azul, VERMELHO, true, ui) else if (condo) bg.setStroke(ui.dp(3), Color.parseColor("#7C3AED"))
+        if (d.evitado) piscar(r, bg, azul, if (azul == VERMELHO) Color.parseColor("#7F1D1D") else VERMELHO, true, ui) else if (condo) bg.setStroke(ui.dp(3), Color.parseColor("#7C3AED"))
         return r
     }
 
