@@ -387,6 +387,15 @@ class Prefs(ctx: Context, override_: android.content.SharedPreferences? = null) 
     var topSpeed: Int
         get() = sp.getInt("topSpeed", 1)
         set(v) { sp.edit().putInt("topSpeed", v).apply() }
+    var topSomOn: Boolean
+        get() = sp.getBoolean("topSomOn", true)
+        set(v) { sp.edit().putBoolean("topSomOn", v).apply() }
+    var topSomIni: Int      // segundo em que a música começa (corta o que vem antes)
+        get() = sp.getInt("topSomIni", 0)
+        set(v) { sp.edit().putInt("topSomIni", v.coerceIn(0, 600)).apply() }
+    var topSomDur: Int      // quantos segundos toca
+        get() = sp.getInt("topSomDur", 8)
+        set(v) { sp.edit().putInt("topSomDur", v.coerceIn(1, 60)).apply() }
     var topVibrate: Boolean
         get() = sp.getBoolean("topVibrate", false)
         set(v) { sp.edit().putBoolean("topVibrate", v).apply() }

@@ -32,6 +32,17 @@ import android.widget.Toast
 import java.util.Locale
 
 class MainActivity : Activity() {
+    override fun onActivityResult(req: Int, res: Int, data: Intent?) {
+        super.onActivityResult(req, res, data)
+        if (req == 4711 && res == RESULT_OK) {
+            val u = data?.data ?: return
+            try {
+                contentResolver.openInputStream(u)?.use { i -> TopSom.arquivo(this).outputStream().use { o -> i.copyTo(o) } }
+                render()
+            } catch (_: Exception) { android.widget.Toast.makeText(this, "Não consegui abrir esse arquivo", android.widget.Toast.LENGTH_LONG).show() }
+        }
+    }
+
 
     private lateinit var prefs: Prefs
     private lateinit var ui: Ui
@@ -1405,6 +1416,18 @@ class MainActivity : Activity() {
         c.addView(ui.tv("Uma moldura fina em volta de toda a tela do celular, na cor e na piscada do destaque.", 11f, C.MUTED, 0), ui.lp(top = 4))
         c.addView(stepperRow("Espessura do contorno", "${p.telaTopEsp}", { p.telaTopEsp = p.telaTopEsp - 1; render() }, { p.telaTopEsp = p.telaTopEsp + 1; render() }), ui.lp(top = 12))
         c.addView(stepperRow("Cantos arredondados", "${p.telaTopRaio}", { p.telaTopRaio = p.telaTopRaio - 4; render() }, { p.telaTopRaio = p.telaTopRaio + 4; render() }), ui.lp(top = 12))
+
+        // música da corrida TOP: o arquivo é escolhido uma vez no celular e fica guardado no app
+        c.addView(ui.tv("Som da corrida TOP", 16f, C.TEXT, 3), ui.lp(top = 22))
+        c.addView(ui.tv(if (TopSom.existe(this)) "Música guardada. Ajuste de onde começa e quanto toca abaixo." else "Escolha um arquivo de música do celular. O app toca só o trecho que você definir.", 12f, C.MUTED, 0), ui.lp(top = 4))
+        c.addView(switchRow("Tocar quando aparecer corrida TOP", p.topSomOn) { p.topSomOn = it; render() }, ui.lp(top = 10))
+        c.addView(ui.button(if (TopSom.existe(this)) "Trocar música" else "Escolher música") {
+            val i = Intent(Intent.ACTION_OPEN_DOCUMENT).apply { addCategory(Intent.CATEGORY_OPENABLE); type = "audio/*" }
+            startActivityForResult(i, 4711)
+        }, ui.lp(top = 10))
+        c.addView(stepperRow("Começa no segundo", "${p.topSomIni}s", { p.topSomIni = p.topSomIni - 1; render() }, { p.topSomIni = p.topSomIni + 1; render() }), ui.lp(top = 12))
+        c.addView(stepperRow("Toca por", "${p.topSomDur}s", { p.topSomDur = p.topSomDur - 1; render() }, { p.topSomDur = p.topSomDur + 1; render() }), ui.lp(top = 12))
+        c.addView(ui.button("Testar som") { TopSom.tocar(this, p) }, ui.lp(top = 10))
 
         c.addView(switchRow("Vibrar ao detectar corrida TOP", p.topVibrate) { p.topVibrate = it; render() }, ui.lp(top = 18))
         c.addView(switchRow("Mostrar km total e valor abaixo do quadro", p.showTotals) { p.showTotals = it; render() }, ui.lp(top = 14))

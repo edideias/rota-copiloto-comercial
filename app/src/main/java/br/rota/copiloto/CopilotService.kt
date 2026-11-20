@@ -605,6 +605,7 @@ class CopilotService : AccessibilityService() {
         lastOfferAt = now
         notifyOffer(a)
         if (prefs.topVibrate && prefs.isTop(a)) vibrateTop()
+        if (prefs.topSomOn && prefs.isTop(a)) TopSom.tocar(this, prefs)
         if (prefs.avisoVibrar) {
             val d = Destino.analisar(o.destText, prefs, o.pickupText)
             if (d.negra != null || d.mercado != null || d.evitado || prefs.paradasDemais(o.stops) || (d.motel != null && prefs.motelVibrar)) vibrateAlert()
