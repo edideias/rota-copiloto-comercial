@@ -151,6 +151,9 @@ class Prefs(ctx: Context, override_: android.content.SharedPreferences? = null) 
     var useUber: Boolean
         get() = sp.getBoolean("useUber", true)
         set(v) { sp.edit().putBoolean("useUber", v).apply() }
+    var useInDriver: Boolean
+        get() = sp.getBoolean("useInDriver", true)
+        set(v) { sp.edit().putBoolean("useInDriver", v).apply() }
     var use99: Boolean
         get() = sp.getBoolean("use99", true)
         set(v) { sp.edit().putBoolean("use99", v).apply() }

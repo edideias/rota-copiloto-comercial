@@ -49,12 +49,26 @@ object OfferParser {
     private val marcaUber = Regex("""(?i)tenho interesse|uber ?x|uber ?comfort|uber ?black|uber ?flash|uber ?moto|est\. de r\$|\d+\s*minutos""")
     private val marca99 = Regex("""(?i)aceitar por|negocia|n[aã]o afeta a ta|99 ?pop|99 ?comfort|parada\(s\)|\+?\d+ corridas|perfil premium|pgto\. no app""")
 
-    /** Qual app mostrou a oferta, pelo próprio texto da tela (Uber e 99 podem estar abertos juntos). */
+    private val marcaInDriver = Regex("""(?i)pedido de viagem|ofere[cç]a sua tarifa|pre[cç]o justo|aceitar por r\$\s*[\d.]+(?![\d,])\s*(?:\||$)|r\$\s*\d+(?:[,.]\d)?\s*/km\s*~""")
+
+    /** Qual app mostrou a oferta, pelo próprio texto da tela (Uber, 99 e inDriver podem estar abertos juntos). */
     fun platformOf(text: String, padrao: String): String {
         val u = marcaUber.findAll(text).count()
         val n = marca99.findAll(text).count()
+        val i = marcaInDriver.findAll(text).count()
+        if (padrao == "inDriver" && u == 0) return "inDriver"
+        if (i > 0 && i >= u && i >= n && Regex("""(?i)ofere[cç]a sua tarifa|pedido de viagem|pre[cç]o justo""").containsMatchIn(text)) return "inDriver"
         return when { u > n -> "Uber"; n > u -> "99"; else -> padrao }
     }
+
+    // inDriver: "A Rua X 1890 (Bairro)" = embarque, "B Rua Y, 109 (Bairro, Campo Grande - MS)" = destino
+    private val enderecoB = Regex("""(?:^|\|)\s*B\s+([^|]{6,140})""")
+    private val enderecoA = Regex("""(?:^|\|)\s*A\s+([^|]{6,140})""")
+    private fun limpaEnderecoInDriver(e: String) =
+        e.replace(Regex("""\s*\(\s*"""), ", ").replace(Regex("""\s*\)\s*"""), " ")
+            .replace(Regex("""\s*-\s*MS\b"""), "").replace(Regex("""\s+"""), " ").trim(' ', ',')
+    private fun readEnderecoInDriver(text: String, rx: Regex): String =
+        rx.find(text)?.groupValues?.get(1)?.let { limpaEnderecoInDriver(it) } ?: ""
 
     /** O OCR troca "1" por "l"/"I" no meio de número ("1l.7 km" = 11.7 km). */
     private fun consertaDigitos(t: String) =
@@ -66,6 +80,11 @@ object OfferParser {
         val text = consertaDigitos(texto)
         val o = parseBase(platform, text) ?: return null
         val s = readStops(text)
+        if (platform == "inDriver") {
+            val d = readEnderecoInDriver(text, enderecoB)
+            val e = readEnderecoInDriver(text, enderecoA)
+            return o.copy(stops = o.stops, destText = d.ifEmpty { readDest(text) }, pickupText = e.ifEmpty { readPickup(text) })
+        }
         return o.copy(stops = if (s > 0) s else o.stops, destText = readDest(text), pickupText = readPickup(text))
     }
 

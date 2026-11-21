@@ -77,15 +77,14 @@ class CopilotService : AccessibilityService() {
             val pf = platformOf(pkg)
             // saiu do Uber/99 (galeria, prints, outro app): nada de leitura e o quadro some
             if (pf == null && attached && !shownSimulated && alvoVisivel() == null) hide()
-            if (pf != null && prefs.useOcr && ((pf == "99" && prefs.use99) || (pf == "Uber" && prefs.useUber))) { lastTargetEvent = SystemClock.uptimeMillis(); ensureOcrLoop() }
+            if (pf != null && prefs.useOcr && plataformaLigada(pf)) { lastTargetEvent = SystemClock.uptimeMillis(); ensureOcrLoop() }
         }
         val platform = platformOf(pkg) ?: return
         if (!prefs.enabled || !prefs.calcEnabled) return
-        if (platform == "Uber" && !prefs.useUber) return
-        if (platform == "99" && !prefs.use99) return
+        if (!plataformaLigada(platform)) return
 
         val now = SystemClock.uptimeMillis()
-        if (platform == "99") {
+        if (platform == "99" || platform == "inDriver") {
             lastTargetEvent = now
             if (prefs.useOcr) ensureOcrLoop()
         }
@@ -135,7 +134,7 @@ class CopilotService : AccessibilityService() {
                 if (fgAgora.isNotEmpty()) fgPkg = fgAgora
                 Estado.loopVivo = SystemClock.uptimeMillis(); Estado.appFrente = fgPkg
                 val fg = platformOf(fgPkg)
-                val ligado = on && ((fg == "99" && prefs.use99) || (fg == "Uber" && prefs.useUber))
+                val ligado = on && fg != null && plataformaLigada(fg)
                 if (ligado) {
                     Historico.marcarOnline(this@CopilotService)
                     tryOcr(fg!!)
@@ -391,9 +390,17 @@ class CopilotService : AccessibilityService() {
     }
 
     /** Aceita variações do nome do pacote (Uber Driver e 99 Motorista). */
+    private fun plataformaLigada(pf: String): Boolean = when (pf) {
+        "Uber" -> prefs.useUber
+        "99" -> prefs.use99
+        "inDriver" -> prefs.useInDriver
+        else -> false
+    }
+
     private fun platformOf(pkg: String): String? {
         val p = pkg.lowercase()
         return when {
+            p.contains("indriver") || p.contains("indrive") -> "inDriver"
             p.contains("uber") && p.contains("driver") -> "Uber"
             p.contains("99") -> "99"
             else -> null

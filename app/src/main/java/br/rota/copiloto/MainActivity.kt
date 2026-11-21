@@ -290,6 +290,7 @@ class MainActivity : Activity() {
         val chips = ui.hbox()
         chips.addView(appChip("UBER", prefs.useUber))
         chips.addView(appChip("99", prefs.use99))
+        chips.addView(appChip("inDRIVE", prefs.useInDriver))
         card.addView(
             featureRow(
                 "Cálculo de Ganhos", null, chips, prefs.calcEnabled,
@@ -577,6 +578,7 @@ class MainActivity : Activity() {
         val items = listOf(
             AppItem("Uber", "UBER", Color.BLACK, Color.WHITE, true, { p.useUber }, { p.useUber = it }),
             AppItem("99", "99", Color.parseColor("#FFD400"), Color.BLACK, true, { p.use99 }, { p.use99 = it }),
+            AppItem("inDrive", "inD", Color.parseColor("#C1F11D"), Color.BLACK, true, { p.useInDriver }, { p.useInDriver = it }),
             AppItem("Uber Moto", "MOTO", Color.parseColor("#9CA3AF"), Color.WHITE, false, { false }, {}),
             AppItem("Uber Delivery", "EATS", Color.parseColor("#9CA3AF"), Color.WHITE, false, { false }, {}),
             AppItem("99 Food", "FOOD", Color.parseColor("#9CA3AF"), Color.WHITE, false, { false }, {}),
