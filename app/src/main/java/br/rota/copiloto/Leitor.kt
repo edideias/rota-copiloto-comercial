@@ -11,7 +11,7 @@ import com.google.mlkit.vision.text.Text
 object Leitor {
     val LISTA = Regex("""(?i)solicita[cç][oõ]es|buscando|radar de viagens""")
     /** Página de lista de corridas (dentro do app): aba Entregas, botão Ordenar. */
-    private val PAGINA_LISTA = Regex("""(?i)\bentregas\b|\bordenar\b""")
+    private val PAGINA_LISTA = Regex("""(?i)\bentregas\b|\bordenar\b|pedidos de viagem|\bdemanda\b[\s|]+desempenho""")
     /** Etiqueta "Pop Nova", "Comfort Nova"... Uma só = tela de detalhe (pode mostrar). Duas ou mais = lista. */
     private val ETIQUETA_NOVA = Regex("""(?i)\b(negocia\w*|pop|comfort|top|moto|plus|entrega|corrida|econ[oô]mico)\s+nova\b""")
     private val PAR_TEMPO_KM = Regex("""(?i)\d+\s*min[^\d]{0,12}?\d+(?:[.,]\d+)?\s*k?m(?![a-z])""")
@@ -22,7 +22,7 @@ object Leitor {
 
     /** Só a janela de oferta conta: lista de solicitações, abas do app e prints não. */
     fun naoEhJanelaDeOferta(t: String): Boolean =
-        PAGINA_LISTA.containsMatchIn(t) || ETIQUETA_NOVA.findAll(t).count() >= 2 ||
+        PAGINA_LISTA.containsMatchIn(t) || (!Regex("""(?i)ofere[cç]a sua tarifa""").containsMatchIn(t) && Regex("""(?i)pre[cç]o justo|/km\s*~""").containsMatchIn(t)) || ETIQUETA_NOVA.findAll(t).count() >= 2 ||
             BOTAO.findAll(t).count() >= 2 || PAR_TEMPO_KM.findAll(t).count() >= 3
 
     /** Recorte usado ao vivo: tira o quarto de cima (mapa) e reduz para 60%. */
