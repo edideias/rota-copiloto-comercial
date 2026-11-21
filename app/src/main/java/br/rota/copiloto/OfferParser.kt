@@ -73,14 +73,14 @@ object OfferParser {
     private val inicioRua = Regex("""(?i)(?<![\p{L}])(?:rua|avenida|av\.?|travessa|alameda|estrada|rodovia|pra[cç]a|beco|viela|r\.)\s""")
 
     /** Sem os "A"/"B" (ficam no mapa): os dois endereços são as duas últimas "Rua/Avenida…" antes do botão Aceitar. */
-    private fun enderecosInDriver(text: String): Pair<String, String> {
+    private fun enderecosInDriver(text: String): kotlin.Pair<String, String> {
         val fim = Regex("""(?i)aceitar por|ofere[cç]a sua|\bfechar\b""").find(text)?.range?.first ?: text.length
         val corpo = text.substring(0, fim).replace(Regex("""\s*\|\s*"""), " ")
         val ini = inicioRua.findAll(corpo).map { it.range.first }.toList()
-        if (ini.isEmpty()) return "" to ""
+        if (ini.isEmpty()) return kotlin.Pair("", "")
         val d = limpaEnderecoInDriver(corpo.substring(ini.last()))
         val e = if (ini.size >= 2) limpaEnderecoInDriver(corpo.substring(ini[ini.size - 2], ini.last())) else ""
-        return e to d
+        return kotlin.Pair(e, d)
     }
 
     /** O OCR troca "1" por "l"/"I" no meio de número ("1l.7 km" = 11.7 km). */
