@@ -70,6 +70,19 @@ object OfferParser {
     private fun readEnderecoInDriver(text: String, rx: Regex): String =
         rx.find(text)?.groupValues?.get(1)?.let { limpaEnderecoInDriver(it) } ?: ""
 
+    private val inicioRua = Regex("""(?i)(?<![\p{L}])(?:rua|avenida|av\.?|travessa|alameda|estrada|rodovia|pra[cç]a|beco|viela|r\.)\s""")
+
+    /** Sem os "A"/"B" (ficam no mapa): os dois endereços são as duas últimas "Rua/Avenida…" antes do botão Aceitar. */
+    private fun enderecosInDriver(text: String): Pair<String, String> {
+        val fim = Regex("""(?i)aceitar por|ofere[cç]a sua|\bfechar\b""").find(text)?.range?.first ?: text.length
+        val corpo = text.substring(0, fim).replace(Regex("""\s*\|\s*"""), " ")
+        val ini = inicioRua.findAll(corpo).map { it.range.first }.toList()
+        if (ini.isEmpty()) return "" to ""
+        val d = limpaEnderecoInDriver(corpo.substring(ini.last()))
+        val e = if (ini.size >= 2) limpaEnderecoInDriver(corpo.substring(ini[ini.size - 2], ini.last())) else ""
+        return e to d
+    }
+
     /** O OCR troca "1" por "l"/"I" no meio de número ("1l.7 km" = 11.7 km). */
     private fun consertaDigitos(t: String) =
         t.replace(Regex("""(?<![A-Za-z\d])[lI](?=\d+[.,]\d)"""), "1")          // "l2.5 km" = 12.5 km
@@ -81,8 +94,9 @@ object OfferParser {
         val o = parseBase(platform, text) ?: return null
         val s = readStops(text)
         if (platform == "inDriver") {
-            val d = readEnderecoInDriver(text, enderecoB)
-            val e = readEnderecoInDriver(text, enderecoA)
+            val (e0, d0) = enderecosInDriver(text)
+            val d = readEnderecoInDriver(text, enderecoB).ifEmpty { d0 }
+            val e = readEnderecoInDriver(text, enderecoA).ifEmpty { e0 }
             return o.copy(stops = o.stops, destText = d.ifEmpty { readDest(text) }, pickupText = e.ifEmpty { readPickup(text) })
         }
         return o.copy(stops = if (s > 0) s else o.stops, destText = readDest(text), pickupText = readPickup(text))
