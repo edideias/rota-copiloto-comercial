@@ -171,7 +171,7 @@ class MainActivity : Activity() {
             stack.add { wizardStep(0) }
         }
         render()
-        if (intent?.getStringExtra("abrir") == "compacto") openConfig("Modo compacto") { compactoContent(it) }
+        if (intent?.getStringExtra("abrir") == "compacto") openConfig("Visual do semáforo") { compactoContent(it) }
         else if (intent?.getStringExtra("abrir") == "config") push { configMenu() }
         else if (!prefs.termsAccepted) showTerms()
     }
@@ -493,13 +493,13 @@ class MainActivity : Activity() {
         data class Op(val icone: String, val nome: String, val cor: String, val abrir: () -> Unit)
         val ops = listOf(
             Op("🚦", "Semáforo", "#16A34A") { openConfig("Semáforo") { cardContent(it) } },
-            Op("🧩", "Compacto", "#CA8A04") { openConfig("Modo compacto") { compactoContent(it) } },
+            Op("🧩", "Visual", "#CA8A04") { openConfig("Visual do semáforo") { compactoContent(it) } },
             Op("💰", "Metas e custo", "#0D9488") { openConfig("Metas e custo") { goalsContent(it) } },
             Op("📍", "Destino", "#2563EB") { openConfig("Destino da corrida") { destinoContent(it) } },
             Op("⭐", "Corrida TOP", "#9333EA") { openConfig("Corrida TOP") { topContent(it) } },
             Op("🛑", "Parada e app", "#DC2626") { openConfig("Parada e nome do app") { aparenciaContent(it) } },
-            Op("🚗", "Uber e 99", "#EA580C") { openConfig("Uber e 99") { appsContent(it) } },
-            Op("🏩", "Motel", "#DB2777") { openConfig("Motel") { motelContent(it) } },
+            Op("🚗", "Apps", "#EA580C") { openConfig("Apps") { appsContent(it) } },
+            Op("🅼", "Aviso M", "#DB2777") { openConfig("Aviso M") { motelContent(it) } },
             Op("⏱️", "Tempo na tela", "#475569") { openConfig("Tempo na tela") { timeContent(it) } },
             Op("📸", "Salvar prints", "#0891B2") { openConfig("Salvar prints") { captureContent(it) } },
             Op("🏠", "Tela inicial", "#4F46E5") { push { templatePicker() } }
@@ -578,16 +578,10 @@ class MainActivity : Activity() {
         val items = listOf(
             AppItem("Uber", "UBER", Color.BLACK, Color.WHITE, true, { p.useUber }, { p.useUber = it }),
             AppItem("99", "99", Color.parseColor("#FFD400"), Color.BLACK, true, { p.use99 }, { p.use99 = it }),
-            AppItem("inDrive", "inD", Color.parseColor("#C1F11D"), Color.BLACK, true, { p.useInDriver }, { p.useInDriver = it }),
-            AppItem("Uber Moto", "MOTO", Color.parseColor("#9CA3AF"), Color.WHITE, false, { false }, {}),
-            AppItem("Uber Delivery", "EATS", Color.parseColor("#9CA3AF"), Color.WHITE, false, { false }, {}),
-            AppItem("99 Food", "FOOD", Color.parseColor("#9CA3AF"), Color.WHITE, false, { false }, {}),
-            AppItem("InDrive", "iD", Color.parseColor("#9CA3AF"), Color.WHITE, false, { false }, {}),
-            AppItem("iFood", "iF", Color.parseColor("#9CA3AF"), Color.WHITE, false, { false }, {}),
-            AppItem("Keeta", "K", Color.parseColor("#9CA3AF"), Color.WHITE, false, { false }, {})
+            AppItem("inDrive", "inD", Color.parseColor("#C1F11D"), Color.BLACK, true, { p.useInDriver }, { p.useInDriver = it })
         )
         val box = ui.vbox()
-        box.addView(pageHeader("Selecione seus apps de trabalho", "O Rota analisa apenas corridas dos apps que você selecionar"))
+        box.addView(pageHeader("Apps", "Toque para ligar ou desligar a leitura de cada app"))
         items.chunked(3).forEachIndexed { idx, rowItems ->
             val row = ui.hbox().apply { weightSum = 3f }
             rowItems.forEach { app ->
@@ -1007,8 +1001,6 @@ class MainActivity : Activity() {
         box.addView(cs, ui.lp(top = 16))
 
         val c3 = ui.card()
-        c3.addView(switchRow("Modo compacto", p.compacto) { p.compacto = it; render() })
-        c3.addView(ui.tv("Só o essencial: app, barra de lucro, km, valor, destino com ícone de terra/asfalto e os avisos.", 12f, C.MUTED, 0), ui.lp(top = 4))
         c3.addView(switchRow("Sumir junto com a oferta", p.sumirJunto) { p.sumirJunto = it; render() })
         c3.addView(ui.tv("Quando a corrida sai da tela do Uber ou do 99, o quadro some em cerca de 1 segundo.", 12f, C.MUTED, 0), ui.lp(top = 4))
         box.addView(c3, ui.lp(top = 16))
@@ -1017,23 +1009,21 @@ class MainActivity : Activity() {
 
     private fun motelContent(p: Prefs): View {
         val box = ui.vbox()
-        box.addView(pageHeader("Motel", "Motel, puteiro, swing, casa de massagem: o quadro pisca em rosa neon, grande"))
-        // prévia: compacto e completo com destino em motel
+        box.addView(pageHeader("Aviso M", "Destinos marcados: o quadro pisca em rosa neon, grande"))
+        // prévia: usa um endereço da própria lista só durante o desenho
         val prev = ui.vbox().apply { background = ui.round(Color.parseColor("#2B3340"), 14); setPadding(dp(8), dp(14), dp(8), dp(14)) }
-        val antes = p.compacto
-        val o = Offer("99", 18.60, 2.0, 6.0, 7.4, 15.0, destText = "Motel Paraíso, Avenida Gury Marques, 6200")
-        for (modo in listOf(true, false)) {
-            p.compacto = modo
-            prev.addView(Encaixe(this, resources.displayMetrics.widthPixels - dp(100), dp(900)).apply { addView(OverlayCard.build(this@MainActivity, Calc.analyze(o, p), p)) },
-                LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).also { it.gravity = Gravity.CENTER_HORIZONTAL; it.bottomMargin = dp(12) })
-        }
-        p.compacto = antes
-        val c0 = ui.card(); c0.addView(ui.tv("Prévia: compacto e completo", 12f, C.MUTED, 0)); c0.addView(prev, ui.lp(top = 6))
+        val listaAntes = p.motelLista
+        p.motelLista = listOf("Avenida Gury Marques, 6200")
+        val o = Offer("99", 18.60, 2.0, 6.0, 7.4, 15.0, destText = "Avenida Gury Marques, 6200")
+        prev.addView(Encaixe(this, resources.displayMetrics.widthPixels - dp(100), dp(900)).apply { addView(OverlayCard.build(this@MainActivity, Calc.analyze(o, p), p)) },
+            LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).also { it.gravity = Gravity.CENTER_HORIZONTAL; it.bottomMargin = dp(12) })
+        p.motelLista = listaAntes
+        val c0 = ui.card(); c0.addView(ui.tv("Prévia", 12f, C.MUTED, 0)); c0.addView(prev, ui.lp(top = 6))
         box.addView(c0, ui.lp(top = 16))
 
         val c1 = ui.card()
-        c1.addView(switchRow("Avisar: motel, puteiro, swing, massagem", p.motelOn) { p.motelOn = it; render() })
-        c1.addView(ui.tv("Dispara pelo nome (motel, puteiro, swing, casa de massagem, cabaré, privê, strip club), pelos ${Destino.qtdMoteis} motéis do mapa de Campo Grande e pelo endereço deles (mesma rua, número perto), e pelos que você cadastrar abaixo.", 12f, C.MUTED, 0), ui.lp(top = 4))
+        c1.addView(switchRow("Aviso ligado", p.motelOn) { p.motelOn = it; render() })
+        c1.addView(ui.tv("Dispara por nome de local, pelos ${Destino.qtdMoteis} locais já mapeados em Campo Grande, pelo endereço deles e pelos que você cadastrar abaixo.", 12f, C.MUTED, 0), ui.lp(top = 4))
         c1.addView(corRow("Cor", p.motelCor) { p.motelCor = it }, ui.lp(top = 14))
         c1.addView(velocidadeRow("Velocidade da piscada", p.motelMs) { p.motelMs = it }, ui.lp(top = 14))
         c1.addView(stepperRow("Tamanho do aviso", "${p.motelTam}%", { p.motelTam = maxOf(60, p.motelTam - 10); render() }, { p.motelTam = minOf(220, p.motelTam + 10); render() }), ui.lp(top = 14))
@@ -1046,7 +1036,7 @@ class MainActivity : Activity() {
 
         val c2 = ui.card()
         c2.addView(ui.tv("Seus locais", 16f, C.TEXT, 3))
-        c2.addView(ui.tv("Nome (\"Motel Tal\") ou endereço (\"Rua X, 123\"). Use para local que o mapa não conhece.", 12f, C.MUTED, 0), ui.lp(top = 4))
+        c2.addView(ui.tv("Nome do local ou endereço (\"Rua X, 123\"). Use para o que o mapa não conhece.", 12f, C.MUTED, 0), ui.lp(top = 4))
         p.motelLista.forEach { m ->
             val r = ui.hbox().apply { gravity = Gravity.CENTER_VERTICAL; background = ui.round(C.BG, 12); setPadding(dp(12), dp(4), dp(4), dp(4)) }
             r.addView(ui.tv(m, 15f, C.TEXT, 2), ui.lp(0, weight = 1f))
@@ -1068,7 +1058,7 @@ class MainActivity : Activity() {
 
     private fun compactoContent(p: Prefs): View {
         val box = ui.vbox()
-        box.addView(pageHeader("Modo compacto", "Escolha o que aparece, o tamanho de cada coisa, as cores e os espaços"))
+        box.addView(pageHeader("Visual do semáforo", "Escolha o que aparece, o tamanho de cada coisa, as cores e os espaços"))
         val br = Locale("pt", "BR")
 
         // prévia sempre no compacto
@@ -1087,9 +1077,6 @@ class MainActivity : Activity() {
         val c0 = ui.card(); c0.addView(ui.tv("Prévia (3 corridas de exemplo)", 12f, C.MUTED, 0)); c0.addView(prev, ui.lp(top = 6))
         box.addView(c0, ui.lp(top = 16))
 
-        val cl = ui.card()
-        cl.addView(switchRow("Usar o modo compacto", p.compacto) { p.compacto = it; render() })
-        box.addView(cl, ui.lp(top = 16))
 
         fun pct(k: String) = "${p.cpI(k, 100)}%"
         fun tam(c: LinearLayout, label: String, k: String, min: Int = 50, max: Int = 200) =
@@ -1173,7 +1160,6 @@ class MainActivity : Activity() {
         // ---- modelo do ícone
         val ci = ui.card()
         ci.addView(ui.tv("Modelo do ícone do piso", 18f, C.TEXT, 3))
-        ci.addView(ui.tv("Vale também para o semáforo completo.", 13f, C.MUTED, 0), ui.lp(top = 4))
         val nomesIcone = listOf("Estrada", "Letra A / T", "Vista de cima", "Placa", "Carrinho", "Traço")
         val grade = ui.vbox()
         nomesIcone.chunked(2).forEachIndexed { li, par ->

@@ -481,17 +481,6 @@ object HomeTemplates {
         }
         tick.run()
 
-        // botão do modo compacto do semáforo
-        val seg = b.h().apply { background = b.rr(C.WHITE, 16); setPadding(b.dp(4), b.dp(4), b.dp(4), b.dp(4)) }
-        listOf("Semáforo completo" to false, "Compacto" to true).forEach { (t, v) ->
-            val on = p.compacto == v
-            seg.addView(b.t(t, 16f, if (on) C.BG else C.TEXT, 3, true).apply {
-                background = if (on) b.rr(C.PURPLE, 12) else null
-                minHeight = b.dp(50); gravity = Gravity.CENTER
-                setOnClickListener { if (!on) a.compacto(v) }
-            }, b.lp(0, weight = 1f))
-        }
-        c.addView(seg, b.lp(top = 16))
 
         // checklist do aparelho (só o que importa; tocar resolve)
         val ck = b.v().apply {

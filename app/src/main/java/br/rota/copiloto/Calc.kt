@@ -205,8 +205,8 @@ class Prefs(ctx: Context, override_: android.content.SharedPreferences? = null) 
     /** some com o quadro assim que a oferta sai da tela */
     /** Semáforo compacto: só o essencial (etiqueta do app, barra de lucro, km, valor, destino e avisos). */
     var compacto: Boolean
-        get() = sp.getBoolean("compacto", false)
-        set(v) { sp.edit().putBoolean("compacto", v).apply() }
+        get() = true   // o semáforo é um só: o compacto
+        set(@Suppress("UNUSED_PARAMETER") v) {}
 
     // ---- modo compacto: cada peça liga/desliga e tem tamanho, cor e espaço próprios
     fun cpB(k: String, d: Boolean) = sp.getBoolean("cp_$k", d)
