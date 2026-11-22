@@ -23,7 +23,20 @@ jobs:
         with:
           gradle-version: "8.7"
 
+      - name: Chave de assinatura
+        env:
+          RC_KEYSTORE_B64: ${{ secrets.RC_KEYSTORE_B64 }}
+        run: |
+          # Sem a chave certa o APK sairia com outra assinatura e ninguém conseguiria atualizar: para o build.
+          if [ -z "$RC_KEYSTORE_B64" ]; then echo "::error::Segredo RC_KEYSTORE_B64 ausente: configure os segredos do repositório"; exit 1; fi
+          echo "$RC_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/rc.keystore"
+          echo "RC_KEYSTORE_PATH=$RUNNER_TEMP/rc.keystore" >> "$GITHUB_ENV"
+
       - name: Compilar
+        env:
+          RC_STORE_PASSWORD: ${{ secrets.RC_STORE_PASSWORD }}
+          RC_KEY_PASSWORD: ${{ secrets.RC_KEY_PASSWORD }}
+          RC_KEY_ALIAS: ${{ secrets.RC_KEY_ALIAS }}
         run: |
           set -o pipefail
           mkdir -p app/src/main/assets && cp dados/campo-grande-ruas.json app/src/main/assets/ruas.json

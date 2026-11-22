@@ -11,23 +11,27 @@ android {
         applicationId = "br.rota.copiloto.pro"
         minSdk = 26
         targetSdk = 34
-        versionCode = 86
-        versionName = "3.32.0"
+        versionCode = 87
+        versionName = "3.33.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    // Chave fixa: todas as versões saem assinadas igual, então o Android atualiza por cima
-    // mantendo configurações e permissões (sem precisar desinstalar).
+    // Chave de assinatura fora do repositório. No CI ela vem dos segredos do GitHub
+    // (RC_KEYSTORE_PATH, RC_STORE_PASSWORD, RC_KEY_ALIAS, RC_KEY_PASSWORD).
+    // Mesma chave em todas as versões: o Android atualiza por cima sem desinstalar.
     signingConfigs {
-        getByName("debug") {
-            storeFile = file("rota-calculadora.keystore")
-            storePassword = "rotacalc2026"
-            keyAlias = "rota"
-            keyPassword = "rotacalc2026"
+        create("release") {
+            System.getenv("RC_KEYSTORE_PATH")?.let { storeFile = file(it) }
+            storePassword = System.getenv("RC_STORE_PASSWORD") ?: ""
+            keyAlias = System.getenv("RC_KEY_ALIAS") ?: "rota"
+            keyPassword = System.getenv("RC_KEY_PASSWORD") ?: ""
         }
     }
 
     buildTypes {
+        getByName("debug") {
+            signingConfig = signingConfigs.getByName("release")
+        }
         release {
             isMinifyEnabled = false
         }
