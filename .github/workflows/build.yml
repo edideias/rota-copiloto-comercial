@@ -11,6 +11,8 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      DIST_TOKEN: ${{ secrets.DIST_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -53,7 +55,21 @@ jobs:
           path: app/build/outputs/apk/debug/app-debug.apk
 
       # Publica o APK numa "Release": link de download direto, fácil de abrir no celular.
-      - name: Publicar APK
+      # Com DIST_TOKEN cadastrado, a release vai para o repositório público de distribuição
+      # (o código-fonte pode ficar privado). Sem ele, continua saindo aqui mesmo.
+      - name: Publicar APK (distribuição)
+        if: env.DIST_TOKEN != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          repository: edideias/rota-calculadora-apk
+          token: ${{ env.DIST_TOKEN }}
+          tag_name: build-${{ github.run_number }}
+          name: Rota Calculadora (build ${{ github.run_number }})
+          files: app/build/outputs/apk/debug/app-debug.apk
+          make_latest: true
+
+      - name: Publicar APK (este repositório)
+        if: env.DIST_TOKEN == ''
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
