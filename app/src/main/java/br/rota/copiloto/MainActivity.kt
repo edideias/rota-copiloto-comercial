@@ -490,19 +490,19 @@ class MainActivity : Activity() {
 
     private fun configMenu(): View {
         // grade de botões grandes: cor + ícone + nome curto, para achar de relance
-        data class Op(val icone: String, val nome: String, val cor: String, val abrir: () -> Unit)
+        data class Op(val icone: String, val nome: String, val dica: String, val cor: String, val abrir: () -> Unit)
         val ops = listOf(
-            Op("🚦", "Semáforo", "#16A34A") { openConfig("Semáforo") { cardContent(it) } },
-            Op("🧩", "Visual", "#CA8A04") { openConfig("Visual do semáforo") { compactoContent(it) } },
-            Op("💰", "Metas e custo", "#0D9488") { openConfig("Metas e custo") { goalsContent(it) } },
-            Op("📍", "Destino", "#2563EB") { openConfig("Destino da corrida") { destinoContent(it) } },
-            Op("⭐", "Corrida TOP", "#9333EA") { openConfig("Corrida TOP") { topContent(it) } },
-            Op("🛑", "Parada e app", "#DC2626") { openConfig("Parada e nome do app") { aparenciaContent(it) } },
-            Op("🚗", "Apps", "#EA580C") { openConfig("Apps") { appsContent(it) } },
-            Op("🅼", "Aviso M", "#DB2777") { openConfig("Aviso M") { motelContent(it) } },
-            Op("⏱️", "Tempo na tela", "#475569") { openConfig("Tempo na tela") { timeContent(it) } },
-            Op("📸", "Salvar prints", "#0891B2") { openConfig("Salvar prints") { captureContent(it) } },
-            Op("🏠", "Tela inicial", "#4F46E5") { push { templatePicker() } }
+            Op("🚦", "Semáforo", "Quadro: o que aparece na tela", "#16A34A") { openConfig("Semáforo") { cardContent(it) } },
+            Op("🧩", "Visual", "Tamanhos, cores e espaços", "#CA8A04") { openConfig("Visual do semáforo") { compactoContent(it) } },
+            Op("💰", "Metas e custo", "Ganho mínimo e custo por km", "#0D9488") { openConfig("Metas e custo") { goalsContent(it) } },
+            Op("📍", "Destino", "Endereço e bairros evitados", "#2563EB") { openConfig("Destino da corrida") { destinoContent(it) } },
+            Op("⭐", "Corrida TOP", "Alerta e som da corrida top", "#9333EA") { openConfig("Corrida TOP") { topContent(it) } },
+            Op("🛑", "Parada e app", "Alerta de parada e nome do app", "#DC2626") { openConfig("Parada e nome do app") { aparenciaContent(it) } },
+            Op("🚗", "Apps", "Uber, 99 e inDRIVE: ligar e cores", "#EA580C") { openConfig("Apps") { appsContent(it) } },
+            Op("🅼", "Aviso M", "Alerta rosa para destinos marcados", "#DB2777") { openConfig("Aviso M") { motelContent(it) } },
+            Op("⏱️", "Tempo na tela", "Quanto tempo o quadro fica", "#475569") { openConfig("Tempo na tela") { timeContent(it) } },
+            Op("📸", "Salvar prints", "Guardar prints para teste", "#0891B2") { openConfig("Salvar prints") { captureContent(it) } },
+            Op("🏠", "Tela inicial", "Escolher o modelo da tela", "#4F46E5") { push { templatePicker() } }
         )
         val box = ui.vbox()
         ops.chunked(2).forEachIndexed { i, par ->
@@ -511,13 +511,14 @@ class MainActivity : Activity() {
                 val t = ui.vbox().apply {
                     gravity = Gravity.CENTER
                     background = ui.round(Color.parseColor(op.cor), 22)
-                    minimumHeight = dp(132)
+                    minimumHeight = dp(150)
                     setPadding(dp(10), dp(14), dp(10), dp(14))
                     setOnClickListener { op.abrir() }
                     contentDescription = op.nome
                 }
                 t.addView(ui.tv(op.icone, 40f, Color.WHITE, 0, true), LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT))
-                t.addView(ui.tv(op.nome, 18f, Color.WHITE, 3, true).apply { maxLines = 3 }, ui.lp(top = 8))
+                t.addView(ui.tv(op.nome, 18f, Color.WHITE, 3, true).apply { maxLines = 2 }, ui.lp(top = 8))
+                t.addView(ui.tv(op.dica, 12f, Color.WHITE, 0).apply { alpha = 0.9f; gravity = Gravity.CENTER; maxLines = 2 }, ui.lp(top = 4))
                 linha.addView(t, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f).also { if (j == 1) it.marginStart = dp(12) })
             }
             box.addView(linha, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).also { it.topMargin = dp(if (i == 0) 4 else 12) })
@@ -972,11 +973,12 @@ class MainActivity : Activity() {
         box.addView(c0, ui.lp(top = 20))
 
         val c1 = ui.card()
-        c1.addView(ui.tv("Nome do app (UBER / 99)", 16f, C.TEXT, 2))
+        c1.addView(ui.tv("Nome do app (UBER / 99 / inDRIVE)", 16f, C.TEXT, 2))
         c1.addView(ui.tv("Tamanho", 14f, C.TEXT, 2), ui.lp(top = 12))
         c1.addView(ui.segmented(listOf("Pequeno", "Médio", "Grande"), p.appTagSize) { p.appTagSize = it; render() }, ui.lp(top = 8))
         c1.addView(corRow("Cor do Uber", p.tagCorUber) { p.tagCorUber = it }, ui.lp(top = 16))
         c1.addView(corRow("Cor do 99", p.tagCor99) { p.tagCor99 = it }, ui.lp(top = 12))
+        c1.addView(corRow("Cor do inDRIVE", p.tagCorInDriver) { p.tagCorInDriver = it }, ui.lp(top = 12))
         box.addView(c1, ui.lp(top = 16))
 
         val c2 = ui.card()

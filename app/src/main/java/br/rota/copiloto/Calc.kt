@@ -252,6 +252,16 @@ class Prefs(ctx: Context, override_: android.content.SharedPreferences? = null) 
     var tagCor99: Int
         get() = sp.getInt("tagCor99", 0xFFEA580C.toInt())
         set(v) { sp.edit().putInt("tagCor99", v).apply() }
+    var tagCorInDriver: Int
+        get() = sp.getInt("tagCorInDriver", 0xFFC1F11D.toInt())
+        set(v) { sp.edit().putInt("tagCorInDriver", v).apply() }
+    /** Cor da etiqueta de cada plataforma: vale para o semáforo inteiro (compacto e demais peças). */
+    fun tagCorDe(pf: String): Int = when (pf) {
+        "Uber" -> tagCorUber
+        "99" -> tagCor99
+        "inDriver" -> tagCorInDriver
+        else -> 0xFF9CA3AF.toInt()
+    }
     var paradaCorInt: Int
         get() = sp.getInt("paradaCorInt", intArrayOf(0xFFFF1F1F.toInt(), 0xFFFF7A00.toInt(), 0xFFFF2D95.toInt(), 0xFFFFD400.toInt())[paradaCor.coerceIn(0, 3)])
         set(v) { sp.edit().putInt("paradaCorInt", v).apply() }

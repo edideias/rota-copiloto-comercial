@@ -396,7 +396,7 @@ object OverlayCard {
         val l1 = ui.hbox().apply { gravity = Gravity.CENTER_VERTICAL }
         val coluna1 = ui.vbox().apply { gravity = Gravity.CENTER_HORIZONTAL }
         if (p.cpB("tag", true)) {
-            val tagCor = if (a.offer.platform == "Uber") p.tagCorUber else if (a.offer.platform == "99") p.tagCor99 else if (a.offer.platform == "inDriver") Color.parseColor("#C1F11D") else Color.GRAY
+            val tagCor = p.tagCorDe(a.offer.platform)
             val clara = (Color.red(tagCor) * 299 + Color.green(tagCor) * 587 + Color.blue(tagCor) * 114) / 1000 > 160
             coluna1.addView(ui.tv(when (a.offer.platform) { "Uber" -> "UBER"; "99" -> "99"; "inDriver" -> "inDRIVE"; else -> "TESTE" }, size * 0.75f * esc("tamTag"),
                 if (clara) Color.parseColor("#1B1F24") else Color.WHITE, 3, true).apply {
@@ -565,7 +565,7 @@ object OverlayCard {
             "inDriver" -> "inDRIVE"
             else -> "TESTE"
         }
-        val tagCor = if (a.offer.platform == "Uber") p.tagCorUber else if (a.offer.platform == "99") p.tagCor99 else if (a.offer.platform == "inDriver") Color.parseColor("#C1F11D") else Color.GRAY
+        val tagCor = p.tagCorDe(a.offer.platform)
         val clara = (Color.red(tagCor) * 299 + Color.green(tagCor) * 587 + Color.blue(tagCor) * 114) / 1000 > 160
         val tagTxt = if (clara) Color.parseColor("#1B1F24") else Color.WHITE
         val tagEsc = when (p.appTagSize) { 0 -> 0.55f; 1 -> 0.75f; else -> 0.95f }
