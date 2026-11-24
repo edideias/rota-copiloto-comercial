@@ -91,6 +91,15 @@ object Metrics {
 }
 
 /** Configurações salvas só no aparelho. */
+/** Valor "sem ajuste" dos ajustes visuais (vale o modelo escolhido). */
+const val VIS_NONE = Int.MIN_VALUE
+
+/** Ajustes do editor visual: cor (ARGB), fonte (0-4), cantos (%), texto (%). */
+val VIS_KEYS = listOf(
+    "bg", "surface", "text", "muted", "accent", "soft", "line",
+    "good", "mid", "bad", "font", "rs", "txt"
+)
+
 class Prefs(ctx: Context, override_: android.content.SharedPreferences? = null) {
     val store: android.content.SharedPreferences =
         override_ ?: ctx.getSharedPreferences("copiloto", Context.MODE_PRIVATE)
@@ -213,6 +222,16 @@ class Prefs(ctx: Context, override_: android.content.SharedPreferences? = null) 
     fun setCpB(k: String, v: Boolean) { sp.edit().putBoolean("cp_$k", v).apply() }
     fun cpI(k: String, d: Int) = sp.getInt("cp_$k", d)
     fun setCpI(k: String, v: Int) { sp.edit().putInt("cp_$k", v).apply() }
+
+    // ---- editor visual: cores, fonte e tamanho do app inteiro. Sem ajuste = vale o modelo escolhido.
+    // Usa um valor sentinela (e não remove a chave) para o rascunho de Salvar funcionar sem apagar nada.
+    fun visOpt(k: String): Int? = sp.getInt("vis_$k", VIS_NONE).takeIf { it != VIS_NONE }
+    fun setVis(k: String, v: Int?) { sp.edit().putInt("vis_$k", v ?: VIS_NONE).apply() }
+    fun limparVisual() {
+        val e = sp.edit()
+        VIS_KEYS.forEach { e.putInt("vis_$it", VIS_NONE) }
+        e.apply()
+    }
 
     // ---- motel no destino: aviso rosa neon piscando
     var motelOn: Boolean

@@ -59,26 +59,36 @@ object Templates {
 
     fun tpl(i: Int): Tpl = all[i.coerceIn(0, all.size - 1)]
 
-    /** Aplica as cores e a fonte do modelo em todo o app. */
-    fun apply(i: Int) {
+    /** Verde, amarelo e vermelho padrão do semáforo (o editor visual pode trocar). */
+    val VERDE_PADRAO = h("#16A34A")
+    val AMARELO_PADRAO = h("#FFE500")
+    val VERMELHO_PADRAO = h("#DC2626")
+
+    /**
+     * Aplica o modelo escolhido em todo o app. Se vier o [p] (preferências ou rascunho do editor),
+     * os ajustes do editor visual sobrepõem o modelo: cor, fonte, cantos e tamanho do texto.
+     */
+    fun apply(i: Int, p: Prefs? = null) {
         val idx = i.coerceIn(0, all.size - 1)
         val t = all[idx]
-        C.BG = t.bg
-        C.WHITE = t.surface
-        C.TEXT = t.text
-        C.MUTED = t.muted
-        C.PURPLE = t.accent
-        C.PURPLE_DARK = t.accent
-        C.PURPLE_LIGHT = t.soft
-        C.LINE = t.line
-        C.RS = t.rs
-        Fonts.setFamily(t.family)
+        C.BG = p?.visOpt("bg") ?: t.bg
+        C.WHITE = p?.visOpt("surface") ?: t.surface
+        C.TEXT = p?.visOpt("text") ?: t.text
+        C.MUTED = p?.visOpt("muted") ?: t.muted
+        C.PURPLE = p?.visOpt("accent") ?: t.accent
+        C.PURPLE_DARK = C.PURPLE
+        C.PURPLE_LIGHT = p?.visOpt("soft") ?: t.soft
+        C.LINE = p?.visOpt("line") ?: t.line
+        C.RS = p?.visOpt("rs")?.let { it / 100f } ?: t.rs
+        C.GOOD = p?.visOpt("good") ?: VERDE_PADRAO
+        C.MID = p?.visOpt("mid") ?: AMARELO_PADRAO
+        C.BAD = p?.visOpt("bad") ?: VERMELHO_PADRAO
+        C.TXT = (p?.visOpt("txt") ?: 100) / 100f
+        Fonts.setFamily(p?.visOpt("font") ?: t.family)
         current = idx
     }
 
-    fun ensure(i: Int) {
-        if (current != i.coerceIn(0, all.size - 1)) apply(i)
-    }
+    fun ensure(i: Int, p: Prefs? = null) = apply(i, p)
 }
 
 /** Tudo o que a tela inicial de qualquer modelo precisa para funcionar. */

@@ -70,7 +70,7 @@ class MainActivity : Activity() {
 
     private fun pickTemplate(i: Int) {
         prefs.template = i
-        Templates.apply(i)
+        Templates.apply(i, prefs)
         ui = Ui(this)
         Destino.iniciar(this)
         applyChrome()
@@ -158,7 +158,7 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         prefs = Prefs(this)
-        Templates.apply(prefs.template)
+        Templates.apply(prefs.template, prefs)
         ui = Ui(this)
         applyChrome()
 
@@ -196,6 +196,10 @@ class MainActivity : Activity() {
     }
 
     private fun render() {
+        // cores, fonte e tamanho: com uma tela de configuração aberta, vale o rascunho (ainda sem Salvar)
+        val fonte = draftMem?.let { Prefs(this, it) } ?: prefs
+        Templates.apply(fonte.template, fonte)
+        if (::root.isInitialized) root.setBackgroundColor(C.BG)
         root.removeAllViews()
         root.addView(
             stack.last()(),
@@ -493,7 +497,7 @@ class MainActivity : Activity() {
         data class Op(val icone: String, val nome: String, val dica: String, val cor: String, val abrir: () -> Unit)
         val ops = listOf(
             Op("🚦", "Semáforo", "Quadro: o que aparece na tela", "#16A34A") { openConfig("Semáforo") { cardContent(it) } },
-            Op("🧩", "Visual", "Tamanhos, cores e espaços", "#CA8A04") { openConfig("Visual do semáforo") { compactoContent(it) } },
+            Op("🎨", "Editor visual", "Fontes, cores, tamanhos e peças: tudo num lugar", "#CA8A04") { openConfig("Editor visual") { compactoContent(it) } },
             Op("💰", "Metas e custo", "Ganho mínimo e custo por km", "#0D9488") { openConfig("Metas e custo") { goalsContent(it) } },
             Op("📍", "Destino", "Endereço e bairros evitados", "#2563EB") { openConfig("Destino da corrida") { destinoContent(it) } },
             Op("⭐", "Corrida TOP", "Alerta e som da corrida top", "#9333EA") { openConfig("Corrida TOP") { topContent(it) } },
@@ -1060,8 +1064,12 @@ class MainActivity : Activity() {
 
     private fun compactoContent(p: Prefs): View {
         val box = ui.vbox()
-        box.addView(pageHeader("Visual do semáforo", "Escolha o que aparece, o tamanho de cada coisa, as cores e os espaços"))
+        box.addView(pageHeader("Editor visual", "Fonte, texto, cores, tamanhos e espaços. A prévia mostra cada mudança antes de salvar."))
         val br = Locale("pt", "BR")
+
+        // o editor enxerga o rascunho: a prévia e as cores das telas mostram o que você está mudando
+        Templates.apply(p.template, p)
+        val modelo = Templates.tpl(p.template)
 
         // prévia sempre no compacto
         val prev = ui.vbox().apply { background = ui.round(Color.parseColor("#2B3340"), 14); setPadding(dp(8), dp(14), dp(8), dp(14)) }
@@ -1078,6 +1086,39 @@ class MainActivity : Activity() {
         p.compacto = antes
         val c0 = ui.card(); c0.addView(ui.tv("Prévia (3 corridas de exemplo)", 12f, C.MUTED, 0)); c0.addView(prev, ui.lp(top = 6))
         box.addView(c0, ui.lp(top = 16))
+
+        // ---- fonte e texto: vale para o app inteiro e para o semáforo
+        val txt = p.visOpt("txt") ?: 100
+        val rs = p.visOpt("rs") ?: Math.round(modelo.rs * 100f)
+        val tipo = ui.card()
+        tipo.addView(ui.tv("Fonte e texto", 18f, C.TEXT, 3))
+        tipo.addView(ui.tv("Escolha a letra. O tamanho do texto muda tudo de uma vez.", 13f, C.MUTED, 0), ui.lp(top = 4))
+        tipo.addView(ui.segmented(listOf("Poppins", "Serif", "Mono", "Pesada", "Estreita"), p.visOpt("font") ?: modelo.family) {
+            p.setVis("font", it); render()
+        }, ui.lp(top = 12))
+        tipo.addView(stepperRow("Tamanho do texto", "$txt%", { p.setVis("txt", maxOf(70, txt - 5)); render() }, { p.setVis("txt", minOf(160, txt + 5)); render() }), ui.lp(top = 14))
+        tipo.addView(stepperRow("Cantos arredondados", "$rs%", { p.setVis("rs", maxOf(0, rs - 10)); render() }, { p.setVis("rs", minOf(200, rs + 10)); render() }), ui.lp(top = 12))
+        box.addView(tipo, ui.lp(top = 16))
+
+        // ---- cores do app e do semáforo: toque na cor para trocar
+        val cores = ui.card()
+        cores.addView(ui.tv("Cores", 18f, C.TEXT, 3))
+        cores.addView(ui.tv("Toque na cor para trocar. Sem ajuste, vale a cor do modelo escolhido.", 13f, C.MUTED, 0), ui.lp(top = 4))
+        fun corTok(rotulo: String, k: String, padrao: Int) =
+            cores.addView(corRow(rotulo, p.visOpt(k) ?: padrao) { p.setVis(k, it); render() }, ui.lp(top = 12))
+        corTok("Fundo da tela", "bg", modelo.bg)
+        corTok("Cartões e caixas", "surface", modelo.surface)
+        corTok("Texto", "text", modelo.text)
+        corTok("Texto secundário", "muted", modelo.muted)
+        corTok("Destaque", "accent", modelo.accent)
+        corTok("Fundo suave", "soft", modelo.soft)
+        corTok("Linhas", "line", modelo.line)
+        corTok("Semáforo: verde", "good", Templates.VERDE_PADRAO)
+        corTok("Semáforo: amarelo", "mid", Templates.AMARELO_PADRAO)
+        corTok("Semáforo: vermelho", "bad", Templates.VERMELHO_PADRAO)
+        box.addView(cores, ui.lp(top = 16))
+        box.addView(ui.button("Voltar ao visual do modelo escolhido", false) { p.limparVisual(); render() }, ui.lp(top = 16))
+        box.addView(ui.tv("Os ajustes valem só depois de tocar em Salvar, no topo. Antes disso, a prévia mostra o rascunho.", 12f, C.MUTED, 0).apply { gravity = Gravity.CENTER }, ui.lp(top = 8))
 
 
         fun pct(k: String) = "${p.cpI(k, 100)}%"

@@ -29,9 +29,12 @@ object C {
     var TEXT = Color.parseColor("#1E1B3A")
     var MUTED = Color.parseColor("#6B7280")
     var LINE = Color.parseColor("#E5E1F0")
-    val GOOD = Color.parseColor("#16A34A")
-    val MID = Color.parseColor("#FFE500") // amarelo puro (não âmbar)
-    val BAD = Color.parseColor("#DC2626")
+    /** Verde/amarelo/vermelho do semáforo. O editor visual pode trocar. */
+    var GOOD = Color.parseColor("#16A34A")
+    var MID = Color.parseColor("#FFE500") // amarelo puro (não âmbar)
+    var BAD = Color.parseColor("#DC2626")
+    /** Escala do texto do app inteiro (1 = 100%). O editor visual pode trocar. */
+    var TXT = 1f
 }
 
 object Fonts {
@@ -80,7 +83,7 @@ class Ui(val ctx: Context) {
     fun tv(s: CharSequence, sp: Float = 14f, color: Int = C.TEXT, w: Int = 0, center: Boolean = false): TextView =
         TextView(ctx).apply {
             text = s
-            textSize = sp
+            textSize = sp * C.TXT
             setTextColor(color)
             typeface = font(w)
             if (center) gravity = Gravity.CENTER
@@ -493,7 +496,7 @@ object OverlayCard {
 
     private fun montar(ctx: Context, a: Analysis, p: Prefs): View {
         if (p.compacto) return montarCompacto(ctx, a, p)
-        Templates.ensure(p.template)
+        Templates.ensure(p.template, p)
         val tpl = Templates.tpl(p.template)
         val ui = Ui(ctx)
         val verdict = when (a.verdict) {
