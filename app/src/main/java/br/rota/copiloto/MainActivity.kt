@@ -68,15 +68,6 @@ class MainActivity : Activity() {
         if (::root.isInitialized) root.setBackgroundColor(C.BG)
     }
 
-    private fun pickTemplate(i: Int) {
-        prefs.template = i
-        Templates.apply(i, prefs)
-        ui = Ui(this)
-        Destino.iniciar(this)
-        applyChrome()
-        render()
-    }
-
     private fun homeScreen(): View {
         val mi = ActivityManager.MemoryInfo()
         (getSystemService(ACTIVITY_SERVICE) as ActivityManager).getMemoryInfo(mi)
@@ -97,7 +88,7 @@ class MainActivity : Activity() {
             setShots = { v -> prefs.saveShots = v; render() },
             activate = { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) },
             release = { push { wizardStep(0) } },
-            config = { push { configMenu() } },
+            config = { abrirConfigurar() },
             apps = { openConfig("Apps de trabalho") { appsContent(it) } },
             shots = { openConfig("Captura de tela") { captureContent(it) } },
             tutorial = { push { wizardStep(0) } },
@@ -123,38 +114,6 @@ class MainActivity : Activity() {
         return HomeTemplates.build(this, prefs.template, acts)
     }
 
-    private fun templatePicker(): View {
-        val box = ui.vbox()
-        box.addView(pageHeader("Modelo do aplicativo", "Escolha o visual da tela inicial. Todos têm as mesmas funções."))
-        Templates.all.forEachIndexed { i, t ->
-            val on = i == prefs.template
-            val r = ui.hbox().apply {
-                background = ui.round(C.WHITE, 18, if (on) 2 else 0, C.PURPLE)
-                elevation = ui.dpf(2f)
-                setPadding(dp(16), dp(14), dp(14), dp(14))
-                setOnClickListener { pickTemplate(i) }
-            }
-            val sw = ui.hbox()
-            listOf(t.bg, t.surface, t.accent).forEach { col ->
-                sw.addView(View(this).apply {
-                    background = android.graphics.drawable.GradientDrawable().apply {
-                        shape = android.graphics.drawable.GradientDrawable.OVAL
-                        setColor(col)
-                        setStroke(dp(1), Color.parseColor("#33888888"))
-                    }
-                }, LinearLayout.LayoutParams(dp(22), dp(22)).also { it.marginEnd = dp(4) })
-            }
-            r.addView(sw, LinearLayout.LayoutParams(dp(84), ViewGroup.LayoutParams.WRAP_CONTENT))
-            val l = ui.vbox()
-            l.addView(ui.tv("${i + 1} · ${t.name}", 15f, C.TEXT, 2))
-            l.addView(ui.tv(t.tagline, 12f, C.MUTED, 0))
-            r.addView(l, ui.lp(0, weight = 1f))
-            if (on) r.addView(ui.tv("✓", 20f, C.PURPLE, 3))
-            box.addView(r, ui.lp(top = 12))
-        }
-        return screen("Modelo do aplicativo", box)
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         prefs = Prefs(this)
@@ -172,7 +131,7 @@ class MainActivity : Activity() {
         }
         render()
         if (intent?.getStringExtra("abrir") == "compacto") openConfig("Visual do semáforo") { compactoContent(it) }
-        else if (intent?.getStringExtra("abrir") == "config") push { configMenu() }
+        else if (intent?.getStringExtra("abrir") == "config") abrirConfigurar()
         else if (!prefs.termsAccepted) showTerms()
     }
 
@@ -195,16 +154,23 @@ class MainActivity : Activity() {
         render()
     }
 
+    private var profundidadeAnterior = -1
+
     private fun render() {
         // cores, fonte e tamanho: com uma tela de configuração aberta, vale o rascunho (ainda sem Salvar)
         val fonte = draftMem?.let { Prefs(this, it) } ?: prefs
         Templates.apply(fonte.template, fonte)
         if (::root.isInitialized) root.setBackgroundColor(C.BG)
+        // mesma tela (só algo dentro dela mudou): a rolagem fica onde estava, sem voltar ao topo
+        val mesmaTela = stack.size == profundidadeAnterior
+        val y = if (mesmaTela) (rolagemDe(root)?.scrollY ?: 0) else 0
         root.removeAllViews()
         root.addView(
             stack.last()(),
             FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
         )
+        profundidadeAnterior = stack.size
+        if (mesmaTela && y > 0) rolagemDe(root)?.let { sv -> sv.post { sv.scrollTo(0, y) } }
     }
 
     private fun push(b: () -> View) {
@@ -298,7 +264,7 @@ class MainActivity : Activity() {
         card.addView(
             featureRow(
                 "Cálculo de Ganhos", null, chips, prefs.calcEnabled,
-                { push { configMenu() } }
+                { abrirConfigurar() }
             ) { v -> prefs.calcEnabled = v }
         )
         card.addView(divider())
@@ -310,7 +276,7 @@ class MainActivity : Activity() {
         )
         body.addView(card, ui.lp(top = 14))
 
-        body.addView(ui.button("Configurar") { push { configMenu() } }, ui.lp(top = 16))
+        body.addView(ui.button("Configurar") { abrirConfigurar() }, ui.lp(top = 16))
 
         val two = ui.hbox()
         two.addView(ui.button("Tutorial Guiado", false) { push { wizardStep(0) } }, ui.lp(0, top = 0, weight = 1f))
@@ -426,7 +392,7 @@ class MainActivity : Activity() {
         a.addView(ui.tv("O que o Rota faz", 17f, C.TEXT, 2))
         a.addView(
             ui.tv(
-                "Lê a oferta que aparece no Uber Driver ou no 99 Motorista, calcula R\$/km, R\$/hora e lucro e mostra um cartão por cima. " +
+                "Lê a oferta que aparece no Uber Driver, no 99 Motorista ou no inDRIVE, calcula R\$/km, R\$/hora e lucro e mostra um cartão por cima. " +
                     "Só lê e calcula: nunca aceita, recusa nem toca em nada.",
                 13f, C.MUTED, 0
             ),
@@ -492,42 +458,91 @@ class MainActivity : Activity() {
 
     // ---------------------------------------------------------------- configurar (com Salvar)
 
-    private fun configMenu(): View {
-        // grade de botões grandes: cor + ícone + nome curto, para achar de relance
-        data class Op(val icone: String, val nome: String, val dica: String, val cor: String, val abrir: () -> Unit)
-        val ops = listOf(
-            Op("🚦", "Semáforo", "Quadro: o que aparece na tela", "#16A34A") { openConfig("Semáforo") { cardContent(it) } },
-            Op("🎨", "Editor visual", "Fontes, cores, tamanhos e peças: tudo num lugar", "#CA8A04") { openConfig("Editor visual") { compactoContent(it) } },
-            Op("💰", "Metas e custo", "Ganho mínimo e custo por km", "#0D9488") { openConfig("Metas e custo") { goalsContent(it) } },
-            Op("📍", "Destino", "Endereço e bairros evitados", "#2563EB") { openConfig("Destino da corrida") { destinoContent(it) } },
-            Op("⭐", "Corrida TOP", "Alerta e som da corrida top", "#9333EA") { openConfig("Corrida TOP") { topContent(it) } },
-            Op("🛑", "Parada e app", "Alerta de parada e nome do app", "#DC2626") { openConfig("Parada e nome do app") { aparenciaContent(it) } },
-            Op("🚗", "Apps", "Uber, 99 e inDRIVE: ligar e cores", "#EA580C") { openConfig("Apps") { appsContent(it) } },
-            Op("🅼", "Aviso M", "Alerta rosa para destinos marcados", "#DB2777") { openConfig("Aviso M") { motelContent(it) } },
-            Op("⏱️", "Tempo na tela", "Quanto tempo o quadro fica", "#475569") { openConfig("Tempo na tela") { timeContent(it) } },
-            Op("📸", "Salvar prints", "Guardar prints para teste", "#0891B2") { openConfig("Salvar prints") { captureContent(it) } },
-            Op("🏠", "Tela inicial", "Escolher o modelo da tela", "#4F46E5") { push { templatePicker() } }
-        )
+    /** Configurar: uma tela só. Tela inicial, visual e ajustes abrem no próprio lugar, sem trocar de página. */
+    private fun abrirConfigurar() = openConfig("Configurar") { ajustesContent(it) }
+
+    /** Seção que está aberta (uma por vez). Vazio = todas fechadas. */
+    private var secaoAberta = "tela"
+
+    private class Secao(val id: String, val icone: String, val nome: String, val dica: String, val cor: String, val monta: (Prefs) -> View)
+
+    private fun ajustesContent(p: Prefs): View {
         val box = ui.vbox()
-        ops.chunked(2).forEachIndexed { i, par ->
-            val linha = ui.hbox()
-            par.forEachIndexed { j, op ->
-                val t = ui.vbox().apply {
-                    gravity = Gravity.CENTER
-                    background = ui.round(Color.parseColor(op.cor), 22)
-                    minimumHeight = dp(150)
-                    setPadding(dp(10), dp(14), dp(10), dp(14))
-                    setOnClickListener { op.abrir() }
-                    contentDescription = op.nome
-                }
-                t.addView(ui.tv(op.icone, 40f, Color.WHITE, 0, true), LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT))
-                t.addView(ui.tv(op.nome, 18f, Color.WHITE, 3, true).apply { maxLines = 2 }, ui.lp(top = 8))
-                t.addView(ui.tv(op.dica, 12f, Color.WHITE, 0).apply { alpha = 0.9f; gravity = Gravity.CENTER; maxLines = 2 }, ui.lp(top = 4))
-                linha.addView(t, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f).also { if (j == 1) it.marginStart = dp(12) })
+        box.addView(ui.tv("Toque numa parte para abrir. Tudo que você muda aparece na prévia. Salve no topo.", 13f, C.MUTED, 0).apply { gravity = Gravity.CENTER })
+        val secoes = listOf(
+            Secao("tela", "🏠", "Tela inicial", "Escolha o modelo da tela", "#4F46E5") { modeloContent(it) },
+            Secao("visual", "🎨", "Fonte, cores e tamanhos", "Editor visual com prévia", "#CA8A04") { compactoContent(it) },
+            Secao("semaforo", "🚦", "Semáforo", "Quadro: o que aparece na tela", "#16A34A") { cardContent(it) },
+            Secao("metas", "💰", "Metas e custo", "Ganho mínimo e custo por km", "#0D9488") { goalsContent(it) },
+            Secao("destino", "📍", "Destino", "Endereço e bairros evitados", "#2563EB") { destinoContent(it) },
+            Secao("top", "⭐", "Corrida TOP", "Alerta e som da corrida top", "#9333EA") { topContent(it) },
+            Secao("parada", "🛑", "Parada e nome do app", "Alerta de parada e nome do app", "#DC2626") { aparenciaContent(it) },
+            Secao("apps", "🚗", "Apps", "Uber, 99 e inDRIVE: ligar e cores", "#EA580C") { appsContent(it) },
+            Secao("motel", "🅼", "Aviso M", "Alerta rosa para destinos marcados", "#DB2777") { motelContent(it) },
+            Secao("tempo", "⏱️", "Tempo na tela", "Quanto tempo o quadro fica", "#475569") { timeContent(it) },
+            Secao("prints", "📸", "Salvar prints", "Guardar prints para teste", "#0891B2") { captureContent(it) }
+        )
+        secoes.forEach { s ->
+            val aberta = secaoAberta == s.id
+            val cab = ui.hbox().apply {
+                gravity = Gravity.CENTER_VERTICAL
+                background = ui.round(C.WHITE, 18, if (aberta) 2 else 0, C.PURPLE)
+                elevation = ui.dpf(2f)
+                setPadding(dp(12), dp(12), dp(12), dp(12))
+                setOnClickListener { secaoAberta = if (aberta) "" else s.id; render() }
             }
-            box.addView(linha, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).also { it.topMargin = dp(if (i == 0) 4 else 12) })
+            cab.addView(ui.tv(s.icone, 20f, Color.WHITE, 3, true).apply {
+                background = ui.round(Color.parseColor(s.cor), 12)
+                gravity = Gravity.CENTER
+            }, LinearLayout.LayoutParams(dp(44), dp(44)))
+            val tx = ui.vbox()
+            tx.addView(ui.tv(s.nome, 16f, C.TEXT, 3))
+            tx.addView(ui.tv(s.dica, 12f, C.MUTED, 0))
+            cab.addView(tx, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).also { it.marginStart = dp(12) })
+            cab.addView(ui.tv(if (aberta) "▲" else "▼", 14f, C.MUTED, 3))
+            box.addView(cab, ui.lp(top = 12))
+            if (aberta) box.addView(s.monta(p), ui.lp(top = 8))
         }
-        return screen("Configurar", box)
+        return box
+    }
+
+    /** Tela inicial: os modelos, com o escolhido marcado. Toque troca na hora (vale ao Salvar). */
+    private fun modeloContent(p: Prefs): View {
+        val box = ui.vbox()
+        box.addView(ui.tv("Escolha o visual da tela inicial. Todos têm as mesmas funções.", 13f, C.MUTED, 0))
+        Templates.all.forEachIndexed { i, t ->
+            val on = i == p.template
+            val r = ui.hbox().apply {
+                background = ui.round(C.WHITE, 18, if (on) 2 else 0, C.PURPLE)
+                elevation = ui.dpf(2f)
+                setPadding(dp(16), dp(14), dp(14), dp(14))
+                setOnClickListener { p.template = i; render() }
+            }
+            val sw = ui.hbox()
+            listOf(t.bg, t.surface, t.accent).forEach { col ->
+                sw.addView(View(this).apply {
+                    background = android.graphics.drawable.GradientDrawable().apply {
+                        shape = android.graphics.drawable.GradientDrawable.OVAL
+                        setColor(col)
+                        setStroke(dp(1), Color.parseColor("#33888888"))
+                    }
+                }, LinearLayout.LayoutParams(dp(22), dp(22)).also { it.marginEnd = dp(4) })
+            }
+            r.addView(sw, LinearLayout.LayoutParams(dp(84), ViewGroup.LayoutParams.WRAP_CONTENT))
+            val l = ui.vbox()
+            l.addView(ui.tv("${i + 1} · ${t.name}", 15f, C.TEXT, 2))
+            l.addView(ui.tv(t.tagline, 12f, C.MUTED, 0))
+            r.addView(l, ui.lp(0, weight = 1f))
+            if (on) r.addView(ui.tv("✓", 20f, C.PURPLE, 3))
+            box.addView(r, ui.lp(top = 12))
+        }
+        return box
+    }
+
+    private fun rolagemDe(v: View): ScrollView? {
+        if (v is ScrollView) return v
+        if (v is ViewGroup) for (i in 0 until v.childCount) rolagemDe(v.getChildAt(i))?.let { return it }
+        return null
     }
 
     /** Abre uma tela de configuração com rascunho: nada vale até tocar em Salvar. */
@@ -547,6 +562,7 @@ class MainActivity : Activity() {
         bar.addView(ui.button("Salvar") {
             prefs.commitFrom(d.store)
             draftMem = null
+            applyChrome()
             Toast.makeText(this, "Salvo.", Toast.LENGTH_SHORT).show()
             pop()
         })
@@ -621,7 +637,7 @@ class MainActivity : Activity() {
         ocr.addView(switchRow("Leitura por imagem (quando o app não entrega o texto)", p.useOcr) { p.useOcr = it })
         ocr.addView(
             ui.tv(
-                "Tira uma foto da tela só enquanto o Uber/99 está aberto, lê os números no próprio celular e descarta a imagem.",
+                "Tira uma foto da tela só enquanto o app de corrida está aberto, lê os números no próprio celular e descarta a imagem.",
                 12f, C.MUTED, 0
             ),
             ui.lp(top = 6)
@@ -1505,7 +1521,7 @@ class MainActivity : Activity() {
         }
         c.addView(
             ui.tv(
-                "Toque no quadro a qualquer momento para fechá-lo. O toque só fecha o quadro: nada acontece no Uber/99. " +
+                "Toque no quadro a qualquer momento para fechá-lo. O toque só fecha o quadro: nada acontece no app de corrida. " +
                     "Em \"Até tocar\" ele fica até você tocar (ou até 60 segundos).",
                 12f, C.MUTED, 0
             ),
@@ -1779,7 +1795,7 @@ class MainActivity : Activity() {
         })
         box.addView(ui.button("Configurar agora", false) {
             closeWizard()
-            push { configMenu() }
+            abrirConfigurar()
         })
         box.addView(ui.button("Concluir", false) { closeWizard() })
         return box
@@ -1792,10 +1808,10 @@ class MainActivity : Activity() {
             .setTitle("Antes de começar")
             .setMessage(
                 "O Rota Calculadora é uma calculadora de apoio. Ele apenas lê os valores que aparecem na tela do " +
-                    "Uber Driver e do 99 Motorista e mostra uma análise. Ele não aceita, não recusa e não toca em nada.\n\n" +
+                    "Uber Driver, do 99 Motorista e do inDRIVE e mostra uma análise. Ele não aceita, não recusa e não toca em nada.\n\n" +
                     "Não é afiliado, aprovado ou mantido pela Uber nem pela 99. Os números são estimativas; " +
                     "a decisão de aceitar a corrida é sempre sua.\n\n" +
-                    "Quando o app não entrega o texto da tela, o Rota Calculadora lê os números por imagem, só enquanto o Uber/99 está aberto. " +
+                    "Quando o app não entrega o texto da tela, o Rota Calculadora lê os números por imagem, só enquanto o app de corrida está aberto. " +
                     "A imagem é analisada no próprio celular e descartada (a não ser que você ligue a Captura de Tela).\n\n" +
                     "Nada sai do seu celular: não há login nem servidor."
             )

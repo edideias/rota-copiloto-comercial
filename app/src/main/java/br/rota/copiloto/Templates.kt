@@ -435,7 +435,7 @@ object HomeTemplates {
         val b = B(ctx)
         val c = b.v()
         val itens = Historico.hoje(ctx).reversed()
-        if (itens.isEmpty()) c.addView(b.t("Nenhuma oferta lida hoje ainda. Abra o Uber ou a 99 e fique online.", 14f, C.MUTED, 0))
+        if (itens.isEmpty()) c.addView(b.t("Nenhuma oferta lida hoje ainda. Abra o Uber, a 99 ou o inDRIVE e fique online.", 14f, C.MUTED, 0))
         itens.forEach { c.addView(linhaOferta(b, it), b.lp(top = 8)) }
         return c
     }
@@ -508,7 +508,7 @@ object HomeTemplates {
         val pm = ctx.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
         val bateriaOk = pm.isIgnoringBatteryOptimizations(ctx.packageName)
         val xiaomi = android.os.Build.MANUFACTURER.lowercase().let { it.contains("xiaomi") || it.contains("redmi") || it.contains("poco") }
-        val apps = listOfNotNull(if (p.useUber) "Uber" else null, if (p.use99) "99" else null)
+        val apps = p.appsAtivos()
         item(a.reading, "Acessibilidade ligada", "ligar", false) { a.activate() }
         item(bateriaOk, "Bateria sem restrição", "corrigir", false) { a.bateria() }
         if (xiaomi) item(false, "Início automático (Xiaomi)", "conferir", false) { a.xiaomi() }
@@ -647,6 +647,7 @@ object HomeTemplates {
         }
         chip("Uber", p.useUber, 1f, false) { a.apps() }
         chip("99", p.use99, 1f, false) { a.apps() }
+        chip("inDRIVE", p.useInDriver, 1f, false) { a.apps() }
         chip("Captura", p.saveShots, 1.4f, true) { a.setShots(!p.saveShots) }
         c.addView(chips, b.lp(top = 14))
         c.addView(spacer(b))
@@ -714,6 +715,7 @@ object HomeTemplates {
         row(
             tile(if (p.useUber) Color.parseColor("#1F1F1F") else C.LINE, if (p.useUber) Color.parseColor("#F6EFE2") else C.MUTED, "APP", "Uber") { a.apps() },
             tile(if (p.use99) Color.parseColor("#FF8A5B") else C.LINE, if (p.use99) dark else C.MUTED, "APP", "99") { a.apps() },
+            tile(if (p.useInDriver) Color.parseColor("#C1F11D") else C.LINE, if (p.useInDriver) dark else C.MUTED, "APP", "inDRIVE") { a.apps() },
             h = 112
         )
         row(
@@ -774,6 +776,7 @@ object HomeTemplates {
         leader("COPILOTO", b.t(if (p.enabled) "[ LIGADO ]" else "[ DESLIGADO ]", 14f, C.TEXT, 3).tap { a.setCopilot(!p.enabled) })
         leader("UBER", b.t(if (p.useUber) "[X]" else "[ ]", 14f, C.TEXT, 3).tap { a.apps() })
         leader("99", b.t(if (p.use99) "[X]" else "[ ]", 14f, C.TEXT, 3).tap { a.apps() })
+        leader("INDRIVE", b.t(if (p.useInDriver) "[X]" else "[ ]", 14f, C.TEXT, 3).tap { a.apps() })
         leader("CAPTURA DE TELA", b.t(if (p.saveShots) "[X]" else "[ ]", 14f, C.TEXT, 3).tap { a.setShots(!p.saveShots) })
         paper.addView(dashed(16))
 
@@ -923,7 +926,7 @@ object HomeTemplates {
             c.addView(View(b.ctx).apply { setBackgroundColor(C.LINE) }, b.lp(h = b.dp(1)))
         }
         row("Copiloto", if (p.enabled) "Ligado" else "Desligado", if (p.enabled) C.PURPLE else C.MUTED) { a.setCopilot(!p.enabled) }
-        val apps = listOfNotNull(if (p.useUber) "Uber" else null, if (p.use99) "99" else null).joinToString(" · ").ifEmpty { "Nenhum" }
+        val apps = p.appsAtivos().joinToString(" · ").ifEmpty { "Nenhum" }
         row("Apps", apps, C.MUTED) { a.apps() }
         row("Captura de tela", if (p.saveShots) "Ligada" else "Desligada", if (p.saveShots) C.PURPLE else C.MUTED) { a.setShots(!p.saveShots) }
         row("Configurar", "→", C.TEXT) { a.config() }
@@ -985,6 +988,7 @@ object HomeTemplates {
         }
         chip("Uber", p.useUber, 1f, false) { a.apps() }
         chip("99", p.use99, 1f, false) { a.apps() }
+        chip("inDRIVE", p.useInDriver, 1f, false) { a.apps() }
         chip("Captura", p.saveShots, 1.3f, true) { a.setShots(!p.saveShots) }
         body.addView(chips, b.lp(top = 12))
 
@@ -1077,7 +1081,7 @@ object HomeTemplates {
             c.addView(r, b.lp(top = 12))
         }
         card("Copiloto", if (p.enabled) "Ligado" else "Desligado", p.enabled) { a.setCopilot(!p.enabled) }
-        card("Apps lidos", listOfNotNull(if (p.useUber) "Uber" else null, if (p.use99) "99" else null).joinToString(" · ").ifEmpty { "Nenhum" }, null) { a.apps() }
+        card("Apps lidos", p.appsAtivos().joinToString(" · ").ifEmpty { "Nenhum" }, null) { a.apps() }
         card("Captura de tela", if (p.saveShots) "Ligada" else "Desligada", p.saveShots) { a.setShots(!p.saveShots) }
         c.addView(spacer(b))
         val links = b.h().apply { setPadding(0, b.dp(16), 0, 0) }
@@ -1157,6 +1161,11 @@ object HomeTemplates {
             background = b.rr(ink, 16)
             setPadding(b.dp(14), b.dp(7), b.dp(14), b.dp(7))
             setOnClickListener { a.apps() }
+        }, b.lp(w = WRAP, end = 8))
+        chips.addView(b.t(if (p.useInDriver) "inDRIVE" else "inDRIVE (off)", 13f, cream, 3, true).apply {
+            background = b.rr(ink, 16)
+            setPadding(b.dp(14), b.dp(7), b.dp(14), b.dp(7))
+            setOnClickListener { a.apps() }
         }, b.lp(w = WRAP))
         chips.addView(View(b.ctx), b.lp(0, 1, weight = 1f))
         chips.addView(b.t(vname(an).lowercase().replaceFirstChar { it.uppercase() }, 13f, onVerdict(an), 3, true).apply {
@@ -1231,7 +1240,8 @@ object HomeTemplates {
             setOnClickListener { a.apps() }
         }
         hd.addView(app("Uber", p.useUber), b.lp(w = WRAP, end = 6))
-        hd.addView(app("99", p.use99), b.lp(w = WRAP))
+        hd.addView(app("99", p.use99), b.lp(w = WRAP, end = 6))
+        hd.addView(app("inDRIVE", p.useInDriver), b.lp(w = WRAP))
         c.addView(hd)
         c.addView(readingChip(b, a, C.MUTED, C.PURPLE), b.lp(top = 8))
 
@@ -1355,7 +1365,7 @@ object HomeTemplates {
         val cp = b.h()
         val cl = b.v()
         cl.addView(b.t("Copiloto", 19f, C.TEXT, 3))
-        cl.addView(b.t("Lê Uber e 99 e calcula", 13f, C.MUTED, 0))
+        cl.addView(b.t("Lê ${p.nomesApps()} e calcula", 13f, C.MUTED, 0))
         cp.addView(cl, b.lp(0, weight = 1f))
         cp.addView(b.sw(on, C.PURPLE, C.LINE, C.WHITE) { a.setCopilot(!on) })
         sheet.addView(cp, b.lp(top = 14))
@@ -1368,6 +1378,7 @@ object HomeTemplates {
         }
         chip("Uber", p.useUber, 1f, false) { a.apps() }
         chip("99", p.use99, 1f, false) { a.apps() }
+        chip("inDRIVE", p.useInDriver, 1f, false) { a.apps() }
         chip("Captura", p.saveShots, 1.4f, true) { a.setShots(!p.saveShots) }
         sheet.addView(chips, b.lp(top = 14))
         sheet.addView(b.btn("Configurar  →", C.TEXT, C.PURPLE_LIGHT, 16, 15f, 3) { a.config() }, b.lp(top = 12))

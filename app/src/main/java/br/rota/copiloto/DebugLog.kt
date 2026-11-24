@@ -27,7 +27,7 @@ object DebugLog {
     @Synchronized
     fun dump(): String {
         val head = "Pacotes vistos: " + (if (seenPkgs.isEmpty()) "(nenhum)" else seenPkgs.joinToString(", "))
-        val body = if (lines.isEmpty()) "(vazio — abra o app do Uber/99 e espere uma oferta)"
+        val body = if (lines.isEmpty()) "(vazio — abra o Uber, a 99 ou o inDRIVE e espere uma oferta)"
         else lines.joinToString("\n\n")
         return head + "\n\n" + body
     }

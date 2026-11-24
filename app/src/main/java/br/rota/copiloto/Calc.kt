@@ -223,6 +223,15 @@ class Prefs(ctx: Context, override_: android.content.SharedPreferences? = null) 
     fun cpI(k: String, d: Int) = sp.getInt("cp_$k", d)
     fun setCpI(k: String, v: Int) { sp.edit().putInt("cp_$k", v).apply() }
 
+    /** Apps de corrida ligados para leitura, na ordem em que aparecem no app. */
+    fun appsAtivos(): List<String> =
+        listOfNotNull(if (useUber) "Uber" else null, if (use99) "99" else null, if (useInDriver) "inDRIVE" else null)
+
+    /** "Uber, 99 e inDRIVE" (só os ligados), para textos. */
+    fun nomesApps(): String = appsAtivos().let { l ->
+        when (l.size) { 0 -> "nenhum app"; 1 -> l[0]; else -> l.dropLast(1).joinToString(", ") + " e " + l.last() }
+    }
+
     // ---- editor visual: cores, fonte e tamanho do app inteiro. Sem ajuste = vale o modelo escolhido.
     // Usa um valor sentinela (e não remove a chave) para o rascunho de Salvar funcionar sem apagar nada.
     fun visOpt(k: String): Int? = sp.getInt("vis_$k", VIS_NONE).takeIf { it != VIS_NONE }
