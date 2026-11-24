@@ -302,6 +302,13 @@ class RangeBar(
 
 /** Cartão que aparece por cima do Uber/99 (e na prévia das configurações). */
 object OverlayCard {
+    /** Só a prévia do editor usa: peças que devem aparecer mesmo sem acontecer (top, faixa, aviso). */
+    var forcar: Set<String> = emptySet()
+    /** Só a prévia do editor usa: a peça escolhida, com contorno amarelo. */
+    var destaque: String? = null
+    private var corAviso = Color.parseColor("#B91C1C")
+    private var corAvisoTxt = Color.WHITE
+
     /** Quadro completo; com parada, ganha a moldura piscante em volta de tudo. */
     /** Modelo do ícone de piso escolhido em Configurar (0 a 5). */
     private var estiloIcone = 0
@@ -352,10 +359,10 @@ object OverlayCard {
         val v = montar(ctx, a, p)
         if (a.offer.stops <= 0 || !p.paradaOn) return v
         val ui = Ui(ctx)
-        val esp = ui.dp(p.paradaEsp)
-        val cor = p.paradaCorInt
+        val esp = ui.dp(Pecas.num(p, "paradaEsp"))
+        val cor = Pecas.cor(p, "cor_parada_moldura") ?: p.paradaCorInt
         val bg = GradientDrawable().apply { setColor(Color.TRANSPARENT); cornerRadius = ui.dpf(30f); setStroke(esp, cor) }
-        val fr = android.widget.FrameLayout(ctx).apply { background = bg; setPadding(esp + ui.dp(2), esp + ui.dp(2), esp + ui.dp(2), esp + ui.dp(2)) }
+        val fr = marcar(android.widget.FrameLayout(ctx).apply { background = bg; setPadding(esp + ui.dp(2), esp + ui.dp(2), esp + ui.dp(2), esp + ui.dp(2)) }, "moldaParada")
         fr.addView(v)
         val anim = android.animation.ValueAnimator.ofFloat(1f, 0.15f).apply {
             duration = p.paradaMs.toLong()
@@ -376,95 +383,118 @@ object OverlayCard {
     val PARADA_CORES = intArrayOf(Color.parseColor("#FF1F1F"), Color.parseColor("#FF7A00"), Color.parseColor("#FF2D95"), Color.parseColor("#FFD400"))
     val PARADA_NOMES = listOf("Vermelho", "Laranja", "Rosa", "Amarelo")
 
+    /** Marca a view como peça do semáforo (o toque na prévia acha pelo nome) e realça a peça escolhida no editor. */
+    private fun <T : View> marcar(v: T, id: String): T {
+        v.tag = "peca:$id"
+        if (destaque == id) {
+            val d = v.resources.displayMetrics.density
+            v.foreground = GradientDrawable().apply {
+                setColor(Color.TRANSPARENT)
+                setStroke((2 * d).toInt().coerceAtLeast(2), Color.parseColor("#FACC15"))
+                cornerRadius = 10 * d
+            }
+        }
+        return v
+    }
+
     /**
-     * Semáforo compacto: um quadro só, moldura na cor do semáforo, barra de lucro em pé na lateral.
-     * Mostra o app, km, valor, destino com ícone do piso e os avisos (mercado, condomínio, paradas).
+     * Semáforo compacto: um quadro só. Cada peça tem interruptor, tamanho e cor próprios (ver Pecas),
+     * e o editor mostra as mesmas peças ao vivo na prévia.
      */
     private fun montarCompacto(ctx: Context, a: Analysis, p: Prefs): View {
         val ui = Ui(ctx)
         val verdict = when (a.verdict) { Verdict.GREEN -> C.GOOD; Verdict.YELLOW -> C.MID; Verdict.RED -> C.BAD }
-        val top = p.isTop(a)
+        val top = forcar.contains("top") || p.isTop(a)
         val neon = p.topCorInt
         val ink = Color.parseColor("#06210A")
         val size = p.cardFont.toFloat() * p.cpI("escala", 100) / 100f
         val br = java.util.Locale("pt", "BR")
         val wrap = ViewGroup.LayoutParams.WRAP_CONTENT
-        fun esc(k: String) = p.cpI(k, 100) / 100f
-        val gap = p.cpI("espaco", 6)
+        fun esc(k: String) = Pecas.num(p, k) / 100f
+        val gap = Pecas.num(p, "espaco")
+        val pad = Pecas.num(p, "respiro")
+        val moldura = Pecas.num(p, "moldura")
+        // a moldura é do semáforo; com SUPER ela pisca em neon, e a cor escolhida vale nas outras corridas
+        val borda = if (top) neon else (Pecas.cor(p, "cor_moldura") ?: verdict)
 
         val frameBg = GradientDrawable().apply {
-            setColor(p.cpI("fundo", Color.parseColor("#17142A"))); cornerRadius = ui.dpf(p.cpI("raio", 24).toFloat())
-            setStroke(ui.dp(p.cpI("moldura", 4)), if (top) neon else verdict)
+            setColor(Pecas.cor(p, "fundo") ?: Color.parseColor("#17142A"))
+            cornerRadius = ui.dpf(Pecas.num(p, "raio").toFloat())
+            setStroke(ui.dp(moldura), borda)
         }
-        val pad = p.cpI("respiro", 10)
-        val frame = ui.hbox().apply {
+        // largura escolhida (% da tela); se o conteúdo for maior, o quadro encolhe inteiro em vez de cortar
+        val frame = marcar(ui.hbox().apply {
             background = frameBg; setPadding(ui.dp(pad), ui.dp(maxOf(4, pad - 2)), ui.dp(pad), ui.dp(maxOf(4, pad - 2)))
-            // largura escolhida (% da tela); se o conteúdo for maior, o quadro encolhe inteiro em vez de cortar
-            if (p.cpB("largTotal", true)) minimumWidth = (ctx.resources.displayMetrics.widthPixels * p.cpI("larguraPct", 100) / 100) - ui.dp(p.cpI("margem", 8) * 2)
+            if (p.cpB("largTotal", true)) minimumWidth = (ctx.resources.displayMetrics.widthPixels * p.cpI("larguraPct", 100) / 100) - ui.dp(Pecas.num(p, "margem") * 2)
             minimumHeight = ui.dp(p.cpI("alturaMin", 0))
-        }
+        }, "quadro")
         val esq = ui.vbox()
 
         // linha 1: etiqueta do app, km, valor e o R$/km grande
         val l1 = ui.hbox().apply { gravity = Gravity.CENTER_VERTICAL }
         val coluna1 = ui.vbox().apply { gravity = Gravity.CENTER_HORIZONTAL }
         if (p.cpB("tag", true)) {
-            val tagCor = p.tagCorDe(a.offer.platform)
+            val tagCor = Pecas.cor(p, "cor_tag_${a.offer.platform}") ?: p.tagCorDe(a.offer.platform)
             val clara = (Color.red(tagCor) * 299 + Color.green(tagCor) * 587 + Color.blue(tagCor) * 114) / 1000 > 160
-            coluna1.addView(ui.tv(when (a.offer.platform) { "Uber" -> "UBER"; "99" -> "99"; "inDriver" -> "inDRIVE"; else -> "TESTE" }, size * 0.75f * esc("tamTag"),
+            coluna1.addView(marcar(ui.tv(when (a.offer.platform) { "Uber" -> "UBER"; "99" -> "99"; "inDriver" -> "inDRIVE"; else -> "TESTE" }, size * 0.75f * esc("tamTag"),
                 if (clara) Color.parseColor("#1B1F24") else Color.WHITE, 3, true).apply {
                 background = ui.round(tagCor, 8); setPadding(ui.dp(8), ui.dp(2), ui.dp(8), ui.dp(2)); maxLines = 1
-            }, LinearLayout.LayoutParams(wrap, wrap))
+            }, "tag"), LinearLayout.LayoutParams(wrap, wrap))
         }
         val stops = a.offer.stops
-        if (stops > 0) coluna1.addView(ui.tv(if (stops == 1) "PARADA" else "$stops PARADAS", size * 0.42f, Color.WHITE, 3, true).apply {
-            background = ui.round(Color.rgb(224, 16, 16), 6); setPadding(ui.dp(5), ui.dp(1), ui.dp(5), ui.dp(1)); maxLines = 1
-        }, LinearLayout.LayoutParams(wrap, wrap).also { it.topMargin = ui.dp(3) })
+        if (stops > 0) coluna1.addView(marcar(ui.tv(if (stops == 1) "PARADA" else "$stops PARADAS", size * 0.42f * esc("tamParada"),
+            Pecas.cor(p, "cor_parada_txt") ?: Color.WHITE, 3, true).apply {
+            background = ui.round(Pecas.cor(p, "cor_parada_fundo") ?: Color.rgb(224, 16, 16), 6); setPadding(ui.dp(5), ui.dp(1), ui.dp(5), ui.dp(1)); maxLines = 1
+        }, "parada"), LinearLayout.LayoutParams(wrap, wrap).also { it.topMargin = ui.dp(3) })
         var superTag: View? = null
         if (top) {
-            superTag = ui.tv("⚡ SUPER", size * 0.42f, neon, 3, true).apply { background = ui.round(ink, 6); setPadding(ui.dp(5), ui.dp(1), ui.dp(5), ui.dp(1)); maxLines = 1 }
+            superTag = marcar(ui.tv("⚡ SUPER", size * 0.42f * esc("tamSuper"), Pecas.cor(p, "cor_super_txt") ?: neon, 3, true).apply {
+                background = ui.round(Pecas.cor(p, "cor_super_fundo") ?: ink, 6); setPadding(ui.dp(5), ui.dp(1), ui.dp(5), ui.dp(1)); maxLines = 1
+            }, "super")
             coluna1.addView(superTag, LinearLayout.LayoutParams(wrap, wrap).also { it.topMargin = ui.dp(3) })
         }
         if (coluna1.childCount > 0) l1.addView(coluna1, LinearLayout.LayoutParams(wrap, wrap).also { it.marginEnd = ui.dp(6) })
 
-        fun pill(value: String, fill: Int, txt: Int): View = ui.tv(value, size * esc("tamNumeros"), txt, 3, true).apply {
+        fun pill(value: String, fill: Int, txt: Int, id: String, tamKey: String): View = marcar(ui.tv(value, size * esc(tamKey), txt, 3, true).apply {
             background = GradientDrawable().apply { setColor(fill); cornerRadius = ui.dpf(40f) }
             setPadding(ui.dp(10), ui.dp(4), ui.dp(10), ui.dp(5)); maxLines = 1
-        }
-        if (p.cpB("km", true)) l1.addView(pill(String.format(br, "%.1f km", a.totalKm), p.cpI("corKm", Color.BLACK), Color.WHITE),
-            LinearLayout.LayoutParams(wrap, wrap).also { it.marginEnd = ui.dp(6) })
+        }, id)
+        if (p.cpB("km", true)) l1.addView(pill(String.format(br, "%.1f km", a.totalKm), Pecas.cor(p, "corKm") ?: Color.BLACK,
+            Pecas.cor(p, "cor_km_txt") ?: Color.WHITE, "km", "tamKm"), LinearLayout.LayoutParams(wrap, wrap).also { it.marginEnd = ui.dp(6) })
         if (p.cpB("valor", true)) {
-            val vFill = if (top) neon else verdict
-            l1.addView(pill(String.format(br, "R$ %.2f", a.offer.value), vFill, if (top || a.verdict == Verdict.YELLOW) ink else Color.WHITE),
-                LinearLayout.LayoutParams(wrap, wrap))
+            val vFill = Pecas.cor(p, "cor_valor") ?: (if (top) neon else verdict)
+            val vTxt = Pecas.cor(p, "cor_valor_txt") ?: (if (top || a.verdict == Verdict.YELLOW) ink else Color.WHITE)
+            l1.addView(pill(String.format(br, "R$ %.2f", a.offer.value), vFill, vTxt, "valor", "tamValor"), LinearLayout.LayoutParams(wrap, wrap))
         }
         l1.addView(View(ctx), LinearLayout.LayoutParams(0, 1, 1f))
         if (p.cpB("rsKm", true)) {
             val kmCol = ui.vbox().apply { gravity = Gravity.CENTER }
-            val corKm = if (top) neon else verdict
+            val corKm = Pecas.cor(p, "cor_rskm") ?: (if (top) neon else verdict)
             // maxLines (não singleLine): singleLine + centralizado empurrava o número para fora da coluna
-            kmCol.addView(ui.tv(String.format(br, "%.2f", a.perKm), size * 2.0f * esc("tamRsKm"), corKm, 3, true).apply { maxLines = 1; includeFontPadding = false },
+            kmCol.addView(marcar(ui.tv(String.format(br, "%.2f", a.perKm), size * 2.0f * esc("tamRsKm"), corKm, 3, true).apply { maxLines = 1; includeFontPadding = false }, "rskm"),
                 LinearLayout.LayoutParams(wrap, wrap))
-            if (p.cpB("rsKmRotulo", true)) kmCol.addView(ui.tv("R$/km", size * 0.5f, Color.WHITE, 2, true).apply { alpha = 0.85f }, LinearLayout.LayoutParams(wrap, wrap))
+            if (p.cpB("rsKmRotulo", true)) kmCol.addView(marcar(ui.tv("R$/km", size * 0.5f * esc("tamRotulo"), Pecas.cor(p, "cor_rotulo") ?: Color.WHITE, 2, true).apply { alpha = 0.85f }, "rotulo"),
+                LinearLayout.LayoutParams(wrap, wrap))
             l1.addView(kmCol, LinearLayout.LayoutParams(wrap, wrap).also { it.marginStart = ui.dp(8) })
         }
         if (l1.childCount > 1) esq.addView(l1, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, wrap))
 
-        // saída: rua de embarque com a bolinha de piso (nova; desligável)
+        // saída: rua de embarque com a bolinha de piso (desligável em Peças)
         if (a.offer.pickupText.isNotBlank()) saidaLinha(ctx, ui, Destino.analisar(a.offer.pickupText, p), size, p)?.let {
             esq.addView(it, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, wrap).also { lp -> if (esq.childCount > 0) lp.topMargin = ui.dp(gap) })
         }
 
-        // linha 2: caixa azul em largura total, nome da rua grande + ícone do piso
+        // linha 2: caixa da rua em largura total, nome grande + ícone do piso
         val dest = Destino.analisar(a.offer.destText, p, a.offer.pickupText)
-        if (p.bairroOn && p.cpB("rua", true) && !dest.vazio) esq.addView(bairroCompacto(ctx, ui, dest, size, p, verdict),
+        if (p.bairroOn && p.cpB("rua", true) && !dest.vazio) esq.addView(bairroCompacto(ctx, ui, dest, size, p, Pecas.cor(p, "cor_rua_fundo") ?: verdict),
             LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, wrap).also { if (esq.childCount > 0) it.topMargin = ui.dp(gap) })
 
         frame.addView(esq, LinearLayout.LayoutParams(0, wrap, 1f))
         if (a.verdict == Verdict.GREEN && p.eqOn && p.cpB("eq", true)) {
             val lo = p.eqMinC / 100.0; val hi = maxOf(p.eqMaxC / 100.0, lo + 0.01)
             val frac = ((a.perKm - lo) / (hi - lo)).coerceIn(0.0, 1.0)
-            frame.addView(Equalizador(ctx, frac, top, p.eqCor, p.eqMs.toLong()), LinearLayout.LayoutParams(ui.dp(p.cpI("largEq", 30)), ViewGroup.LayoutParams.MATCH_PARENT).also { it.marginStart = ui.dp(10) })
+            frame.addView(marcar(Equalizador(ctx, frac, top, Pecas.cor(p, "cor_barra") ?: p.eqCor, p.eqMs.toLong()), "barra"),
+                LinearLayout.LayoutParams(ui.dp(Pecas.num(p, "largEq")), ViewGroup.LayoutParams.MATCH_PARENT).also { it.marginStart = ui.dp(10) })
         }
 
         if (top) {
@@ -472,7 +502,7 @@ object OverlayCard {
                 duration = p.topMs.toLong(); repeatMode = android.animation.ValueAnimator.REVERSE; repeatCount = android.animation.ValueAnimator.INFINITE
                 addUpdateListener {
                     val f = it.animatedValue as Float
-                    frameBg.setStroke(ui.dp(p.cpI("moldura", 4) + 1), Color.argb((255 * f).toInt(), Color.red(neon), Color.green(neon), Color.blue(neon)))
+                    frameBg.setStroke(ui.dp(moldura + 1), Color.argb((255 * f).toInt(), Color.red(neon), Color.green(neon), Color.blue(neon)))
                     superTag?.alpha = 0.35f + 0.65f * f
                 }
             }
@@ -484,24 +514,30 @@ object OverlayCard {
         }
 
         // mercado no embarque: só uma faixa vermelha fina embaixo, sem o "NÃO VOU"
-        if (dest.negra == null && dest.mercado != null && p.cpB("mercadoFaixa", true)) {
+        val faixaOn = dest.negra == null && (dest.mercado != null || forcar.contains("faixa")) && p.cpB("mercadoFaixa", true)
+        if (faixaOn) {
             val col = ui.vbox()
             col.addView(frame)
-            val fbg = GradientDrawable().apply { setColor(Color.parseColor("#B91C1C")); cornerRadius = ui.dpf(16f) }
-            val faixa = ui.tv("⛔ " + p.mercadoLinha1, size * 0.62f * esc("tamFaixa"), Color.WHITE, 3, true).apply {
+            val corFaixa = Pecas.cor(p, "cor_faixa_fundo") ?: Color.parseColor("#B91C1C")
+            val fbg = GradientDrawable().apply { setColor(corFaixa); cornerRadius = ui.dpf(16f) }
+            val faixa = marcar(ui.tv("⛔ " + p.mercadoLinha1, size * 0.62f * esc("tamFaixa"), Pecas.cor(p, "cor_faixa_txt") ?: Color.WHITE, 3, true).apply {
                 background = fbg; setPadding(ui.dp(12), ui.dp(5), ui.dp(12), ui.dp(5)); maxLines = 2
-            }
+            }, "faixa")
             col.addView(faixa, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, wrap).also { it.topMargin = ui.dp(4) })
-            piscar(faixa, fbg, Color.parseColor("#B91C1C"), Color.parseColor("#EF4444"), false, ui)
+            piscar(faixa, fbg, corFaixa, Color.parseColor("#EF4444"), false, ui)
             return col
         }
+        corAviso = Pecas.cor(p, "cor_aviso_fundo") ?: Color.parseColor("#B91C1C")
+        corAvisoTxt = Pecas.cor(p, "cor_aviso_txt") ?: Color.WHITE
+        val tamAviso = esc("tamAviso")
         val negra = when {
+            forcar.contains("aviso") -> Destino.Negra(p.avisoLinha1, p.avisoLinha2)
             dest.negra != null -> Destino.Negra(p.avisoLinha1, p.avisoLinha2)
             dest.mercado != null -> Destino.Negra(p.mercadoLinha1, p.avisoLinha2)
             p.paradasDemais(a.offer.stops) -> Destino.Negra("${a.offer.stops} PARADAS", p.avisoLinha2)
             else -> return frame
         }
-        return if (p.avisoStyle == 1) cartazNegra(ctx, ui, frame, negra, size) else painelNegra(ctx, ui, frame, negra, size)
+        return if (p.avisoStyle == 1) cartazNegra(ctx, ui, frame, negra, size * tamAviso) else painelNegra(ctx, ui, frame, negra, size * tamAviso)
     }
 
     private fun montar(ctx: Context, a: Analysis, p: Prefs): View {
@@ -801,31 +837,34 @@ object OverlayCard {
         val condo = d.condominio != null
         val principal = d.rua ?: d.condominio ?: d.bairro ?: ""
         val sub = if (!p.cpB("bairro", true)) "" else listOfNotNull(d.condominio?.takeIf { it != principal }, d.bairro?.takeIf { it != principal }).distinct().joinToString(" · ")
-        val azul = fundo ?: p.cpI("azul", AZUL)
-        val txt = if (fundo != null) corSobre(fundo) else Color.WHITE
+        val azul = fundo ?: AZUL
+        val txt = Pecas.cor(p, "cor_rua_txt") ?: (if (fundo != null) corSobre(fundo) else Color.WHITE)
         val bg = GradientDrawable().apply { setColor(azul); cornerRadius = ui.dpf(20f) }
-        val r = ui.hbox().apply { background = bg; setPadding(ui.dp(14), ui.dp(6), ui.dp(8), ui.dp(6)); gravity = Gravity.CENTER_VERTICAL }
+        val r = marcar(ui.hbox().apply { background = bg; setPadding(ui.dp(14), ui.dp(6), ui.dp(8), ui.dp(6)); gravity = Gravity.CENTER_VERTICAL }, "rua")
         val col = ui.vbox().apply { gravity = Gravity.CENTER_VERTICAL }
-        col.addView(ui.tv((if (d.evitado) "⚠ " else "") + principal, size * 1.05f * p.cpI("tamRua", 100) / 100f, txt, 3).apply { maxLines = 3; includeFontPadding = false })
-        if (sub.isNotBlank()) col.addView(ui.tv(sub, size * 0.62f * p.cpI("tamBairro", 100) / 100f, txt, 2).apply { alpha = 0.9f; maxLines = 2 }, ui.lp(top = 2))
+        col.addView(ui.tv((if (d.evitado) "⚠ " else "") + principal, size * 1.05f * Pecas.num(p, "tamRua") / 100f, txt, 3).apply { maxLines = 3; includeFontPadding = false })
+        if (sub.isNotBlank()) col.addView(marcar(ui.tv(sub, size * 0.62f * Pecas.num(p, "tamBairro") / 100f, txt, 2).apply { alpha = 0.9f; maxLines = 2 }, "bairro"), ui.lp(top = 2))
         r.addView(col, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         if (p.cpB("icone", true)) iconePiso(ctx, ui, d.pavimento, size)?.let {
-            val lado = ui.dp((size * 2.4f * p.cpI("tamIcone", 100) / 100f).toInt())
+            val lado = ui.dp((size * 2.4f * Pecas.num(p, "tamIcone") / 100f).toInt())
+            marcar(it, "icone")
             r.addView(it, LinearLayout.LayoutParams(lado, lado).also { lp -> lp.marginStart = ui.dp(8) })
         }
         if (d.evitado) piscar(r, bg, azul, if (azul == VERMELHO) Color.parseColor("#7F1D1D") else VERMELHO, true, ui) else if (condo) bg.setStroke(ui.dp(3), Color.parseColor("#7C3AED"))
         return r
     }
 
-    /** Endereço de saída (embarque): nome da rua com a bolinha de piso (terra/asfalto) ao lado. Desligável em "O que aparece". */
+    /** Endereço de saída (embarque): nome da rua com a bolinha de piso (terra/asfalto) ao lado. Desligável em Peças. */
     private fun saidaLinha(ctx: Context, ui: Ui, ds: Destino.Info, size: Float, p: Prefs): View? {
         if (!p.cpB("bolaSaida", true)) return null
         val nome = ds.rua ?: ds.bairro ?: return null
-        val esc = p.cpI("tamBolaSaida", 100) / 100f
-        val bg = GradientDrawable().apply { setColor(Color.argb(205, 17, 20, 24)); cornerRadius = ui.dpf(20f) }
+        val esc = Pecas.num(p, "tamBolaSaida") / 100f
+        val txt = Pecas.cor(p, "cor_saida_txt") ?: Color.WHITE
+        val bg = GradientDrawable().apply { setColor(Pecas.cor(p, "cor_saida_fundo") ?: Color.argb(205, 17, 20, 24)); cornerRadius = ui.dpf(20f) }
         val r = ui.hbox().apply { background = bg; setPadding(ui.dp(12), ui.dp(4), ui.dp(8), ui.dp(4)); gravity = Gravity.CENTER_VERTICAL }
-        r.addView(ui.tv("SAÍDA", size * 0.42f, Color.WHITE, 3, true).apply { alpha = 0.7f; maxLines = 1 })
-        r.addView(ui.tv(nome, size * 0.8f, Color.WHITE, 3).apply { maxLines = 1; includeFontPadding = false; ellipsize = android.text.TextUtils.TruncateAt.END },
+        marcar(r, "saida")
+        r.addView(ui.tv("SAÍDA", size * 0.42f * esc, txt, 3, true).apply { alpha = 0.7f; maxLines = 1 })
+        r.addView(ui.tv(nome, size * 0.8f * esc, txt, 3).apply { maxLines = 1; includeFontPadding = false; ellipsize = android.text.TextUtils.TruncateAt.END },
             LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).also { it.marginStart = ui.dp(8) })
         iconePiso(ctx, ui, ds.pavimento, size)?.let {
             val lado = ui.dp((size * 1.7f * esc).toInt())
@@ -836,9 +875,9 @@ object OverlayCard {
 
     private fun conteudoNegra(ui: Ui, n: Destino.Negra, size: Float, grande: Boolean): LinearLayout {
         val c = ui.vbox().apply { gravity = Gravity.CENTER_HORIZONTAL }
-        c.addView(ui.tv("⛔", size * (if (grande) 2.0f else 1.4f), Color.WHITE, 3, true))
-        if (n.nome.isNotBlank()) c.addView(ui.tv(n.nome, size * (if (grande) 1.05f else 0.7f), Color.WHITE, 3, true).apply { maxWidth = ui.dp(if (grande) 280 else 110) }, ui.lp(top = 2))
-        if (n.motivo.isNotBlank()) c.addView(ui.tv(n.motivo, size * (if (grande) 1.3f else 0.9f), Color.WHITE, 3, true).apply { maxWidth = ui.dp(if (grande) 280 else 110) })
+        c.addView(ui.tv("⛔", size * (if (grande) 2.0f else 1.4f), corAvisoTxt, 3, true))
+        if (n.nome.isNotBlank()) c.addView(ui.tv(n.nome, size * (if (grande) 1.05f else 0.7f), corAvisoTxt, 3, true).apply { maxWidth = ui.dp(if (grande) 280 else 110) }, ui.lp(top = 2))
+        if (n.motivo.isNotBlank()) c.addView(ui.tv(n.motivo, size * (if (grande) 1.3f else 0.9f), corAvisoTxt, 3, true).apply { maxWidth = ui.dp(if (grande) 280 else 110) })
         return c
     }
 
@@ -852,21 +891,21 @@ object OverlayCard {
             // não cabe ao lado: o aviso vai logo abaixo do quadro, na largura dele
             val col = ui.vbox()
             col.addView(box)
-            val bg2 = GradientDrawable().apply { setColor(Color.parseColor("#B91C1C")); cornerRadius = ui.dpf(22f) }
+            val bg2 = GradientDrawable().apply { setColor(corAviso); cornerRadius = ui.dpf(22f) }
             val p2 = conteudoNegra(ui, n, size, false).apply { background = bg2; gravity = Gravity.CENTER; setPadding(ui.dp(10), ui.dp(6), ui.dp(10), ui.dp(6)) }
             col.addView(p2, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).also { it.topMargin = ui.dp(3) })
-            piscar(p2, bg2, Color.parseColor("#B91C1C"), Color.parseColor("#EF4444"), true, ui)
+            piscar(p2, bg2, corAviso, Color.parseColor("#EF4444"), true, ui)
             return col
         }
         val row = ui.hbox().apply { gravity = Gravity.CENTER_VERTICAL }
         row.addView(box)
-        val bg = GradientDrawable().apply { setColor(Color.parseColor("#B91C1C")); cornerRadius = ui.dpf(22f) }
+        val bg = GradientDrawable().apply { setColor(corAviso); cornerRadius = ui.dpf(22f) }
         val painel = conteudoNegra(ui, n, size, false).apply {
             background = bg; gravity = Gravity.CENTER
             setPadding(ui.dp(10), ui.dp(14), ui.dp(10), ui.dp(14))
         }
         row.addView(painel, LinearLayout.LayoutParams(ui.dp(120), ViewGroup.LayoutParams.MATCH_PARENT).also { it.marginStart = ui.dp(3); it.topMargin = ui.dp(3); it.bottomMargin = ui.dp(3) })
-        piscar(painel, bg, Color.parseColor("#B91C1C"), Color.parseColor("#EF4444"), true, ui)
+        piscar(painel, bg, corAviso, Color.parseColor("#EF4444"), true, ui)
         return row
     }
 
@@ -874,12 +913,12 @@ object OverlayCard {
     private fun cartazNegra(ctx: Context, ui: Ui, box: View, n: Destino.Negra, size: Float): View {
         val fr = android.widget.FrameLayout(ctx)
         fr.addView(box)
-        val bg = GradientDrawable().apply { setColor(Color.parseColor("#B91C1C")); cornerRadius = ui.dpf(28f) }
+        val bg = GradientDrawable().apply { setColor(corAviso); cornerRadius = ui.dpf(28f) }
         val cartaz = conteudoNegra(ui, n, size, true).apply {
             background = bg; gravity = Gravity.CENTER
             setPadding(ui.dp(16), ui.dp(16), ui.dp(16), ui.dp(16))
         }
-        val ok = ui.tv("Entendi", size * 0.6f, Color.parseColor("#B91C1C"), 3, true).apply {
+        val ok = ui.tv("Entendi", size * 0.6f, corAviso, 3, true).apply {
             background = ui.round(Color.WHITE, 30)
             setPadding(ui.dp(22), ui.dp(8), ui.dp(22), ui.dp(8))
             setOnClickListener { cartaz.visibility = View.GONE }
@@ -887,7 +926,7 @@ object OverlayCard {
         cartaz.addView(ok, ui.lp(top = 10))
         cartaz.setOnClickListener { /* não fecha o quadro por baixo */ }
         fr.addView(cartaz, android.widget.FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
-        piscar(cartaz, bg, Color.parseColor("#B91C1C"), Color.parseColor("#EF4444"), true, ui)
+        piscar(cartaz, bg, corAviso, Color.parseColor("#EF4444"), true, ui)
         cartaz.postDelayed({ cartaz.visibility = View.GONE }, 6000)
         return fr
     }

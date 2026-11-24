@@ -22,6 +22,7 @@ import android.text.InputType
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.view.MotionEvent
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -1136,30 +1137,134 @@ class MainActivity : Activity() {
         return box
     }
 
+    /** Peça escolhida no editor visual (aparece com contorno amarelo na prévia). */
+    private var pecaSel = "quadro"
+
+    /** Peça que está embaixo do dedo, mapeando a escala da prévia (o Encaixe reduz o quadro). */
+    private fun pecaEm(v: View, x: Float, y: Float): String? {
+        if (v is ViewGroup) {
+            for (i in v.childCount - 1 downTo 0) {
+                val c = v.getChildAt(i)
+                val sx = if (c.scaleX == 0f) 1f else c.scaleX
+                val sy = if (c.scaleY == 0f) 1f else c.scaleY
+                val lx = (x - c.left) / sx
+                val ly = (y - c.top) / sy
+                if (lx >= 0 && lx < c.width && ly >= 0 && ly < c.height) pecaEm(c, lx, ly)?.let { return it }
+            }
+        }
+        return (v.tag as? String)?.takeIf { it.startsWith("peca:") }?.removePrefix("peca:")
+    }
+
+    /** Uma peça na lista: ✓ aparece, ✕ escondida; a escolhida fica realçada. */
+    private fun chipPeca(p: Prefs, pc: Pecas.Peca): View {
+        val sel = pecaSel == pc.id
+        val ligada = pc.liga?.let { p.cpB(it, true) } ?: true
+        return ui.hbox().apply {
+            gravity = Gravity.CENTER_VERTICAL
+            background = ui.round(if (sel) C.PURPLE_LIGHT else C.BG, 14, if (sel) 3 else 1, if (sel) C.PURPLE else C.LINE)
+            setPadding(dp(10), dp(10), dp(10), dp(10))
+            setOnClickListener { pecaSel = pc.id; render() }
+            addView(ui.tv(if (ligada) "✓" else "✕", 14f, if (ligada) C.GOOD else C.MUTED, 3, true),
+                LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).also { it.marginEnd = dp(6) })
+            addView(ui.tv(pc.nome, 14f, C.TEXT, if (sel) 3 else 1), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        }
+    }
+
+    /** Uma cor da peça: amostra para trocar, botão "Auto" quando couber, e o que é automático. */
+    private fun linhaCor(p: Prefs, c: Pecas.Cor): View {
+        val atual = Pecas.cor(p, c.chave)
+        val linha = ui.hbox().apply { gravity = Gravity.CENTER_VERTICAL }
+        val col = ui.vbox()
+        col.addView(ui.tv(c.rotulo, 14f, C.TEXT, 2))
+        col.addView(ui.tv(if (atual == null) "Automática: ${c.auto ?: ""}" else "Cor fixa", 12f, C.MUTED, 0), ui.lp(top = 2))
+        linha.addView(col, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        if (c.auto != null && atual != null) {
+            linha.addView(ui.tv("Auto", 13f, C.TEXT, 3, true).apply {
+                background = ui.round(C.BG, 10, 1, C.LINE); setPadding(dp(10), dp(8), dp(10), dp(8))
+                setOnClickListener { p.setCpI(c.chave, Pecas.AUTO); render() }
+            }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).also { it.marginEnd = dp(8) })
+        }
+        linha.addView(View(this).apply {
+            background = ui.round(atual ?: C.BG, 10, 2, C.LINE)
+            setOnClickListener { escolherCor(c.rotulo, atual ?: Color.parseColor("#888888")) { v -> p.setCpI(c.chave, v); render() } }
+        }, LinearLayout.LayoutParams(dp(44), dp(44)))
+        return linha
+    }
+
     private fun compactoContent(p: Prefs): View {
         val box = ui.vbox()
-        box.addView(pageHeader("Editor visual", "Fonte, texto, cores, tamanhos e espaços. A prévia mostra cada mudança antes de salvar."))
-        val br = Locale("pt", "BR")
+        box.addView(pageHeader("Editor visual", "Mude cada peça do semáforo e veja na hora. Toque numa peça na prévia ou na lista."))
 
         // o editor enxerga o rascunho: a prévia e as cores das telas mostram o que você está mudando
         Templates.apply(p.template, p)
         val modelo = Templates.tpl(p.template)
 
-        // prévia sempre no compacto
-        val prev = ui.vbox().apply { background = ui.round(Color.parseColor("#2B3340"), 14); setPadding(dp(8), dp(14), dp(8), dp(14)) }
-        val antes = p.compacto
-        p.compacto = true
-        listOf(
-            Offer("99", 23.40, 5.0, 11.0, 12.2, 22.0, destText = "Rua Dos Cafezeiros, 64, Jardim São Conrado"),
-            Offer("99", 12.40, 1.5, 5.0, 5.2, 14.0, destText = "Rua 13 de Novembro, 55"),
-            Offer("Uber", 8.10, 2.4, 6.0, 3.3, 9.0, pickupText = "Supermercado Comper, Avenida Afonso Pena, 4000", destText = "Rua 26 de Agosto, 2315 - Centro")
-        ).forEach { o ->
-            prev.addView(Encaixe(this, resources.displayMetrics.widthPixels - dp(100), dp(900)).apply { addView(OverlayCard.build(this@MainActivity, Calc.analyze(o, p), p)) },
-                LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).also { it.gravity = Gravity.CENTER_HORIZONTAL; it.bottomMargin = dp(10) })
+        // prévia viva com as três corridas de exemplo. Toque numa peça para escolhê-la.
+        val prev = object : LinearLayout(this) {
+            override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
+                if (ev.actionMasked == MotionEvent.ACTION_UP) {
+                    pecaEm(this, ev.x, ev.y)?.let { id -> pecaSel = id; post { render() }; return true }
+                }
+                return false
+            }
+        }.apply {
+            orientation = LinearLayout.VERTICAL
+            background = ui.round(Color.parseColor("#2B3340"), 14); setPadding(dp(8), dp(14), dp(8), dp(14))
         }
-        p.compacto = antes
-        val c0 = ui.card(); c0.addView(ui.tv("Prévia (3 corridas de exemplo)", 12f, C.MUTED, 0)); c0.addView(prev, ui.lp(top = 6))
+        // cada corrida de exemplo força uma peça que não apareceria sozinha: SUPER, aviso grande e faixa de mercado
+        val exemplos = listOf(
+            Offer("99", 23.40, 5.0, 11.0, 12.2, 22.0, destText = "Rua Dos Cafezeiros, 64, Jardim São Conrado") to setOf("top"),
+            Offer("99", 12.40, 1.5, 5.0, 5.2, 14.0, stops = 1, destText = "Rua 13 de Novembro, 55") to setOf("aviso"),
+            Offer("Uber", 8.10, 2.4, 6.0, 3.3, 9.0, pickupText = "Supermercado Comper, Avenida Afonso Pena, 4000", destText = "Rua 26 de Agosto, 2315 - Centro") to setOf("faixa")
+        )
+        OverlayCard.destaque = pecaSel
+        try {
+            exemplos.forEach { (o, forca) ->
+                OverlayCard.forcar = forca
+                prev.addView(Encaixe(this, resources.displayMetrics.widthPixels - dp(100), dp(900)).apply {
+                    addView(OverlayCard.build(this@MainActivity, Calc.analyze(o, p), p))
+                }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).also {
+                    it.gravity = Gravity.CENTER_HORIZONTAL; it.bottomMargin = dp(10)
+                })
+            }
+        } finally {
+            OverlayCard.forcar = emptySet()
+            OverlayCard.destaque = null
+        }
+        val c0 = ui.card()
+        c0.addView(ui.tv("Prévia ao vivo (3 corridas de exemplo)", 12f, C.MUTED, 0))
+        c0.addView(prev, ui.lp(top = 6))
         box.addView(c0, ui.lp(top = 16))
+
+        // ---- lista das peças: toque para escolher; ✓ aparece, ✕ escondida
+        val lista = ui.card()
+        lista.addView(ui.tv("Peças do semáforo", 18f, C.TEXT, 3))
+        lista.addView(ui.tv("Toque numa peça para ajustar: tamanho, cor e se aparece.", 13f, C.MUTED, 0), ui.lp(top = 4))
+        Pecas.TODAS.chunked(2).forEachIndexed { i, par ->
+            val linha = ui.hbox()
+            par.forEachIndexed { j, pc ->
+                linha.addView(chipPeca(p, pc), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).also { if (j == 1) it.marginStart = dp(8) })
+            }
+            if (par.size == 1) linha.addView(View(this), LinearLayout.LayoutParams(0, 1, 1f).also { it.marginStart = dp(8) })
+            lista.addView(linha, ui.lp(top = if (i == 0) 10 else 8))
+        }
+        box.addView(lista, ui.lp(top = 16))
+
+        // ---- ajustes da peça escolhida: aparecer, tamanhos e cores
+        val pc = Pecas.peca(pecaSel) ?: Pecas.TODAS.first()
+        val ajuste = ui.card()
+        ajuste.addView(ui.tv(pc.nome, 18f, C.TEXT, 3))
+        if (pc.dica.isNotBlank()) ajuste.addView(ui.tv(pc.dica, 13f, C.MUTED, 0), ui.lp(top = 4))
+        pc.liga?.let { k -> ajuste.addView(switchRow("Mostrar", p.cpB(k, true)) { p.setCpB(k, it); render() }, ui.lp(top = 12)) }
+        pc.numeros.filter { it.visivel }.forEach { n ->
+            val v = Pecas.num(p, n.chave)
+            ajuste.addView(stepperRow(n.rotulo, n.formata(v),
+                { Pecas.gravaNum(p, n.chave, maxOf(n.min, v - n.passo)); render() },
+                { Pecas.gravaNum(p, n.chave, minOf(n.max, v + n.passo)); render() }), ui.lp(top = 12))
+        }
+        pc.cores.forEach { c -> ajuste.addView(linhaCor(p, c), ui.lp(top = 12)) }
+        ajuste.addView(ui.button("Restaurar esta peça", false) { Pecas.restaurar(p, pc); render() }, ui.lp(top = 16))
+        box.addView(ajuste, ui.lp(top = 16))
 
         // ---- fonte e texto: vale para o app inteiro e para o semáforo
         val txt = p.visOpt("txt") ?: 100
@@ -1174,9 +1279,9 @@ class MainActivity : Activity() {
         tipo.addView(stepperRow("Cantos arredondados", "$rs%", { p.setVis("rs", maxOf(0, rs - 10)); render() }, { p.setVis("rs", minOf(200, rs + 10)); render() }), ui.lp(top = 12))
         box.addView(tipo, ui.lp(top = 16))
 
-        // ---- cores do app e do semáforo: toque na cor para trocar
+        // ---- cores do app: toque na cor para trocar
         val cores = ui.card()
-        cores.addView(ui.tv("Cores", 18f, C.TEXT, 3))
+        cores.addView(ui.tv("Cores do app", 18f, C.TEXT, 3))
         cores.addView(ui.tv("Toque na cor para trocar. Sem ajuste, vale a cor do modelo escolhido.", 13f, C.MUTED, 0), ui.lp(top = 4))
         fun corTok(rotulo: String, k: String, padrao: Int) =
             cores.addView(corRow(rotulo, p.visOpt(k) ?: padrao) { p.setVis(k, it); render() }, ui.lp(top = 12))
@@ -1191,88 +1296,6 @@ class MainActivity : Activity() {
         corTok("Semáforo: amarelo", "mid", Templates.AMARELO_PADRAO)
         corTok("Semáforo: vermelho", "bad", Templates.VERMELHO_PADRAO)
         box.addView(cores, ui.lp(top = 16))
-        box.addView(ui.button("Voltar ao visual do modelo escolhido", false) { p.limparVisual(); render() }, ui.lp(top = 16))
-        box.addView(ui.tv("Os ajustes valem na hora. A prévia mostra exatamente o que a tela vai usar.", 12f, C.MUTED, 0).apply { gravity = Gravity.CENTER }, ui.lp(top = 8))
-
-
-        fun pct(k: String) = "${p.cpI(k, 100)}%"
-        fun tam(c: LinearLayout, label: String, k: String, min: Int = 50, max: Int = 200) =
-            c.addView(stepperRow(label, pct(k), { p.setCpI(k, maxOf(min, p.cpI(k, 100) - 10)); render() }, { p.setCpI(k, minOf(max, p.cpI(k, 100) + 10)); render() }), ui.lp(top = 12))
-        fun sw(c: LinearLayout, label: String, k: String) = c.addView(switchRow(label, p.cpB(k, true)) { p.setCpB(k, it); render() }, ui.lp(top = 6))
-
-
-        // ---- peças do semáforo: cada uma aparece como ela é; toque liga/desliga; − e + mudam o tamanho
-        val br2 = Locale("pt", "BR")
-        fun peca(visual: View, ligKey: String, tamKey: String?, tamMin: Int = 50, tamMax: Int = 200, nome: String): View {
-            val on = p.cpB(ligKey, true)
-            val t = ui.vbox().apply {
-                background = ui.round(if (on) Color.parseColor("#17142A") else C.BG, 16, if (on) 3 else 2, if (on) C.GOOD else C.LINE)
-                setPadding(dp(8), dp(8), dp(8), dp(8))
-            }
-            val topo = FrameLayout(this).apply { minimumHeight = dp(76); setOnClickListener { p.setCpB(ligKey, !on); render() } }
-            topo.addView(visual.apply { alpha = if (on) 1f else 0.25f }, FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT, Gravity.CENTER))
-            topo.addView(ui.tv(if (on) "✓" else "✕", 15f, Color.WHITE, 3, true).apply {
-                background = ui.round(if (on) C.GOOD else Color.parseColor("#6B7280"), 12)
-            }, FrameLayout.LayoutParams(dp(26), dp(26), Gravity.TOP or Gravity.END))
-            t.addView(topo, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(84)))
-            t.addView(ui.tv(nome, 14f, if (on) Color.WHITE else C.MUTED, 3, true).apply { maxLines = 2 }, ui.lp(top = 4))
-            if (tamKey != null && on) {
-                val v = p.cpI(tamKey, 100)
-                t.addView(ui.tv("$v%", 18f, C.MID, 3, true).apply { maxLines = 1 }, ui.lp(top = 4))
-                val r = ui.hbox()
-                fun bt(txt: String, f: () -> Unit) = ui.tv(txt, 24f, Color.WHITE, 3, true).apply {
-                    background = ui.round(Color.parseColor("#2E2A47"), 12); setOnClickListener { f() }; includeFontPadding = false
-                }
-                r.addView(bt("−") { p.setCpI(tamKey, maxOf(tamMin, v - 10)); render() }, LinearLayout.LayoutParams(0, dp(46), 1f))
-                r.addView(bt("+") { p.setCpI(tamKey, minOf(tamMax, v + 10)); render() }, LinearLayout.LayoutParams(0, dp(46), 1f).also { it.marginStart = dp(6) })
-                t.addView(r, ui.lp(top = 6))
-            }
-            return t
-        }
-        fun pilula(txt: String, fundo: Int, cor: Int, tam: Float) = ui.tv(txt, tam, cor, 3, true).apply {
-            background = ui.round(fundo, 20); setPadding(dp(10), dp(4), dp(10), dp(4)); maxLines = 1
-        }
-        fun grade(vararg pecas: View): View {
-            val col = ui.vbox()
-            pecas.toList().chunked(2).forEachIndexed { i, par ->
-                val l = ui.hbox()
-                par.forEachIndexed { j, v -> l.addView(v, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).also { if (j == 1) it.marginStart = dp(8) }) }
-                if (par.size == 1) l.addView(View(this), LinearLayout.LayoutParams(0, 1, 1f).also { it.marginStart = dp(8) })
-                col.addView(l, ui.lp(top = if (i == 0) 0 else 8))
-            }
-            return col
-        }
-        val cv = ui.card()
-        cv.addView(ui.tv("O que aparece", 18f, C.TEXT, 3))
-        cv.addView(ui.tv("Toque na peça para ligar ou desligar. Verde = aparece. O número amarelo é o tamanho: use − e +.", 13f, C.MUTED, 0), ui.lp(top = 4))
-        val eq = FrameLayout(this).apply { addView(Equalizador(this@MainActivity, 0.7, false, p.eqCor, p.eqMs.toLong()), FrameLayout.LayoutParams(dp(24), dp(64))) }
-        val rua = ui.vbox().apply { background = ui.round(p.cpI("azul", Color.parseColor("#1D4ED8")), 12); setPadding(dp(10), dp(6), dp(10), dp(6)) }
-        rua.addView(ui.tv("Rua dos Cafezeiros", 14f, Color.WHITE, 3))
-        val bairro = ui.tv("Jardim São Conrado", 13f, Color.parseColor("#DBE4FF"), 2).apply { background = ui.round(p.cpI("azul", Color.parseColor("#1D4ED8")), 10); setPadding(dp(10), dp(6), dp(10), dp(6)) }
-        val numKm = ui.vbox().apply { gravity = Gravity.CENTER_HORIZONTAL }
-        numKm.addView(ui.tv("1,36", 34f, C.MID, 3, true).apply { includeFontPadding = false })
-        val rotulo = ui.tv("R$/km", 15f, Color.WHITE, 2, true)
-        val icone = ui.hbox().apply { gravity = Gravity.CENTER }
-        icone.addView(IconePiso(this, false, p.cpI("estiloIcone", 0)), LinearLayout.LayoutParams(dp(44), dp(44)))
-        icone.addView(IconePiso(this, true, p.cpI("estiloIcone", 0)), LinearLayout.LayoutParams(dp(44), dp(44)).also { it.marginStart = dp(8) })
-        val saida = ui.hbox().apply { gravity = Gravity.CENTER; background = ui.round(Color.parseColor("#111418"), 12); setPadding(dp(10), dp(6), dp(8), dp(6)) }
-        saida.addView(ui.tv("Rua Bahia", 13f, Color.WHITE, 3))
-        saida.addView(IconePiso(this, true, p.cpI("estiloIcone", 0)), LinearLayout.LayoutParams(dp(30), dp(30)).also { it.marginStart = dp(8) })
-        cv.addView(grade(
-            peca(pilula("99", p.tagCor99, Color.WHITE, 18f), "tag", "tamTag", nome = "Nome do app"),
-            peca(pilula("17,2 km", p.cpI("corKm", Color.BLACK), Color.WHITE, 17f), "km", "tamNumeros", nome = "Km total"),
-            peca(pilula(String.format(br2, "R$ %.2f", 23.4), C.GOOD, Color.WHITE, 17f), "valor", "tamNumeros", nome = "Valor"),
-            peca(numKm, "rsKm", "tamRsKm", 50, 250, nome = "R$ por km"),
-            peca(rotulo, "rsKmRotulo", null, nome = "Texto R$/km"),
-            peca(eq, "eq", null, nome = "Barra de lucro"),
-            peca(rua, "rua", "tamRua", nome = "Nome da rua"),
-            peca(bairro, "bairro", "tamBairro", nome = "Bairro"),
-            peca(icone, "icone", "tamIcone", 50, 250, nome = "Ícone do piso"),
-            peca(saida, "bolaSaida", "tamBolaSaida", 50, 250, nome = "Bolinha da saída"),
-            peca(pilula("MERCADO", Color.parseColor("#B91C1C"), Color.WHITE, 14f), "mercadoFaixa", "tamFaixa", nome = "Aviso mercado")
-        ), ui.lp(top = 12))
-        cv.addView(ui.tv("Faixa do mercado desligada = aviso grande \"NÃO VOU\".", 12f, C.MUTED, 0), ui.lp(top = 8))
-        box.addView(cv, ui.lp(top = 16))
 
         // ---- modelo do ícone
         val ci = ui.card()
@@ -1302,26 +1325,7 @@ class MainActivity : Activity() {
         ci.addView(grade, ui.lp(top = 8))
         box.addView(ci, ui.lp(top = 16))
 
-        // ---- cores: amostra grande, toque para trocar
-        val cc = ui.card()
-        cc.addView(ui.tv("Cores", 18f, C.TEXT, 3))
-        fun amostra(nome: String, cor: Int, f: (Int) -> Unit): View {
-            val t = ui.vbox().apply { gravity = Gravity.CENTER_HORIZONTAL; setOnClickListener { escolherCor(nome, cor, f) } }
-            t.addView(View(this).apply { background = ui.round(cor, 14, 2, C.LINE) }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(56)))
-            t.addView(ui.tv(nome, 14f, C.TEXT, 2, true), ui.lp(top = 6))
-            return t
-        }
-        val linhaCores = ui.hbox()
-        listOf(
-            amostra("Fundo", p.cpI("fundo", Color.parseColor("#17142A"))) { p.setCpI("fundo", it) },
-            amostra("Caixa da rua", p.cpI("azul", Color.parseColor("#1D4ED8"))) { p.setCpI("azul", it) },
-            amostra("Pílula do km", p.cpI("corKm", Color.BLACK)) { p.setCpI("corKm", it) }
-        ).forEachIndexed { i, v -> linhaCores.addView(v, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).also { if (i > 0) it.marginStart = dp(8) }) }
-        cc.addView(linhaCores, ui.lp(top = 10))
-        cc.addView(stepperRow("Largura da barra de lucro", "${p.cpI("largEq", 30)}", { p.setCpI("largEq", maxOf(14, p.cpI("largEq", 30) - 4)); render() }, { p.setCpI("largEq", minOf(70, p.cpI("largEq", 30) + 4)); render() }), ui.lp(top = 14))
-        box.addView(cc, ui.lp(top = 16))
-
-        // tamanho e posição na tela
+        // ---- tamanho e posição na tela
         val cp = ui.card()
         cp.addView(ui.tv("Tamanho e posição na tela", 16f, C.TEXT, 2))
         cp.addView(ui.tv("O quadro sempre se ajusta à tela: se algo não couber, ele encolhe inteiro, sem cortar texto.", 12f, C.MUTED, 0), ui.lp(top = 4))
@@ -1346,18 +1350,8 @@ class MainActivity : Activity() {
         }, ui.lp(top = 14))
         box.addView(cp, ui.lp(top = 16))
 
-        val c4 = ui.card()
-        c4.addView(ui.tv("Quadro", 16f, C.TEXT, 2))
-        sw(c4, "Largura total da tela", "largTotal")
-        fun num(label: String, k: String, d: Int, passo: Int, min: Int, max: Int) =
-            c4.addView(stepperRow(label, "${p.cpI(k, d)}", { p.setCpI(k, maxOf(min, p.cpI(k, d) - passo)); render() }, { p.setCpI(k, minOf(max, p.cpI(k, d) + passo)); render() }), ui.lp(top = 12))
-        num("Margem nas laterais", "margem", 8, 2, 0, 40)
-        num("Respiro dentro do quadro", "respiro", 10, 2, 2, 30)
-        num("Espaço entre as linhas", "espaco", 6, 2, 0, 30)
-        num("Espessura da moldura", "moldura", 4, 1, 0, 14)
-        num("Arredondamento", "raio", 24, 4, 0, 48)
-        c4.addView(corRow("Cor do fundo", p.cpI("fundo", Color.parseColor("#17142A"))) { p.setCpI("fundo", it) }, ui.lp(top = 14))
-        box.addView(c4, ui.lp(top = 16))
+        box.addView(ui.button("Voltar ao visual do modelo escolhido", false) { p.limparVisual(); render() }, ui.lp(top = 16))
+        box.addView(ui.tv("Os ajustes valem na hora. A prévia mostra exatamente o que a tela vai usar.", 12f, C.MUTED, 0).apply { gravity = Gravity.CENTER }, ui.lp(top = 8))
         return box
     }
 
