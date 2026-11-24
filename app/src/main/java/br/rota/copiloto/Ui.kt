@@ -82,11 +82,17 @@ class Ui(val ctx: Context) {
 
     fun tv(s: CharSequence, sp: Float = 14f, color: Int = C.TEXT, w: Int = 0, center: Boolean = false): TextView =
         TextView(ctx).apply {
-            text = s
+            // rótulo fixo: mostra o texto que o usuário escolheu (se trocou) e, no modo editar, vira alvo de toque
+            val chave = (s as? String)?.takeIf { Textos.editavel(it) }
+            text = if (chave != null) Textos.de(chave) else s
             textSize = sp * C.TXT
             setTextColor(color)
             typeface = font(w)
             if (center) gravity = Gravity.CENTER
+            if (Textos.editando && chave != null) {
+                paintFlags = paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
+                setOnClickListener { Textos.onEditar?.invoke(chave, Textos.de(chave)) }
+            }
         }
 
     fun round(color: Int, radius: Int, stroke: Int = 0, strokeColor: Int = 0): GradientDrawable =
@@ -118,6 +124,10 @@ class Ui(val ctx: Context) {
             background = round(if (filled) C.PURPLE else C.PURPLE_LIGHT, 16)
             setPadding(dp(16), dp(14), dp(16), dp(14))
             setOnClickListener { onClick() }
+            // no modo editar o toque continua sendo a ação do botão; toque longo troca o nome dele
+            if (Textos.editando && Textos.editavel(label)) {
+                setOnLongClickListener { Textos.onEditar?.invoke(label, Textos.de(label)); true }
+            }
             layoutParams = lp(top = 10)
         }
 

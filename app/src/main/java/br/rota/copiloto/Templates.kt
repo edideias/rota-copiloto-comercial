@@ -69,6 +69,7 @@ object Templates {
      * os ajustes do editor visual sobrepõem o modelo: cor, fonte, cantos e tamanho do texto.
      */
     fun apply(i: Int, p: Prefs? = null) {
+        if (p != null) Textos.carregar(p.store.getString(Textos.CHAVE, null))
         val idx = i.coerceIn(0, all.size - 1)
         val t = all[idx]
         C.BG = p?.visOpt("bg") ?: t.bg

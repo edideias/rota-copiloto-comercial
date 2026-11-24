@@ -118,6 +118,7 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
         prefs = Prefs(this)
         Templates.apply(prefs.template, prefs)
+        Textos.onEditar = { original, atual -> editarTexto(original, atual) }
         ui = Ui(this)
         applyChrome()
 
@@ -166,11 +167,67 @@ class MainActivity : Activity() {
         val y = if (mesmaTela) (rolagemDe(root)?.scrollY ?: 0) else 0
         root.removeAllViews()
         root.addView(
-            stack.last()(),
+            envolverEdicao(stack.last()()),
             FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
         )
         profundidadeAnterior = stack.size
         if (mesmaTela && y > 0) rolagemDe(root)?.let { sv -> sv.post { sv.scrollTo(0, y) } }
+    }
+
+    /** Faixa no topo enquanto o modo editar textos está ligado. Some ao tocar em Sair. */
+    private fun envolverEdicao(conteudo: View): View {
+        if (!Textos.editando) return conteudo
+        val faixa = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setBackgroundColor(C.PURPLE)
+            setPadding(dp(14), dp(10), dp(10), dp(10))
+        }
+        faixa.addView(TextView(this).apply {
+            text = "Editando textos: toque num texto para trocar. Toque e segure um botão para renomeá-lo."
+            textSize = 12f
+            setTextColor(Color.WHITE)
+        }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        faixa.addView(TextView(this).apply {
+            text = "Sair"
+            textSize = 13f
+            setTextColor(C.PURPLE)
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            background = ui.round(Color.WHITE, 10)
+            setPadding(dp(12), dp(6), dp(12), dp(6))
+            setOnClickListener { Textos.editando = false; render() }
+        })
+        val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        col.addView(faixa)
+        col.addView(conteudo, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
+        return col
+    }
+
+    /** Diálogo para trocar um texto. "Original" desfaz a troca. */
+    private fun editarTexto(original: String, atual: String) {
+        val campo = EditText(this).apply {
+            setText(atual)
+            setSelection(atual.length)
+            setPadding(dp(16), dp(12), dp(16), dp(12))
+            setTextColor(C.TEXT)
+        }
+        AlertDialog.Builder(this)
+            .setTitle("Editar texto")
+            .setMessage("Original: $original")
+            .setView(campo)
+            .setPositiveButton("Salvar texto") { _, _ -> gravarTexto(original, campo.text.toString()) }
+            .setNeutralButton("Original") { _, _ -> gravarTexto(original, null) }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    /** Grava a troca na hora: no rascunho se houver configuração aberta, senão direto nas preferências. */
+    private fun gravarTexto(original: String, novo: String?) {
+        val destino: android.content.SharedPreferences = draftMem ?: prefs.store
+        val mapa = Textos.parse(destino.getString(Textos.CHAVE, null)).toMutableMap()
+        if (novo.isNullOrBlank()) mapa.remove(original) else mapa[original] = novo.trim()
+        destino.edit().putString(Textos.CHAVE, Textos.serializar(mapa)).apply()
+        render()
     }
 
     private fun push(b: () -> View) {
@@ -468,6 +525,17 @@ class MainActivity : Activity() {
 
     private fun ajustesContent(p: Prefs): View {
         val box = ui.vbox()
+        val editar = ui.card()
+        editar.addView(ui.tv("Editar textos ao vivo", 16f, C.TEXT, 3))
+        editar.addView(ui.tv(
+            if (Textos.editando) "Ligado. Toque em qualquer texto do app para trocar. Sair fica na faixa roxa do topo."
+            else "Ligue e toque em qualquer texto do app para trocar, na hora, sem mexer na configuração.",
+            13f, C.MUTED, 0), ui.lp(top = 4))
+        editar.addView(ui.button(if (Textos.editando) "Desligar edição de textos" else "Ligar edição de textos", !Textos.editando) {
+            Textos.editando = !Textos.editando
+            render()
+        })
+        box.addView(editar, ui.lp(top = 4))
         box.addView(ui.tv("Toque numa parte para abrir. Tudo que você muda aparece na prévia. Salve no topo.", 13f, C.MUTED, 0).apply { gravity = Gravity.CENTER })
         val secoes = listOf(
             Secao("tela", "🏠", "Tela inicial", "Escolha o modelo da tela", "#4F46E5") { modeloContent(it) },
