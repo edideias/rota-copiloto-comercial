@@ -52,8 +52,6 @@ class MainActivity : Activity() {
     private var tab = 0
     private val totalSteps = 6
 
-    // rascunho das telas de configuração (só vale depois de tocar em Salvar)
-    private var draftMem: MemPrefs? = null
 
     private fun dp(v: Int) = ui.dp(v)
 
@@ -89,8 +87,8 @@ class MainActivity : Activity() {
             activate = { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) },
             release = { push { wizardStep(0) } },
             config = { abrirConfigurar() },
-            apps = { openConfig("Apps de trabalho") { appsContent(it) } },
-            shots = { openConfig("Captura de tela") { captureContent(it) } },
+            apps = { abrirSecao("apps") },
+            shots = { abrirSecao("prints") },
             tutorial = { push { wizardStep(0) } },
             xiaomi = { push { screen("Ajuda Xiaomi", xiaomiHelpContent()) } },
             diag = {
@@ -111,7 +109,14 @@ class MainActivity : Activity() {
             ofertas = { push { screen("Ofertas de hoje", HomeTemplates.listaOfertas(this)) } },
             compacto = { v -> prefs.compacto = v; render() }
         )
-        return HomeTemplates.build(this, prefs.template, acts)
+        val home = HomeTemplates.build(this, prefs.template, acts)
+        rolagemDe(home)?.let { sv ->
+            (sv.getChildAt(0) as? ViewGroup)?.addView(
+                ajustesUnificados(),
+                LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).also { it.topMargin = dp(24) }
+            )
+        }
+        return home
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -131,7 +136,7 @@ class MainActivity : Activity() {
             stack.add { wizardStep(0) }
         }
         render()
-        if (intent?.getStringExtra("abrir") == "compacto") openConfig("Visual do semáforo") { compactoContent(it) }
+        if (intent?.getStringExtra("abrir") == "compacto") abrirSecao("visual")
         else if (intent?.getStringExtra("abrir") == "config") abrirConfigurar()
         else if (!prefs.termsAccepted) showTerms()
     }
@@ -142,9 +147,7 @@ class MainActivity : Activity() {
     }
 
     override fun onBackPressed() {
-        if (draftMem != null) {
-            leaveConfig()
-        } else if (stack.size > 1) {
+        if (stack.size > 1) {
             stack.removeAt(stack.size - 1)
             render()
         } else super.onBackPressed()
@@ -158,8 +161,8 @@ class MainActivity : Activity() {
     private var profundidadeAnterior = -1
 
     private fun render() {
-        // cores, fonte e tamanho: com uma tela de configuração aberta, vale o rascunho (ainda sem Salvar)
-        val fonte = draftMem?.let { Prefs(this, it) } ?: prefs
+        // ajustes valem na hora: a tela inicial usa as preferências direto
+        val fonte = prefs
         Templates.apply(fonte.template, fonte)
         if (::root.isInitialized) root.setBackgroundColor(C.BG)
         // mesma tela (só algo dentro dela mudou): a rolagem fica onde estava, sem voltar ao topo
@@ -172,35 +175,47 @@ class MainActivity : Activity() {
         )
         profundidadeAnterior = stack.size
         if (mesmaTela && y > 0) rolagemDe(root)?.let { sv -> sv.post { sv.scrollTo(0, y) } }
+        if (irAjustes) {
+            irAjustes = false
+            val sv = rolagemDe(root)
+            val alvo = root.findViewWithTag<View>("ajustes")
+            if (sv != null && alvo != null) sv.post { sv.smoothScrollTo(0, yDentro(alvo, sv)) }
+        }
     }
 
-    /** Faixa no topo enquanto o modo editar textos está ligado. Some ao tocar em Sair. */
+    /** Tela + barra fixa no rodapé para ligar/desligar a edição de textos. Aparece em todas as telas. */
     private fun envolverEdicao(conteudo: View): View {
-        if (!Textos.editando) return conteudo
-        val faixa = LinearLayout(this).apply {
+        val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        col.addView(conteudo, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
+        col.addView(barraEdicao())
+        return col
+    }
+
+    private fun barraEdicao(): View {
+        val ligado = Textos.editando
+        val barra = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setBackgroundColor(C.PURPLE)
+            setBackgroundColor(if (ligado) C.PURPLE else C.WHITE)
+            elevation = ui.dpf(8f)
             setPadding(dp(14), dp(10), dp(10), dp(10))
         }
-        faixa.addView(TextView(this).apply {
-            text = "Editando textos: toque num texto para trocar. Toque e segure um botão para renomeá-lo."
+        barra.addView(TextView(this).apply {
+            text = if (ligado) "Editando textos: toque num texto para trocar. Segure um botão para renomear."
+            else "Quer trocar algum texto? Ligue a edição e toque nele."
             textSize = 12f
-            setTextColor(Color.WHITE)
+            setTextColor(if (ligado) Color.WHITE else C.MUTED)
         }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-        faixa.addView(TextView(this).apply {
-            text = "Sair"
+        barra.addView(TextView(this).apply {
+            text = if (ligado) "Sair" else "Editar textos"
             textSize = 13f
-            setTextColor(C.PURPLE)
+            setTextColor(if (ligado) C.PURPLE else C.WHITE)
             setTypeface(null, android.graphics.Typeface.BOLD)
-            background = ui.round(Color.WHITE, 10)
-            setPadding(dp(12), dp(6), dp(12), dp(6))
-            setOnClickListener { Textos.editando = false; render() }
+            background = ui.round(if (ligado) Color.WHITE else C.PURPLE, 10)
+            setPadding(dp(14), dp(8), dp(14), dp(8))
+            setOnClickListener { Textos.editando = !ligado; render() }
         })
-        val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        col.addView(faixa)
-        col.addView(conteudo, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
-        return col
+        return barra
     }
 
     /** Diálogo para trocar um texto. "Original" desfaz a troca. */
@@ -223,7 +238,7 @@ class MainActivity : Activity() {
 
     /** Grava a troca na hora: no rascunho se houver configuração aberta, senão direto nas preferências. */
     private fun gravarTexto(original: String, novo: String?) {
-        val destino: android.content.SharedPreferences = draftMem ?: prefs.store
+        val destino = prefs.store
         val mapa = Textos.parse(destino.getString(Textos.CHAVE, null)).toMutableMap()
         if (novo.isNullOrBlank()) mapa.remove(original) else mapa[original] = novo.trim()
         destino.edit().putString(Textos.CHAVE, Textos.serializar(mapa)).apply()
@@ -307,7 +322,7 @@ class MainActivity : Activity() {
         card.addView(
             featureRow(
                 "Copiloto", "Ative para utilizar os recursos", null, prefs.enabled,
-                { openConfig("Apps de trabalho") { appsContent(it) } }
+                { abrirSecao("apps") }
             ) { v ->
                 prefs.enabled = v
                 if (v && !isServiceEnabled()) startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
@@ -328,7 +343,7 @@ class MainActivity : Activity() {
         card.addView(
             featureRow(
                 "Captura de Tela", "Salva cada oferta na galeria", null, prefs.saveShots,
-                { openConfig("Captura de tela") { captureContent(it) } }
+                { abrirSecao("prints") }
             ) { v -> prefs.saveShots = v }
         )
         body.addView(card, ui.lp(top = 14))
@@ -515,8 +530,37 @@ class MainActivity : Activity() {
 
     // ---------------------------------------------------------------- configurar (com Salvar)
 
-    /** Configurar: uma tela só. Tela inicial, visual e ajustes abrem no próprio lugar, sem trocar de página. */
-    private fun abrirConfigurar() = openConfig("Configurar") { ajustesContent(it) }
+    /** Pedido para rolar até os ajustes na próxima montagem da tela. */
+    private var irAjustes = false
+
+    /** Ajustes ficam no fim da tela inicial. Não há mais página separada nem botão Salvar. */
+    private fun abrirConfigurar() {
+        irAjustes = true
+        tab = 0
+        while (stack.size > 1) stack.removeAt(stack.size - 1)
+        stack[0] = { mainScreen() }
+        render()
+    }
+
+    /** Abre uma seção dos ajustes (já expandida) e rola até ela. */
+    private fun abrirSecao(id: String) {
+        secaoAberta = id
+        abrirConfigurar()
+    }
+
+    /** Ajustes da tela inicial: ligados às preferências, então valem na hora. */
+    private fun ajustesUnificados(): View = ajustesContent(prefs).apply { tag = "ajustes" }
+
+    /** Distância do topo de [v] até o topo de [pai], para rolar até ele. */
+    private fun yDentro(v: View, pai: View): Int {
+        var y = 0
+        var c: View? = v
+        while (c != null && c !== pai) {
+            y += c.top
+            c = c.parent as? View
+        }
+        return y
+    }
 
     /** Seção que está aberta (uma por vez). Vazio = todas fechadas. */
     private var secaoAberta = "tela"
@@ -525,18 +569,7 @@ class MainActivity : Activity() {
 
     private fun ajustesContent(p: Prefs): View {
         val box = ui.vbox()
-        val editar = ui.card()
-        editar.addView(ui.tv("Editar textos ao vivo", 16f, C.TEXT, 3))
-        editar.addView(ui.tv(
-            if (Textos.editando) "Ligado. Toque em qualquer texto do app para trocar. Sair fica na faixa roxa do topo."
-            else "Ligue e toque em qualquer texto do app para trocar, na hora, sem mexer na configuração.",
-            13f, C.MUTED, 0), ui.lp(top = 4))
-        editar.addView(ui.button(if (Textos.editando) "Desligar edição de textos" else "Ligar edição de textos", !Textos.editando) {
-            Textos.editando = !Textos.editando
-            render()
-        })
-        box.addView(editar, ui.lp(top = 4))
-        box.addView(ui.tv("Toque numa parte para abrir. Tudo que você muda aparece na prévia. Salve no topo.", 13f, C.MUTED, 0).apply { gravity = Gravity.CENTER })
+        box.addView(ui.tv("Tudo vale na hora, sem Salvar. Toque numa parte para abrir.", 13f, C.MUTED, 0).apply { gravity = Gravity.CENTER })
         val secoes = listOf(
             Secao("tela", "🏠", "Tela inicial", "Escolha o modelo da tela", "#4F46E5") { modeloContent(it) },
             Secao("visual", "🎨", "Fonte, cores e tamanhos", "Editor visual com prévia", "#CA8A04") { compactoContent(it) },
@@ -611,49 +644,6 @@ class MainActivity : Activity() {
         if (v is ScrollView) return v
         if (v is ViewGroup) for (i in 0 until v.childCount) rolagemDe(v.getChildAt(i))?.let { return it }
         return null
-    }
-
-    /** Abre uma tela de configuração com rascunho: nada vale até tocar em Salvar. */
-    private fun openConfig(title: String, build: (Prefs) -> View) {
-        val mem = MemPrefs(prefs.store.all)
-        draftMem = mem
-        val d = Prefs(this, mem)
-        push { configScreen(title, d, build) }
-    }
-
-    private fun configScreen(title: String, d: Prefs, build: (Prefs) -> View): View {
-        val bar = ui.vbox().apply {
-            setBackgroundColor(C.WHITE)
-            elevation = ui.dpf(6f)
-            setPadding(dp(16), dp(8), dp(16), dp(12))
-        }
-        bar.addView(ui.button("Salvar") {
-            prefs.commitFrom(d.store)
-            draftMem = null
-            applyChrome()
-            Toast.makeText(this, "Salvo.", Toast.LENGTH_SHORT).show()
-            pop()
-        })
-        return screen(title, build(d), { leaveConfig() }, bar)
-    }
-
-    private fun leaveConfig() {
-        val mem = draftMem
-        val dirty = mem != null && mem.all != prefs.store.all
-        if (!dirty) {
-            draftMem = null
-            pop()
-            return
-        }
-        AlertDialog.Builder(this)
-            .setTitle("Descartar alterações?")
-            .setMessage("Você mudou algo e não tocou em Salvar.")
-            .setPositiveButton("Descartar") { _, _ ->
-                draftMem = null
-                pop()
-            }
-            .setNegativeButton("Continuar editando", null)
-            .show()
     }
 
     // ---------------------------------------------------------------- apps de trabalho
@@ -1052,7 +1042,7 @@ class MainActivity : Activity() {
 
     private fun aparenciaContent(p: Prefs): View {
         val box = ui.vbox()
-        box.addView(pageHeader("Aparência do quadro", "Ajuste como o quadro aparece em cima do Uber e do 99"))
+        box.addView(pageHeader("Aparência do quadro", "Ajuste como o quadro aparece em cima dos apps de corrida"))
 
         val prev = ui.vbox().apply { background = ui.round(C.BG, 14); setPadding(dp(14), dp(18), dp(14), dp(18)) }
         val ex = Calc.analyze(Offer("99", 28.50, 2.7, 9.0, 13.3, 30.0, stops = 1, destText = "Rua Pio Rojas, 85 - Centro"), p)
@@ -1092,7 +1082,7 @@ class MainActivity : Activity() {
 
         val c3 = ui.card()
         c3.addView(switchRow("Sumir junto com a oferta", p.sumirJunto) { p.sumirJunto = it; render() })
-        c3.addView(ui.tv("Quando a corrida sai da tela do Uber ou do 99, o quadro some em cerca de 1 segundo.", 12f, C.MUTED, 0), ui.lp(top = 4))
+        c3.addView(ui.tv("Quando a corrida sai da tela do app de corrida, o quadro some em cerca de 1 segundo.", 12f, C.MUTED, 0), ui.lp(top = 4))
         box.addView(c3, ui.lp(top = 16))
         return box
     }
@@ -1202,7 +1192,7 @@ class MainActivity : Activity() {
         corTok("Semáforo: vermelho", "bad", Templates.VERMELHO_PADRAO)
         box.addView(cores, ui.lp(top = 16))
         box.addView(ui.button("Voltar ao visual do modelo escolhido", false) { p.limparVisual(); render() }, ui.lp(top = 16))
-        box.addView(ui.tv("Os ajustes valem só depois de tocar em Salvar, no topo. Antes disso, a prévia mostra o rascunho.", 12f, C.MUTED, 0).apply { gravity = Gravity.CENTER }, ui.lp(top = 8))
+        box.addView(ui.tv("Os ajustes valem na hora. A prévia mostra exatamente o que a tela vai usar.", 12f, C.MUTED, 0).apply { gravity = Gravity.CENTER }, ui.lp(top = 8))
 
 
         fun pct(k: String) = "${p.cpI(k, 100)}%"
@@ -1434,7 +1424,7 @@ class MainActivity : Activity() {
         // lista negra
         val c3 = ui.card()
         c3.addView(ui.tv("Lista negra · pura bucha", 16f, C.TEXT, 2))
-        c3.addView(ui.tv("Se o destino tiver um destes nomes, aparece o aviso grande. Use o nome como o 99/Uber mostra. Para mais de um jeito de escrever, separe com uma barra (ex.: Dama / Damha).", 12f, C.MUTED, 0), ui.lp(top = 4))
+        c3.addView(ui.tv("Se o destino tiver um destes nomes, aparece o aviso grande. Use o nome como o app mostra. Para mais de um jeito de escrever, separe com uma barra (ex.: Dama / Damha).", 12f, C.MUTED, 0), ui.lp(top = 4))
         val nome = campo("Nome do local ou rua e número")
         val motivo = campo("Motivo (opcional)")
         c3.addView(nome, ui.lp(top = 10))
@@ -1850,7 +1840,7 @@ class MainActivity : Activity() {
     private fun doneContent(): View {
         val box = ui.vbox()
         box.addView(bigIcon("✓"), ui.lp(top = 24))
-        box.addView(pageHeader("Tudo pronto!", "Abra o Uber ou o 99, fique online e o cartão do Rota aparece quando chegar uma oferta."), ui.lp(top = 16))
+        box.addView(pageHeader("Tudo pronto!", "Abra o Uber, a 99 ou o inDRIVE, fique online e o cartão do Rota aparece quando chegar uma oferta."), ui.lp(top = 16))
         val ok = isServiceEnabled()
         box.addView(ui.statusPill(if (ok) "Leitura ativa" else "Falta ativar a leitura (passo 1)", ok))
         box.addView(ui.button("Testar o cartão agora") {

@@ -441,6 +441,15 @@ object HomeTemplates {
         return c
     }
 
+    private fun textoApps(apps: List<String>): String {
+        val nomes = apps.map { when (it) { "Uber" -> "o Uber"; "99" -> "a 99"; "inDRIVE" -> "o inDRIVE"; else -> it } }
+        return when (nomes.size) {
+            0 -> "um app de corrida"
+            1 -> nomes[0]
+            else -> nomes.dropLast(1).joinToString(", ") + " ou " + nomes.last()
+        }
+    }
+
     private fun prontoTurno(b: B, a: HomeActions): View {
         val p = a.prefs
         val ctx = b.ctx
@@ -485,7 +494,8 @@ object HomeTemplates {
                     !viva -> "Leitura parada. Abra o Diagnóstico."
                     fg.contains("99") -> "Lendo a 99" + (if (Estado.ultimaLeitura > 0) " · última leitura há ${(t - Estado.ultimaLeitura) / 1000} s" else "")
                     fg.contains("uber") -> "Lendo o Uber" + (if (Estado.ultimaLeitura > 0) " · última leitura há ${(t - Estado.ultimaLeitura) / 1000} s" else "")
-                    else -> "Esperando você abrir o Uber ou a 99"
+                    fg.contains("indrive") -> "Lendo o inDRIVE" + (if (Estado.ultimaLeitura > 0) " · última leitura há ${(t - Estado.ultimaLeitura) / 1000} s" else "")
+                    else -> "Esperando você abrir " + textoApps(p.appsAtivos())
                 }
                 vivo.postDelayed(this, 1000)
             }
