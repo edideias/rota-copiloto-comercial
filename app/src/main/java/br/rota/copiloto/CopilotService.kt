@@ -137,8 +137,10 @@ class CopilotService : AccessibilityService() {
                 val ligado = on && fg != null && plataformaLigada(fg)
                 if (ligado) {
                     Historico.marcarOnline(this@CopilotService)
-                    tryOcr(fg!!)
-                    handler.postDelayed(this, 450)
+                    // 1º: texto dos nós do app (instantâneo). A captura + OCR só entra se os nós não trouxerem a oferta.
+                    val leuNos = fgPkg.isNotEmpty() && lerNos(fgPkg, fg!!)
+                    if (!leuNos) tryOcr(fg!!)
+                    handler.postDelayed(this, 200)
                 } else {
                     // outro app na frente (galeria, prints, notificações): o quadro some e a leitura espera
                     if (on && fgAgora.isNotEmpty() && fg == null && attached && !shownSimulated) hide()
@@ -222,6 +224,27 @@ class CopilotService : AccessibilityService() {
         5 -> "janela inválida"
         6 -> "janela protegida (o app bloqueia captura)"
         else -> "código $code"
+    }
+
+    /**
+     * Lê a oferta pelo texto dos nós do app, sem captura de tela. É o caminho instantâneo:
+     * o OCR só entra quando os nós não trazem a oferta. Devolve true se mostrou o quadro.
+     */
+    private fun lerNos(pkg: String, platform: String): Boolean {
+        val texts = gatherTexts(pkg, null)
+        if (texts.isEmpty()) return false
+        val joined = texts.joinToString(" | ")
+        logSnapshot(platform, joined)
+        if ((!REQUIRE_OFFER_BUTTON || hasOfferButton(joined)) && !(LISTA.containsMatchIn(joined) && !hasOfferButton(joined)) && !naoEhJanelaDeOferta(joined)) {
+            val offer = OfferParser.parse(OfferParser.platformOf(joined, platform), joined)
+            if (offer != null) {
+                show(Calc.analyze(offer, prefs), -1L)
+                return true
+            }
+        }
+        // a oferta deste app saiu da tela: o quadro some na hora (mesma regra da leitura por evento)
+        if (attached && !shownSimulated && prefs.sumirJunto && shownKey.startsWith("$platform|") && !hasOfferButton(joined)) hide()
+        return false
     }
 
     private var lastOcr = 0L
@@ -408,7 +431,7 @@ class CopilotService : AccessibilityService() {
     }
 
     /** Junta os textos de TODAS as janelas do app (a oferta pode estar numa janela separada). */
-    private fun gatherTexts(pkg: String, event: AccessibilityEvent): List<String> {
+    private fun gatherTexts(pkg: String, event: AccessibilityEvent?): List<String> {
         val out = ArrayList<String>()
         val seenWindows = HashSet<Int>()
         fun addRoot(r: AccessibilityNodeInfo?) {
@@ -421,7 +444,7 @@ class CopilotService : AccessibilityService() {
             for (w in windows) addRoot(w.root)
         } catch (_: Exception) {
         }
-        if (out.isEmpty()) event.source?.let { collect(it, out, 0) }
+        if (out.isEmpty()) event?.source?.let { collect(it, out, 0) }
         return out
     }
 
