@@ -27,7 +27,8 @@ object Destino {
         val negra: Negra?,
         val condominio: String? = null,  // destino dentro de condomínio fechado
         val mercado: String? = null,     // embarque é mercado / supermercado
-        val motel: String? = null        // destino é motel (pelo nome ou pelo endereço)
+        val motel: String? = null,       // destino é motel (pelo nome ou pelo endereço)
+        val distCentro: Double? = null   // km em linha reta do centro até o bairro do destino (null = bairro sem ponto)
     ) {
         val vazio get() = bairro == null && rua == null
     }
@@ -60,6 +61,7 @@ object Destino {
     @Volatile private var bairroPav: Map<String, Triple<Int, Int, Int>> = emptyMap()
     @Volatile private var bairros: Map<String, String> = emptyMap()   // normalizado -> nome
     @Volatile private var condominios: Map<String, String> = emptyMap()   // normalizado -> nome
+    @Volatile private var pontos: Map<String, Pair<Double, Double>> = emptyMap()   // bairro normalizado -> (lat, lon) do centro do bairro
     data class Mercado(val nome: String, val rua: String, val num: Int?)
     @Volatile private var mercados: List<Mercado> = emptyList()
     @Volatile private var moteis: List<Mercado> = emptyList()
@@ -134,6 +136,12 @@ object Destino {
             mo.add(Mercado(x.optString("nome"), x.optString("rua"), if (x.isNull("num")) null else x.optInt("num")))
         }
         moteis = mo
+        val pt = HashMap<String, Pair<Double, Double>>()
+        val pa = o.optJSONArray("bairros_pontos") ?: JSONArray()
+        for (i in 0 until pa.length()) pa.getJSONObject(i).let { x ->
+            pt[norm(x.optString("nome"))] = Pair(x.optDouble("lat"), x.optDouble("lon"))
+        }
+        pontos = pt
         // por bairro: quantas ruas são de terra / mistas / pavimentadas (contando ruas, não km: avenidas não escondem as ruas de terra)
         val bp = HashMap<String, Triple<Int, Int, Int>>()
         for (lst in m.values) for (r in lst) {
@@ -256,6 +264,18 @@ object Destino {
         return null
     }
 
+    /** Distância em linha reta (km) do centro de Campo Grande até o bairro. Null se o bairro não tem ponto no banco. */
+    fun distanciaDoCentro(bairro: String?): Double? {
+        if (bairro == null) return null
+        val alvo = pontos[norm(bairro)] ?: return null
+        val centro = pontos[norm("Centro")] ?: return null
+        val r = 6371.0
+        val la1 = Math.toRadians(centro.first); val la2 = Math.toRadians(alvo.first)
+        val dla = la2 - la1; val dlo = Math.toRadians(alvo.second - centro.second)
+        val h = Math.sin(dla / 2).let { it * it } + Math.cos(la1) * Math.cos(la2) * Math.sin(dlo / 2).let { it * it }
+        return 2 * r * Math.asin(Math.sqrt(h))
+    }
+
     private val CARA_DE_CONDO = Regex("""(?i)condom|damha|alphavil|terras alpha|village|vilage|resid""")
 
     fun analisar(dest: String, p: Prefs, embarque: String = ""): Info {
@@ -302,6 +322,6 @@ object Destino {
         val mercado = if (p.mercadoOn && embarque.isNotBlank())
             mercadoDe(embarque, norm(embarque), ruaRx.find(embarque)?.value?.trim()?.let { norm(it) }) else null
         val motel = if (p.motelOn) motelDe(dest, nd, ruaTxt?.let { norm(it) }, p.motelLista) else null
-        return Info(bairro, rua?.nome ?: ruaTxt, pav, evitado, negra, condominio, mercado, motel)
+        return Info(bairro, rua?.nome ?: ruaTxt, pav, evitado, negra, condominio, mercado, motel, distanciaDoCentro(bairro))
     }
 }

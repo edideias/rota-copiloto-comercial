@@ -52,6 +52,20 @@ object Calc {
     }
 }
 
+/**
+ * Corrida que paga bem por km (a partir do seu "bom por km") mas toma muito tempo ou vai para bairro longe do centro.
+ * Devolve o motivo para o aviso, ou null quando não dispara. Só o trajeto conta (o embarque fica de fora).
+ */
+object Longa {
+    fun motivo(a: Analysis, distCentro: Double?, p: Prefs): String? {
+        if (!p.longaOn || a.perKm < p.greenKm) return null
+        val partes = mutableListOf<String>()
+        if (a.offer.tripMin >= p.longaMin) partes += "TRAJETO ${Math.round(a.offer.tripMin)} MIN"
+        if (distCentro != null && distCentro >= p.longaKm) partes += "LONGE DO CENTRO"
+        return partes.joinToString(" · ").ifEmpty { null }
+    }
+}
+
 /** Métricas que podem aparecer no cartão. */
 object Metrics {
     val ALL = listOf("km", "hora", "lucrohora", "lucro", "lucropct", "min")
@@ -241,6 +255,25 @@ class Prefs(ctx: Context, override_: android.content.SharedPreferences? = null) 
         VIS_KEYS.forEach { e.putInt("vis_$it", VIS_NONE) }
         e.apply()
     }
+
+    // ---- aviso de corrida longa ou de bairro longe do centro: laranja piscando (sem nome na tela)
+    var longaOn: Boolean
+        get() = sp.getBoolean("longaOn", true)
+        set(v) { sp.edit().putBoolean("longaOn", v).apply() }
+    /** a partir de quantos minutos de trajeto (embarque até o destino) o aviso dispara */
+    var longaMin: Int
+        get() = sp.getInt("longaMin", 30)
+        set(v) { sp.edit().putInt("longaMin", v.coerceIn(10, 120)).apply() }
+    /** a partir de quantos km em linha reta do centro o bairro do destino conta como longe */
+    var longaKm: Int
+        get() = sp.getInt("longaKm", 7)
+        set(v) { sp.edit().putInt("longaKm", v.coerceIn(3, 20)).apply() }
+    var longaCor: Int
+        get() = sp.getInt("longaCor", android.graphics.Color.parseColor("#FF7A00"))
+        set(v) { sp.edit().putInt("longaCor", v).apply() }
+    var longaMs: Int
+        get() = sp.getInt("longaMs", 380)
+        set(v) { sp.edit().putInt("longaMs", v.coerceIn(70, 1500)).apply() }
 
     // ---- motel no destino: aviso rosa neon piscando
     var motelOn: Boolean

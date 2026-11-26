@@ -581,6 +581,7 @@ class MainActivity : Activity() {
             Secao("parada", "🛑", "Parada e nome do app", "Alerta de parada e nome do app", "#DC2626") { aparenciaContent(it) },
             Secao("apps", "🚗", "Apps", "Uber, 99 e inDRIVE: ligar e cores", "#EA580C") { appsContent(it) },
             Secao("motel", "🅼", "Aviso M", "Alerta rosa para destinos marcados", "#DB2777") { motelContent(it) },
+            Secao("longa", "🛣️", "Corrida longa", "Trajeto demorado ou bairro longe do centro", "#F97316") { longaContent(it) },
             Secao("tempo", "⏱️", "Tempo na tela", "Quanto tempo o quadro fica", "#475569") { timeContent(it) },
             Secao("prints", "📸", "Salvar prints", "Guardar prints para teste", "#0891B2") { captureContent(it) }
         )
@@ -1134,6 +1135,20 @@ class MainActivity : Activity() {
             if (t.length >= 4) { p.motelLista = p.motelLista + t; render() }
         }, ui.lp(top = 8))
         box.addView(c2, ui.lp(top = 16))
+        return box
+    }
+
+    private fun longaContent(p: Prefs): View {
+        val box = ui.vbox()
+        box.addView(pageHeader("Corrida longa", "Paga bem por km, mas o trajeto é demorado ou o destino fica longe do centro: o quadro pisca em laranja"))
+        val c1 = ui.card()
+        c1.addView(switchRow("Aviso ligado", p.longaOn) { p.longaOn = it; render() })
+        c1.addView(ui.tv("Só dispara quando a corrida já paga o seu \"bom por km\". Conta o trajeto (do embarque ao destino) e o bairro do destino.", 12f, C.MUTED, 0), ui.lp(top = 4))
+        c1.addView(stepperRow("Trajeto a partir de", "${p.longaMin} min", { p.longaMin = maxOf(10, p.longaMin - 5); render() }, { p.longaMin = minOf(120, p.longaMin + 5); render() }), ui.lp(top = 14))
+        c1.addView(stepperRow("Longe do centro a partir de", "${p.longaKm} km", { p.longaKm = maxOf(3, p.longaKm - 1); render() }, { p.longaKm = minOf(20, p.longaKm + 1); render() }), ui.lp(top = 12))
+        c1.addView(corRow("Cor", p.longaCor) { p.longaCor = it }, ui.lp(top = 14))
+        c1.addView(velocidadeRow("Velocidade da piscada", p.longaMs) { p.longaMs = it }, ui.lp(top = 14))
+        box.addView(c1, ui.lp(top = 16))
         return box
     }
 
