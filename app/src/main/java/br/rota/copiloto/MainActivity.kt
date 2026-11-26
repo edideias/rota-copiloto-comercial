@@ -156,6 +156,13 @@ class MainActivity : Activity() {
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 11) {
+            val cb = pedidoLocal
+            pedidoLocal = null
+            if (cb != null && grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) pegarLocalizacao(cb)
+            else Toast.makeText(this, "Sem permissão de localização não dá para marcar você no mapa.", Toast.LENGTH_LONG).show()
+            return
+        }
         render()
     }
 
@@ -318,6 +325,12 @@ class MainActivity : Activity() {
         } else {
             body.addView(ui.statusPill("Leitura ativa", true), ui.lp(top = 0))
         }
+
+        val loc = ui.card()
+        loc.addView(ui.tv("Onde fica o bairro", 16f, C.TEXT, 3))
+        loc.addView(ui.tv("Digite o nome de qualquer bairro de Campo Grande e veja no mapa onde ele fica.", 13f, C.MUTED, 0), ui.lp(top = 2))
+        loc.addView(ui.button("Buscar bairro") { abrirLocalizador() }, ui.lp(top = 10))
+        body.addView(loc, ui.lp(top = 16))
 
         val card = ui.card()
         card.addView(
@@ -1136,6 +1149,138 @@ class MainActivity : Activity() {
         }, ui.lp(top = 8))
         box.addView(c2, ui.lp(top = 16))
         return box
+    }
+
+    /** Pedido de localização em andamento (a resposta chega em onRequestPermissionsResult). */
+    private var pedidoLocal: ((Double, Double) -> Unit)? = null
+
+    /** Pega sua posição pela rede (sem GPS ligado). Só pede a permissão quando você toca no botão. */
+    private fun pegarLocalizacao(cb: (Double, Double) -> Unit) {
+        if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            pedidoLocal = cb
+            requestPermissions(arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION), 11)
+            return
+        }
+        val lm = getSystemService(Context.LOCATION_SERVICE) as android.location.LocationManager
+        val loc = try {
+            lm.getLastKnownLocation(android.location.LocationManager.NETWORK_PROVIDER)
+                ?: lm.getLastKnownLocation(android.location.LocationManager.GPS_PROVIDER)
+        } catch (_: SecurityException) { null }
+        if (loc == null) Toast.makeText(this, "Não consegui sua localização. Ligue o GPS e tente de novo.", Toast.LENGTH_LONG).show()
+        else cb(loc.latitude, loc.longitude)
+    }
+
+    /** Pop-up: origem (você está) e destino, com a distância e o mapa. */
+    private fun abrirLocalizador() {
+        var minhaPos: Destino.Local? = null
+        val box = ui.vbox().apply { setPadding(dp(18), dp(14), dp(18), dp(8)) }
+        box.addView(ui.tv("Onde fica o bairro", 18f, C.TEXT, 3))
+        box.addView(ui.tv("Veja onde fica cada bairro de Campo Grande e a distância em linha reta entre dois deles.", 13f, C.MUTED, 0), ui.lp(top = 2))
+        val origemCampo = campo("Você está em (bairro)")
+        box.addView(origemCampo, ui.lp(top = 12))
+        val destinoCampo = campo("Quer ir para (bairro)").apply {
+            imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH
+        }
+        box.addView(destinoCampo, ui.lp(top = 8))
+        box.addView(ui.button("Usar minha localização", false) {
+            pegarLocalizacao { lat, lon ->
+                minhaPos = Destino.Local("Minha localização", lat, lon, 0.0, "")
+                origemCampo.setText("Minha localização")
+                buscar()
+            }
+        }, ui.lp(top = 8))
+        box.addView(ui.button("Mostrar no mapa") { buscar() }, ui.lp(top = 8))
+        val resultado = ui.vbox()
+        box.addView(resultado, ui.lp(top = 12))
+
+        fun msg(t: String) = ui.tv(t, 14f, C.MUTED, 0)
+        buscar = {
+            resultado.removeAllViews()
+            val qd = destinoCampo.text.toString().trim()
+            val qo = origemCampo.text.toString().trim()
+            val achDest = Destino.localizar(qd)
+            val origem: Destino.Local? = when {
+                qo.isEmpty() -> null
+                qo == "Minha localização" -> minhaPos
+                else -> Destino.localizar(qo).firstOrNull()
+            }
+            when {
+                achDest.isEmpty() -> resultado.addView(msg(if (qd.isEmpty()) "Digite para qual bairro você quer ir." else "Não achei \"$qd\". Confira a grafia ou tente só uma parte do nome."))
+                qo.isNotEmpty() && origem == null -> resultado.addView(msg(
+                    if (qo == "Minha localização") "Toque em \"Usar minha localização\" de novo."
+                    else "Não achei o bairro \"$qo\" de onde você está."))
+                else -> mostrarLocal(resultado, achDest[0], achDest.drop(1), origem)
+            }
+        }
+        destinoCampo.setOnEditorActionListener { _, id, _ ->
+            if (id == android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH) { buscar(); true } else false
+        }
+        val dlg = AlertDialog.Builder(this)
+            .setView(ScrollView(this).apply { addView(box) })
+            .setNegativeButton("Fechar", null)
+            .create()
+        dlg.show()
+        buscar()
+    }
+
+    private var buscar: () -> Unit = {}
+
+    private fun mostrarLocal(container: LinearLayout, l: Destino.Local, outros: List<Destino.Local>, origem: Destino.Local?) {
+        container.removeAllViews()
+        val br = Locale("pt", "BR")
+        container.addView(ui.tv(l.nome, 17f, C.TEXT, 3))
+        val frase = if (origem != null) {
+            String.format(br, "De %s até %s: %.1f km em linha reta.", origem.nome, l.nome,
+                Destino.kmEntre(origem.lat, origem.lon, l.lat, l.lon))
+        } else when {
+            l.km < 0.3 -> "É o centro da cidade."
+            else -> String.format(br, "Fica a %.1f km do centro, para o %s.", l.km, l.rumo)
+        }
+        container.addView(ui.tv(frase, 14f, C.TEXT, 2), ui.lp(top = 4))
+        val mapa = android.webkit.WebView(this).apply {
+            settings.javaScriptEnabled = true
+            setBackgroundColor(Color.TRANSPARENT)
+            webViewClient = android.webkit.WebViewClient()
+        }
+        mapa.loadDataWithBaseURL("https://localhost/", mapaHtml(origem, l), "text/html", "UTF-8", null)
+        container.addView(mapa, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(300)).also { it.topMargin = dp(10) })
+        container.addView(ui.button("Abrir no Google Maps", false) {
+            val geo = String.format(Locale.US, "geo:%.5f,%.5f?q=%.5f,%.5f(%s)", l.lat, l.lon, l.lat, l.lon, Uri.encode(l.nome))
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(geo)))
+        }, ui.lp(top = 8))
+        if (outros.isNotEmpty()) {
+            container.addView(ui.tv("Outros parecidos:", 13f, C.MUTED, 2), ui.lp(top = 12))
+            outros.forEach { o ->
+                container.addView(ui.button(o.nome, false) { mostrarLocal(container, o, outros.filter { it != o } + l, origem) }, ui.lp(top = 6))
+            }
+        }
+    }
+
+    /** Mapa limpo: origem roxa, destino laranja e uma linha tracejada entre os dois. Usa o OpenStreetMap. */
+    private fun mapaHtml(origem: Destino.Local?, l: Destino.Local): String {
+        fun num(d: Double) = String.format(Locale.US, "%.5f", d)
+        fun texto(s: String) = "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"").replace("<", "\\u003c") + "\""
+        val head = "<!doctype html><html><head><meta charset=\"utf-8\"/>" +
+            "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/>" +
+            "<link rel=\"stylesheet\" href=\"https://unpkg.com/leaflet@1.9.4/dist/leaflet.css\"/>" +
+            "<script src=\"https://unpkg.com/leaflet@1.9.4/dist/leaflet.js\"></script>" +
+            "<style>html,body,#m{height:100%;margin:0;background:#F5F3FF}" +
+            ".leaflet-tooltip.rotulo{background:#fff;border:0;border-radius:10px;box-shadow:0 1px 6px rgba(17,24,39,.18);" +
+            "font:600 12px sans-serif;color:#111827;padding:3px 8px}</style></head><body><div id=\"m\"></div><script>"
+        val corpo = "var m=L.map('m',{zoomControl:false,attributionControl:false});" +
+            "L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(m);" +
+            "var b=L.latLngBounds();" +
+            "function pino(ll,cor,nome){L.circleMarker(ll,{radius:10,color:'#fff',weight:3,fillColor:cor,fillOpacity:1})" +
+            ".addTo(m).bindTooltip(nome,{permanent:true,direction:'top',className:'rotulo'});b.extend(ll);}" +
+            "var B=[" + num(l.lat) + "," + num(l.lon) + "];" +
+            "pino(B," + texto("#F97316") + "," + texto(l.nome) + ");"
+        val fim = if (origem != null) {
+            "var A=[" + num(origem.lat) + "," + num(origem.lon) + "];" +
+                "pino(A," + texto("#7C3AED") + "," + texto(origem.nome) + ");" +
+                "L.polyline([A,B],{color:'#111827',weight:3,dashArray:'6 8'}).addTo(m);" +
+                "m.fitBounds(b,{padding:[56,56]});"
+        } else "m.setView(B,15);"
+        return head + corpo + fim + "</script></body></html>"
     }
 
     private fun longaContent(p: Prefs): View {

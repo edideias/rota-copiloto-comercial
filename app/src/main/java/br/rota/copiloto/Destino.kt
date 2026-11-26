@@ -61,7 +61,9 @@ object Destino {
     @Volatile private var bairroPav: Map<String, Triple<Int, Int, Int>> = emptyMap()
     @Volatile private var bairros: Map<String, String> = emptyMap()   // normalizado -> nome
     @Volatile private var condominios: Map<String, String> = emptyMap()   // normalizado -> nome
-    @Volatile private var pontos: Map<String, Pair<Double, Double>> = emptyMap()   // bairro normalizado -> (lat, lon) do centro do bairro
+    /** Ponto do centro de um bairro (nome como está no banco, latitude e longitude). */
+    data class Ponto(val nome: String, val lat: Double, val lon: Double)
+    @Volatile private var pontos: Map<String, Ponto> = emptyMap()   // bairro normalizado -> ponto
     data class Mercado(val nome: String, val rua: String, val num: Int?)
     @Volatile private var mercados: List<Mercado> = emptyList()
     @Volatile private var moteis: List<Mercado> = emptyList()
@@ -136,10 +138,11 @@ object Destino {
             mo.add(Mercado(x.optString("nome"), x.optString("rua"), if (x.isNull("num")) null else x.optInt("num")))
         }
         moteis = mo
-        val pt = HashMap<String, Pair<Double, Double>>()
+        val pt = HashMap<String, Ponto>()
         val pa = o.optJSONArray("bairros_pontos") ?: JSONArray()
         for (i in 0 until pa.length()) pa.getJSONObject(i).let { x ->
-            pt[norm(x.optString("nome"))] = Pair(x.optDouble("lat"), x.optDouble("lon"))
+            val nome = x.optString("nome")
+            pt[norm(nome)] = Ponto(nome, x.optDouble("lat"), x.optDouble("lon"))
         }
         pontos = pt
         // por bairro: quantas ruas são de terra / mistas / pavimentadas (contando ruas, não km: avenidas não escondem as ruas de terra)
@@ -268,12 +271,67 @@ object Destino {
     fun distanciaDoCentro(bairro: String?): Double? {
         if (bairro == null) return null
         val alvo = pontos[norm(bairro)] ?: return null
+        return distanciaDoCentro(alvo)
+    }
+
+    private fun distanciaDoCentro(alvo: Ponto): Double? {
         val centro = pontos[norm("Centro")] ?: return null
         val r = 6371.0
-        val la1 = Math.toRadians(centro.first); val la2 = Math.toRadians(alvo.first)
-        val dla = la2 - la1; val dlo = Math.toRadians(alvo.second - centro.second)
+        val la1 = Math.toRadians(centro.lat); val la2 = Math.toRadians(alvo.lat)
+        val dla = la2 - la1; val dlo = Math.toRadians(alvo.lon - centro.lon)
         val h = Math.sin(dla / 2).let { it * it } + Math.cos(la1) * Math.cos(la2) * Math.sin(dlo / 2).let { it * it }
         return 2 * r * Math.asin(Math.sqrt(h))
+    }
+
+    /** Distância em linha reta (km) entre dois pontos quaisquer. */
+    fun kmEntre(la1: Double, lo1: Double, la2: Double, lo2: Double): Double {
+        val r = 6371.0
+        val f1 = Math.toRadians(la1); val f2 = Math.toRadians(la2)
+        val dla = f2 - f1; val dlo = Math.toRadians(lo2 - lo1)
+        val h = Math.sin(dla / 2).let { it * it } + Math.cos(f1) * Math.cos(f2) * Math.sin(dlo / 2).let { it * it }
+        return 2 * r * Math.asin(Math.sqrt(h))
+    }
+
+    /** Resultado da busca de bairro: nome, ponto, km do centro e para qual lado fica. */
+    data class Local(val nome: String, val lat: Double, val lon: Double, val km: Double, val rumo: String)
+
+    private val RUMOS = listOf("norte", "nordeste", "leste", "sudeste", "sul", "sudoeste", "oeste", "noroeste")
+
+    /** Direção do centro até o ponto, em uma das 8 direções. */
+    private fun rumoDoCentro(alvo: Ponto): String {
+        val c = pontos[norm("Centro")] ?: return ""
+        val f1 = Math.toRadians(c.lat); val f2 = Math.toRadians(alvo.lat); val dl = Math.toRadians(alvo.lon - c.lon)
+        val y = Math.sin(dl) * Math.cos(f2)
+        val x = Math.cos(f1) * Math.sin(f2) - Math.sin(f1) * Math.cos(f2) * Math.cos(dl)
+        val graus = (Math.toDegrees(Math.atan2(y, x)) + 360) % 360
+        return RUMOS[((graus + 22.5) / 45).toInt() % 8]
+    }
+
+    /**
+     * Procura bairros pelo nome, sem acento e sem maiúscula. "Residencial Azaleia" acha "Azaléia".
+     * Ordem: nome igual, depois começa com, depois contém a palavra. Centro entra com 0 km.
+     */
+    fun localizar(texto: String, limite: Int = 6): List<Local> {
+        val q = norm(texto)
+        if (q.length < 2) return emptyList()
+        val semPrefixo = GENERICO.replace(q, "").trim()
+        val buscas = listOf(q, semPrefixo).filter { it.length >= 2 }.distinct()
+        for (b in buscas) {
+            val achados = pontos.entries.mapNotNull { (k, v) ->
+                val rank = when {
+                    k == b -> 0
+                    k.startsWith(b) -> 1
+                    (" $k ").contains(" $b ") -> 2
+                    else -> return@mapNotNull null
+                }
+                Triple(rank, v.nome.length, v)
+            }.sortedWith(compareBy({ it.first }, { it.second })).take(limite)
+            if (achados.isNotEmpty()) return achados.map { (_, _, v) ->
+                val km = if (norm(v.nome) == norm("Centro")) 0.0 else distanciaDoCentro(v) ?: 0.0
+                Local(v.nome, v.lat, v.lon, km, if (km < 0.3) "" else rumoDoCentro(v))
+            }
+        }
+        return emptyList()
     }
 
     private val CARA_DE_CONDO = Regex("""(?i)condom|damha|alphavil|terras alpha|village|vilage|resid""")
