@@ -263,9 +263,6 @@ class Prefs(ctx: Context, override_: android.content.SharedPreferences? = null) 
     var vozPalavra: String
         get() = sp.getString("vozPalavra", "mila")?.takeIf { it.isNotBlank() } ?: "mila"
         set(v) { sp.edit().putString("vozPalavra", v).apply() }
-    var vozFalar: Boolean
-        get() = sp.getBoolean("vozFalar", true)
-        set(v) { sp.edit().putBoolean("vozFalar", v).apply() }
 
     // ---- aviso de corrida longa ou de bairro longe do centro: laranja piscando (sem nome na tela)
     var longaOn: Boolean

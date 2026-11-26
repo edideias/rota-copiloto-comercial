@@ -1,17 +1,26 @@
 package br.rota.copiloto
 
 import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import android.view.ViewGroup
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.LinearLayout
 
-/** Mapa do bairro, aberto pela notificação da escuta por voz (toque quando estiver parado). */
+/** Mapa do bairro, aberto pela escuta por voz. Se chegar outro bairro, a mesma tela é atualizada. */
 class MapaActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val i = intent
+        montar(intent)
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        if (intent != null) { setIntent(intent); montar(intent) }
+    }
+
+    private fun montar(i: Intent) {
         val nome = i.getStringExtra("nome") ?: "Bairro"
         val l = Destino.Local(nome, i.getDoubleExtra("lat", 0.0), i.getDoubleExtra("lon", 0.0), 0.0, "")
         val origem = if (i.hasExtra("ox")) Destino.Local("Você", i.getDoubleExtra("ox", 0.0), i.getDoubleExtra("oy", 0.0), 0.0, "") else null

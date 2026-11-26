@@ -18,22 +18,16 @@ import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
-import android.speech.tts.TextToSpeech
-import android.speech.tts.UtteranceProgressListener
 import java.util.Locale
 
 /**
  * Escuta em segundo plano a palavra cadastrada (padrão "mila"). Depois dela, o nome do bairro:
- * o app fala a distância e deixa o mapa numa notificação, que você abre quando estiver parado.
- * Fica ligado só quando você liga em Configurar > Voz, com aviso fixo na barra de notificação.
+ * abre a tela do mapa. Não fala nada. Fica ligado só quando você liga em Configurar > Voz.
  */
 class VozService : Service() {
     private val handler = Handler(Looper.getMainLooper())
     private var reconhecedor: SpeechRecognizer? = null
-    private var tts: TextToSpeech? = null
-    private var ttsOk = false
     private var ouvindo = false
-    private var falando = false
     private var ultimaBusca = ""
     private var ultimaHora = 0L
 
@@ -41,21 +35,10 @@ class VozService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        criarCanal()
+        criarCanais()
         val notif = notificacao("Escuta por voz ligada", "Diga a palavra e depois o bairro", null)
         if (Build.VERSION.SDK_INT >= 29) startForeground(ID, notif, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
         else startForeground(ID, notif)
-        tts = TextToSpeech(this) { st ->
-            if (st == TextToSpeech.SUCCESS) {
-                val r = tts?.setLanguage(BR)
-                ttsOk = r != null && r != TextToSpeech.LANG_MISSING_DATA && r != TextToSpeech.LANG_NOT_SUPPORTED
-            }
-        }
-        tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-            override fun onStart(id: String?) {}
-            override fun onDone(id: String?) { handler.post { falando = false; ouvir() } }
-            override fun onError(id: String?) { handler.post { falando = false; ouvir() } }
-        })
         ouvir()
     }
 
@@ -64,9 +47,9 @@ class VozService : Service() {
         return START_STICKY
     }
 
-    /** Ouve de novo assim que o reconhecedor para (sem falar por cima da resposta). */
+    /** Ouve de novo assim que o reconhecedor para. */
     private fun ouvir() {
-        if (!Prefs(this).vozOn || falando || ouvindo) return
+        if (!Prefs(this).vozOn || ouvindo) return
         if (!SpeechRecognizer.isRecognitionAvailable(this)) {
             atualizar("Sem reconhecimento de voz", "Este aparelho não tem o serviço de voz", null)
             return
@@ -126,34 +109,30 @@ class VozService : Service() {
             if (busca == ultimaBusca && agora - ultimaHora < 8000L) return
             ultimaBusca = busca
             ultimaHora = agora
-            responder(top)
+            abrirMapa(top)
             return
         }
     }
 
-    private fun responder(l: Destino.Local) {
+    private fun abrirMapa(l: Destino.Local) {
         val origem = minhaPosicao()
         val frase = when {
-            origem != null -> String.format(BR, "%s fica a %.1f quilômetros de você, em linha reta.", l.nome,
+            origem != null -> String.format(BR, "%s: %.1f km de você, em linha reta.", l.nome,
                 Destino.kmEntre(origem.lat, origem.lon, l.lat, l.lon))
-            l.km < 0.3 -> "${l.nome} fica no centro da cidade."
-            else -> String.format(BR, "%s fica a %.1f quilômetros do centro, para o %s.", l.nome, l.km, l.rumo)
+            l.km < 0.3 -> "${l.nome}: centro da cidade."
+            else -> String.format(BR, "%s: %.1f km do centro, para o %s.", l.nome, l.km, l.rumo)
         }
         val mapa = Intent(this, MapaActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
             .putExtra("nome", l.nome)
             .putExtra("lat", l.lat)
             .putExtra("lon", l.lon)
             .putExtra("frase", frase)
         if (origem != null) mapa.putExtra("ox", origem.lat).putExtra("oy", origem.lon)
+        // tenta abrir direto; se o Android bloquear (serviço em segundo plano), a notificação de tela cheia abre
+        try { startActivity(mapa) } catch (_: Exception) {}
+        alertar(l.nome, frase, mapa)
         atualizar("Mapa: ${l.nome}", frase, mapa)
-        if (Prefs(this).vozFalar && ttsOk) {
-            falando = true
-            ouvindo = false
-            reconhecedor?.cancel()
-            tts?.speak(frase, TextToSpeech.QUEUE_FLUSH, null, "resposta")
-            // se a voz não avisar o fim, volta a ouvir sozinho
-            handler.postDelayed({ if (falando) { falando = false; ouvir() } }, 15000L)
-        }
     }
 
     /** Última posição conhecida pela rede. Sem permissão ou sem fix, devolve null. */
@@ -166,10 +145,11 @@ class VozService : Service() {
         return Destino.Local("Você", loc.latitude, loc.longitude, 0.0, "")
     }
 
-    private fun criarCanal() {
+    private fun criarCanais() {
         if (Build.VERSION.SDK_INT >= 26) {
-            val c = NotificationChannel(CANAL, "Escuta por voz", NotificationManager.IMPORTANCE_LOW)
-            (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(c)
+            val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+            nm.createNotificationChannel(NotificationChannel(CANAL, "Escuta por voz", NotificationManager.IMPORTANCE_LOW))
+            nm.createNotificationChannel(NotificationChannel(CANAL_ALERTA, "Mapa do bairro", NotificationManager.IMPORTANCE_HIGH))
         }
     }
 
@@ -180,7 +160,6 @@ class VozService : Service() {
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
             .setContentTitle(titulo)
             .setContentText(texto)
-            .setStyle(Notification.BigTextStyle().bigText(texto))
             .setContentIntent(pi)
             .setOngoing(true)
             .build()
@@ -190,21 +169,32 @@ class VozService : Service() {
         (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).notify(ID, notificacao(titulo, texto, intent))
     }
 
+    /** Notificação de alerta com tela cheia: abre o mapa mesmo com o celular em segundo plano, se o Android deixar. */
+    private fun alertar(titulo: String, texto: String, intent: Intent) {
+        val pi = PendingIntent.getActivity(this, ID_ALERTA, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val b = Notification.Builder(this, CANAL_ALERTA)
+            .setSmallIcon(android.R.drawable.ic_dialog_map)
+            .setContentTitle(titulo)
+            .setContentText(texto)
+            .setContentIntent(pi)
+            .setAutoCancel(true)
+        if (Build.VERSION.SDK_INT >= 29) b.setFullScreenIntent(pi, true)
+        (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).notify(ID_ALERTA, b.build())
+    }
+
     override fun onDestroy() {
         handler.removeCallbacksAndMessages(null)
         ouvindo = false
-        falando = false
         reconhecedor?.destroy()
         reconhecedor = null
-        tts?.stop()
-        tts?.shutdown()
-        tts = null
         super.onDestroy()
     }
 
     companion object {
         private const val ID = 4701
+        private const val ID_ALERTA = 4702
         private const val CANAL = "escuta_voz"
+        private const val CANAL_ALERTA = "mapa_bairro"
         const val ACAO_PARAR = "br.rota.copiloto.PARAR_VOZ"
         private val BR = Locale("pt", "BR")
 

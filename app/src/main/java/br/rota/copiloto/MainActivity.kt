@@ -1276,7 +1276,6 @@ class MainActivity : Activity() {
             render()
         })
         c1.addView(ui.tv("Fica escutando com o microfone e mostra um aviso fixo na barra de notificação. Desligue aqui quando não quiser.", 12f, C.MUTED, 0), ui.lp(top = 4))
-        c1.addView(switchRow("Falar a resposta", p.vozFalar) { p.vozFalar = it; render() }, ui.lp(top = 14))
         box.addView(c1, ui.lp(top = 16))
         val c2 = ui.card()
         c2.addView(ui.tv("Palavra para acionar", 16f, C.TEXT, 3))
