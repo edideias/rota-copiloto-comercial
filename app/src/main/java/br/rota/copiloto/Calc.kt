@@ -256,6 +256,17 @@ class Prefs(ctx: Context, override_: android.content.SharedPreferences? = null) 
         e.apply()
     }
 
+    // ---- escuta por voz: diga a palavra e o bairro (o microfone só escuta se você ligar)
+    var vozOn: Boolean
+        get() = sp.getBoolean("vozOn", false)
+        set(v) { sp.edit().putBoolean("vozOn", v).apply() }
+    var vozPalavra: String
+        get() = sp.getString("vozPalavra", "mila")?.takeIf { it.isNotBlank() } ?: "mila"
+        set(v) { sp.edit().putString("vozPalavra", v).apply() }
+    var vozFalar: Boolean
+        get() = sp.getBoolean("vozFalar", true)
+        set(v) { sp.edit().putBoolean("vozFalar", v).apply() }
+
     // ---- aviso de corrida longa ou de bairro longe do centro: laranja piscando (sem nome na tela)
     var longaOn: Boolean
         get() = sp.getBoolean("longaOn", true)

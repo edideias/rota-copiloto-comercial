@@ -156,6 +156,15 @@ class MainActivity : Activity() {
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 12) {
+            if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) { if (Prefs(this).vozOn) VozService.iniciar(this) }
+            else {
+                Prefs(this).vozOn = false
+                Toast.makeText(this, "Sem permissão do microfone, a escuta por voz fica desligada.", Toast.LENGTH_LONG).show()
+            }
+            render()
+            return
+        }
         if (requestCode == 11) {
             val cb = pedidoLocal
             pedidoLocal = null
@@ -595,6 +604,7 @@ class MainActivity : Activity() {
             Secao("apps", "🚗", "Apps", "Uber, 99 e inDRIVE: ligar e cores", "#EA580C") { appsContent(it) },
             Secao("motel", "🅼", "Aviso M", "Alerta rosa para destinos marcados", "#DB2777") { motelContent(it) },
             Secao("longa", "🛣️", "Corrida longa", "Trajeto demorado ou bairro longe do centro", "#F97316") { longaContent(it) },
+            Secao("voz", "🎙️", "Voz", "Diga a palavra e ouça onde fica o bairro", "#0EA5E9") { vozContent(it) },
             Secao("tempo", "⏱️", "Tempo na tela", "Quanto tempo o quadro fica", "#475569") { timeContent(it) },
             Secao("prints", "📸", "Salvar prints", "Guardar prints para teste", "#0891B2") { captureContent(it) }
         )
@@ -1242,7 +1252,7 @@ class MainActivity : Activity() {
             setBackgroundColor(Color.TRANSPARENT)
             webViewClient = android.webkit.WebViewClient()
         }
-        mapa.loadDataWithBaseURL("https://localhost/", mapaHtml(origem, l), "text/html", "UTF-8", null)
+        mapa.loadDataWithBaseURL("https://localhost/", Mapa.html(origem, l), "text/html", "UTF-8", null)
         container.addView(mapa, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(300)).also { it.topMargin = dp(10) })
         container.addView(ui.button("Abrir no Google Maps", false) {
             val geo = String.format(Locale.US, "geo:%.5f,%.5f?q=%.5f,%.5f(%s)", l.lat, l.lon, l.lat, l.lon, Uri.encode(l.nome))
@@ -1256,31 +1266,32 @@ class MainActivity : Activity() {
         }
     }
 
-    /** Mapa limpo: origem roxa, destino laranja e uma linha tracejada entre os dois. Usa o OpenStreetMap. */
-    private fun mapaHtml(origem: Destino.Local?, l: Destino.Local): String {
-        fun num(d: Double) = String.format(Locale.US, "%.5f", d)
-        fun texto(s: String) = "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"").replace("<", "\\u003c") + "\""
-        val head = "<!doctype html><html><head><meta charset=\"utf-8\"/>" +
-            "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/>" +
-            "<link rel=\"stylesheet\" href=\"https://unpkg.com/leaflet@1.9.4/dist/leaflet.css\"/>" +
-            "<script src=\"https://unpkg.com/leaflet@1.9.4/dist/leaflet.js\"></script>" +
-            "<style>html,body,#m{height:100%;margin:0;background:#F5F3FF}" +
-            ".leaflet-tooltip.rotulo{background:#fff;border:0;border-radius:10px;box-shadow:0 1px 6px rgba(17,24,39,.18);" +
-            "font:600 12px sans-serif;color:#111827;padding:3px 8px}</style></head><body><div id=\"m\"></div><script>"
-        val corpo = "var m=L.map('m',{zoomControl:false,attributionControl:false});" +
-            "L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(m);" +
-            "var b=L.latLngBounds();" +
-            "function pino(ll,cor,nome){L.circleMarker(ll,{radius:10,color:'#fff',weight:3,fillColor:cor,fillOpacity:1})" +
-            ".addTo(m).bindTooltip(nome,{permanent:true,direction:'top',className:'rotulo'});b.extend(ll);}" +
-            "var B=[" + num(l.lat) + "," + num(l.lon) + "];" +
-            "pino(B," + texto("#F97316") + "," + texto(l.nome) + ");"
-        val fim = if (origem != null) {
-            "var A=[" + num(origem.lat) + "," + num(origem.lon) + "];" +
-                "pino(A," + texto("#7C3AED") + "," + texto(origem.nome) + ");" +
-                "L.polyline([A,B],{color:'#111827',weight:3,dashArray:'6 8'}).addTo(m);" +
-                "m.fitBounds(b,{padding:[56,56]});"
-        } else "m.setView(B,15);"
-        return head + corpo + fim + "</script></body></html>"
+    private fun vozContent(p: Prefs): View {
+        val box = ui.vbox()
+        box.addView(pageHeader("Voz", "Diga a palavra e depois o bairro: o app fala a distância e deixa o mapa na notificação"))
+        val c1 = ui.card()
+        c1.addView(switchRow("Escutar por voz", p.vozOn) { ligado ->
+            p.vozOn = ligado
+            if (ligado) ligarVoz() else VozService.parar(this)
+            render()
+        })
+        c1.addView(ui.tv("Fica escutando com o microfone e mostra um aviso fixo na barra de notificação. Desligue aqui quando não quiser.", 12f, C.MUTED, 0), ui.lp(top = 4))
+        c1.addView(switchRow("Falar a resposta", p.vozFalar) { p.vozFalar = it; render() }, ui.lp(top = 14))
+        box.addView(c1, ui.lp(top = 16))
+        val c2 = ui.card()
+        c2.addView(ui.tv("Palavra para acionar", 16f, C.TEXT, 3))
+        c2.addView(ui.tv("Diga a palavra e, na sequência, o nome do bairro.", 12f, C.MUTED, 0), ui.lp(top = 4))
+        val tx = campo("Palavra").apply { setText(p.vozPalavra) }
+        c2.addView(tx, ui.lp(top = 8))
+        c2.addView(ui.button("Salvar palavra", false) { p.vozPalavra = tx.text.toString().trim().ifEmpty { "mila" }; render() }, ui.lp(top = 8))
+        box.addView(c2, ui.lp(top = 16))
+        return box
+    }
+
+    /** Pede o microfone só quando você liga a escuta. */
+    private fun ligarVoz() {
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) VozService.iniciar(this)
+        else requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), 12)
     }
 
     private fun longaContent(p: Prefs): View {
