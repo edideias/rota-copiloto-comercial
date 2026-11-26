@@ -59,10 +59,39 @@ object Calc {
 object Longa {
     fun motivo(a: Analysis, distCentro: Double?, p: Prefs): String? {
         if (!p.longaOn || a.perKm < p.greenKm) return null
+        // fora do horário de pico o aviso fica quieto
+        if (!Pico.emPico(p)) return null
         val partes = mutableListOf<String>()
         if (a.offer.tripMin >= p.longaMin) partes += "TRAJETO ${Math.round(a.offer.tripMin)} MIN"
         if (distCentro != null && distCentro >= p.longaKm) partes += "LONGE DO CENTRO"
         return partes.joinToString(" · ").ifEmpty { null }
+    }
+}
+
+/** Horários de pico: duas faixas por dia, no formato "HH:MM-HH:MM". */
+object Pico {
+    private val FORMATO = Regex("""^\s*(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})\s*$""")
+
+    /** Lê uma faixa; devolve (início, fim) em minutos desde meia-noite, ou null se o texto não for válido. */
+    fun faixa(texto: String): Pair<Int, Int>? {
+        val m = FORMATO.find(texto) ?: return null
+        val (h1, m1, h2, m2) = m.destructured
+        val hi = h1.toInt(); val mi = m1.toInt(); val hf = h2.toInt(); val mf = m2.toInt()
+        if (hi > 23 || hf > 24 || mi > 59 || mf > 59) return null
+        val ini = hi * 60 + mi
+        val fim = hf * 60 + mf
+        if (ini == fim) return null
+        return ini to fim
+    }
+
+    /** Dentro da faixa? A faixa pode passar da meia-noite (ex.: 22:00-02:00). */
+    fun dentro(agora: Int, ini: Int, fim: Int): Boolean =
+        if (ini < fim) agora >= ini && agora < fim else agora >= ini || agora < fim
+
+    /** Está num dos dois horários de pico agora (horário do celular)? */
+    fun emPico(p: Prefs, relogio: java.util.Calendar = java.util.Calendar.getInstance()): Boolean {
+        val agora = relogio.get(java.util.Calendar.HOUR_OF_DAY) * 60 + relogio.get(java.util.Calendar.MINUTE)
+        return listOfNotNull(faixa(p.picoA), faixa(p.picoB)).any { (ini, fim) -> dentro(agora, ini, fim) }
     }
 }
 
@@ -282,6 +311,13 @@ class Prefs(ctx: Context, override_: android.content.SharedPreferences? = null) 
     var longaMs: Int
         get() = sp.getInt("longaMs", 380)
         set(v) { sp.edit().putInt("longaMs", v.coerceIn(70, 1500)).apply() }
+    /** horários de pico: o aviso de corrida longa só aparece dentro deles */
+    var picoA: String
+        get() = sp.getString("picoA", "06:00-09:00") ?: "06:00-09:00"
+        set(v) { sp.edit().putString("picoA", v).apply() }
+    var picoB: String
+        get() = sp.getString("picoB", "17:00-20:00") ?: "17:00-20:00"
+        set(v) { sp.edit().putString("picoB", v).apply() }
 
     // ---- motel no destino: aviso rosa neon piscando
     var motelOn: Boolean

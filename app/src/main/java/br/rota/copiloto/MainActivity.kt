@@ -1295,7 +1295,7 @@ class MainActivity : Activity() {
 
     private fun longaContent(p: Prefs): View {
         val box = ui.vbox()
-        box.addView(pageHeader("Corrida longa", "Paga bem por km, mas o trajeto é demorado ou o destino fica longe do centro: o quadro pisca em laranja"))
+        box.addView(pageHeader("Corrida longa", "Paga bem por km, mas o trajeto é demorado ou o destino fica longe do centro: o quadro pisca em laranja, só nos horários de pico"))
         val c1 = ui.card()
         c1.addView(switchRow("Aviso ligado", p.longaOn) { p.longaOn = it; render() })
         c1.addView(ui.tv("Só dispara quando a corrida já paga o seu \"bom por km\". Conta o trajeto (do embarque ao destino) e o bairro do destino.", 12f, C.MUTED, 0), ui.lp(top = 4))
@@ -1304,6 +1304,25 @@ class MainActivity : Activity() {
         c1.addView(corRow("Cor", p.longaCor) { p.longaCor = it }, ui.lp(top = 14))
         c1.addView(velocidadeRow("Velocidade da piscada", p.longaMs) { p.longaMs = it }, ui.lp(top = 14))
         box.addView(c1, ui.lp(top = 16))
+        val c2 = ui.card()
+        c2.addView(ui.tv("Horários de pico", 16f, C.TEXT, 3))
+        c2.addView(ui.tv("Fora dessas faixas o aviso não aparece. Use o formato HH:MM-HH:MM, por exemplo 06:30-09:00.", 12f, C.MUTED, 0), ui.lp(top = 4))
+        val manha = campo("Pico da manhã").apply { setText(p.picoA) }
+        val tarde = campo("Pico da tarde").apply { setText(p.picoB) }
+        c2.addView(manha, ui.lp(top = 8))
+        c2.addView(tarde, ui.lp(top = 8))
+        c2.addView(ui.button("Salvar horários", false) {
+            val a = manha.text.toString().trim()
+            val b = tarde.text.toString().trim()
+            if (Pico.faixa(a) == null || Pico.faixa(b) == null) {
+                Toast.makeText(this, "Use o formato 06:00-09:00 nas duas faixas.", Toast.LENGTH_LONG).show()
+            } else {
+                p.picoA = a
+                p.picoB = b
+                render()
+            }
+        }, ui.lp(top = 8))
+        box.addView(c2, ui.lp(top = 16))
         return box
     }
 
