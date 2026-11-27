@@ -17,7 +17,7 @@ class PixListener : NotificationListenerService() {
             extras.getCharSequence(Notification.EXTRA_TEXT),
             extras.getCharSequence(Notification.EXTRA_BIG_TEXT)
         ).joinToString(" ")
-        val doSicredi = sbn.packageName.lowercase().contains("sicredi") || texto.lowercase().contains("sicredi")
+        val doSicredi = listOf(sbn.packageName, titulo, texto).any { it.lowercase().contains("sicredi") }
         if (!doSicredi) return
         Pix.processar(this, titulo, texto)
     }
