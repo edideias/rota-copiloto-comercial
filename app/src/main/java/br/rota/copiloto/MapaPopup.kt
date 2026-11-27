@@ -154,21 +154,21 @@ object MapaPopup {
     private class Rota(ctx: Context, private val destino: Destino.Local, private val embarque: Destino.Local?, private val kmTotal: Double) : View(ctx) {
         private val dp = resources.displayMetrics.density
         private val bairros: List<Bairro> = Bairros.carregar(ctx)
-        private val fundo = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(245, 15, 23, 42) }
-        private val borda = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(90, 255, 255, 255); style = Paint.Style.STROKE; strokeWidth = 1 * dp }
-        private val preench = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(255, 30, 41, 59); style = Paint.Style.FILL }
-        private val preenchChegada = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(170, 232, 89, 12); style = Paint.Style.FILL }
-        private val preenchPartida = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(170, 0, 168, 107); style = Paint.Style.FILL }
-        private val contorno = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(255, 100, 116, 139); style = Paint.Style.STROKE; strokeWidth = 0.6f * dp }
+        private val fundo = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(250, 250, 247, 240) }
+        private val borda = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(140, 184, 176, 160); style = Paint.Style.STROKE; strokeWidth = 1 * dp }
+        private val preench = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(233, 228, 216); style = Paint.Style.FILL }
+        private val preenchChegada = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(210, 232, 89, 12); style = Paint.Style.FILL }
+        private val preenchPartida = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(210, 0, 168, 107); style = Paint.Style.FILL }
+        private val contorno = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(184, 176, 160); style = Paint.Style.STROKE; strokeWidth = 0.6f * dp }
         private val linha = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.argb(230, 226, 232, 240); style = Paint.Style.STROKE
+            color = Color.rgb(28, 25, 23); style = Paint.Style.STROKE
             strokeWidth = 3f * dp; strokeCap = Paint.Cap.ROUND
         }
         private val anelBranco = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
         private val partidaCor = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#00A86B") }
         private val chegadaCor = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#E8590C") }
         private val seta = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE; style = Paint.Style.FILL }
-        private val rotuloFundo = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(235, 2, 6, 23); style = Paint.Style.FILL }
+        private val rotuloFundo = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(240, 250, 247, 240); style = Paint.Style.FILL }
 
         private var pChegada = PointF()
         private var pPartida: PointF? = null
@@ -288,12 +288,12 @@ object MapaPopup {
             c.drawRoundRect(RectF(0.5f * dp, 0.5f * dp, w - 0.5f * dp, h - 0.5f * dp), raio, raio, borda)
             if (partida != null) marcador(c, partida, partidaCor, cima = true)
             marcador(c, pChegada, chegadaCor, cima = false)
-            if (partida != null) rotulo(c, "PARTIDA", partida, Color.parseColor("#34D399"))
-            rotulo(c, "CHEGADA", pChegada, Color.parseColor("#FB923C"))
-            if (partida == null) pilula(c, "SEM PARTIDA", w / 2f, h - 14 * dp, Color.WHITE)
-            for ((nome, p) in nomesBairros) pilula(c, nome, p.x, p.y, Color.parseColor("#CBD5E1"), tamanho = 6.5f)
+            if (partida != null) rotulo(c, "PARTIDA", partida, Color.parseColor("#047857"))
+            rotulo(c, "CHEGADA", pChegada, Color.parseColor("#C2410C"))
+            if (partida == null) pilula(c, "SEM PARTIDA", w / 2f, h - 14 * dp, Color.parseColor("#1C1917"))
+            for ((nome, p) in nomesBairros) pilula(c, nome, p.x, p.y, Color.parseColor("#1C1917"), tamanho = 6.5f)
             kmMeio?.let { m ->
-                pilula(c, String.format(java.util.Locale("pt", "BR"), "%.1f km", kmTotal), m.x, m.y, Color.WHITE, tamanho = 9f)
+                pilula(c, String.format(java.util.Locale("pt", "BR"), "%.1f km", kmTotal), m.x, m.y, Color.parseColor("#1C1917"), tamanho = 9f)
             }
         }
 
