@@ -8,6 +8,7 @@ import android.graphics.Path
 import android.graphics.PixelFormat
 import android.graphics.PointF
 import android.graphics.RectF
+import android.graphics.Typeface
 import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
@@ -167,6 +168,7 @@ object MapaPopup {
         private val partidaCor = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#00A86B") }
         private val chegadaCor = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#E8590C") }
         private val seta = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE; style = Paint.Style.FILL }
+        private val rotuloFundo = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(235, 2, 6, 23); style = Paint.Style.FILL }
 
         private var pChegada = PointF()
         private var pPartida: PointF? = null
@@ -252,6 +254,29 @@ object MapaPopup {
             c.drawRoundRect(RectF(0.5f * dp, 0.5f * dp, w - 0.5f * dp, h - 0.5f * dp), raio, raio, borda)
             if (partida != null) marcador(c, partida, partidaCor, cima = true)
             marcador(c, pChegada, chegadaCor, cima = false)
+            if (partida != null) rotulo(c, "PARTIDA", partida, Color.parseColor("#34D399"))
+            rotulo(c, "CHEGADA", pChegada, Color.parseColor("#FB923C"))
+            if (partida == null) pilula(c, "SEM PARTIDA", w / 2f, h - 14 * dp, Color.WHITE)
+        }
+
+        /** Rótulo ao lado do marcador: abaixo se ele está na metade de cima, acima se está na de baixo. */
+        private fun rotulo(c: Canvas, texto: String, p: PointF, cor: Int) {
+            val cy = if (p.y > height / 2f) p.y - 22 * dp else p.y + 22 * dp
+            pilula(c, texto, p.x, cy, cor)
+        }
+
+        /** Texto pequeno em pílula escura, mantido dentro do card. */
+        private fun pilula(c: Canvas, texto: String, x: Float, y: Float, cor: Int) {
+            val fonte = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                textSize = 8f * dp; typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER; color = cor
+            }
+            val larg = fonte.measureText(texto)
+            val pad = 5 * dp
+            val alt = 14 * dp
+            val cx = x.coerceIn(larg / 2 + pad + 2 * dp, width - larg / 2 - pad - 2 * dp)
+            val cyPilula = y.coerceIn(alt / 2 + 2 * dp, height - alt / 2 - 2 * dp)
+            c.drawRoundRect(RectF(cx - larg / 2 - pad, cyPilula - alt / 2, cx + larg / 2 + pad, cyPilula + alt / 2), alt / 2, alt / 2, rotuloFundo)
+            c.drawText(texto, cx, cyPilula + fonte.textSize * 0.35f, fonte)
         }
 
         /** Círculo com borda branca e seta (para cima na partida, para baixo na chegada), como no app do 99. */
