@@ -507,13 +507,13 @@ class MainActivity : Activity() {
         b.addView(ui.button("Abrir configurações do app (liberar restritas)") { openAppDetails() })
         b.addView(ui.button("Abrir Acessibilidade", false) { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) })
         b.addView(ui.button("Liberar aviso de Pix (acesso a notificações)", false) { startActivity(Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS")) })
-        val tempoPix = campo("Segundos (de 3 a 60)").apply {
+        val tempoPix = campo("Fechar sozinho após (segundos; 0 = só ao tocar)").apply {
             setText(Prefs(this@MainActivity).pixSegundos.toString())
             inputType = android.text.InputType.TYPE_CLASS_NUMBER
         }
         b.addView(tempoPix, ui.lp(top = 8))
         b.addView(ui.button("Salvar tempo do aviso de Pix", false) {
-            Prefs(this).pixSegundos = tempoPix.text.toString().toIntOrNull() ?: 12
+            Prefs(this).pixSegundos = tempoPix.text.toString().toIntOrNull()?.coerceIn(0, 60) ?: 0
             tempoPix.setText(Prefs(this).pixSegundos.toString())
             Toast.makeText(this, "Tempo do aviso de Pix salvo", Toast.LENGTH_SHORT).show()
         }, ui.lp(top = 8))

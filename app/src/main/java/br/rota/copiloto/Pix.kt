@@ -21,7 +21,7 @@ import android.widget.TextView
 /**
  * Aviso grande na tela quando o Sicredi notifica um Pix recebido: valor e nome de quem pagou (se vier).
  * Usa o mesmo caminho do semáforo (serviço de acessibilidade), então aparece por cima de qualquer app.
- * Ocupa a largura toda da tela, não toma toques e some sozinho depois do tempo configurado.
+ * Ocupa a largura toda da tela e fica até você tocar nele (ou até o tempo configurado, se houver).
  */
 object Pix {
     data class Recebido(val valor: String, val nome: String?, val bruto: String)
@@ -104,11 +104,14 @@ object Pix {
             }
         }
 
+        // o aviso fica na tela até o toque; só some sozinho se o tempo configurado for maior que zero
+        card.isClickable = true
+        card.setOnClickListener { fechar() }
+
         val lp = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT
         ).apply { gravity = Gravity.CENTER }
@@ -116,7 +119,8 @@ object Pix {
             wm.addView(card, lp)
             atual = card
             handler.removeCallbacks(sumir)
-            handler.postDelayed(sumir, Prefs(servico).pixSegundos * 1000L)
+            val sozinho = Prefs(servico).pixSegundos
+            if (sozinho > 0) handler.postDelayed(sumir, sozinho * 1000L)
         } catch (e: Exception) {
             atual = null
             Notificador.avisarPix(ctx, r)
