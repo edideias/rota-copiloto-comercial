@@ -171,6 +171,21 @@ object Destino {
         "sessenta" to "60", "setenta" to "70", "oitenta" to "80", "noventa" to "90", "cem" to "100", "cento" to "100", "duzentos" to "200", "trezentos" to "300", "quatrocentos" to "400", "quinhentos" to "500"
     )
 
+    /** Embarque em conveniência, bar, adega ou qualquer lugar ligado a bebida: mostra a cervejinha ao lado do piso. */
+
+    fun ehBebida(texto: String): Boolean {
+
+        val n = norm(texto)
+
+        if (n.isBlank()) return false
+
+        val palavras = listOf("conveni", "beer", "cerveja", "bebida", "adega", "chopp", "drink", "whisky", "vinho", "cachaca")
+
+        return palavras.any { n.contains(it) } || (" $n ").contains(" bar ")
+
+    }
+
+
     fun norm(s: String): String {
         var t = Normalizer.normalize(s.lowercase(), Normalizer.Form.NFD).replace(Regex("\\p{M}+"), "")
         t = t.replace(Regex("[^a-z0-9 ]"), " ")

@@ -519,7 +519,7 @@ object OverlayCard {
         if (l1.childCount > 1) esq.addView(l1, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, wrap))
 
         // saída: rua de embarque com a bolinha de piso (desligável em Peças)
-        if (a.offer.pickupText.isNotBlank()) saidaLinha(ctx, ui, Destino.analisar(a.offer.pickupText, p), size, p)?.let {
+        if (a.offer.pickupText.isNotBlank()) saidaLinha(ctx, ui, Destino.analisar(a.offer.pickupText, p), size, p, Destino.ehBebida(a.offer.pickupText))?.let {
             esq.addView(it, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, wrap).also { lp -> if (esq.childCount > 0) lp.topMargin = ui.dp(gap) })
         }
 
@@ -729,7 +729,7 @@ object OverlayCard {
             box.addView(pills, ui.lp(top = p.espacoCards))
         }
 
-        if (a.offer.pickupText.isNotBlank()) saidaLinha(ctx, ui, Destino.analisar(a.offer.pickupText, p), size, p)?.let { box.addView(it, ui.lp(top = p.espacoCards)) }
+        if (a.offer.pickupText.isNotBlank()) saidaLinha(ctx, ui, Destino.analisar(a.offer.pickupText, p), size, p, Destino.ehBebida(a.offer.pickupText))?.let { box.addView(it, ui.lp(top = p.espacoCards)) }
         if (comBairro) box.addView(if (compacto) bairroCompacto(ctx, ui, dest, size, p, verdict) else bairroCard(ctx, ui, dest, p.bairroStyle, size, verdict), ui.lp(top = p.espacoCards))
 
         if (top) {
@@ -894,7 +894,7 @@ object OverlayCard {
     }
 
     /** Endereço de saída (embarque): nome da rua com a bolinha de piso (terra/asfalto) ao lado. Desligável em Peças. */
-    private fun saidaLinha(ctx: Context, ui: Ui, ds: Destino.Info, size: Float, p: Prefs): View? {
+    private fun saidaLinha(ctx: Context, ui: Ui, ds: Destino.Info, size: Float, p: Prefs, bebida: Boolean = false): View? {
         if (!p.cpB("bolaSaida", true)) return null
         val nome = ds.rua ?: ds.bairro ?: return null
         val esc = Pecas.num(p, "tamBolaSaida") / 100f
@@ -909,6 +909,9 @@ object OverlayCard {
             val lado = ui.dp((size * 1.7f * esc).toInt())
             r.addView(it, LinearLayout.LayoutParams(lado, lado).also { lp -> lp.marginStart = ui.dp(8) })
         }
+        // embarque ligado a bebida (conveniência, bar, adega...): cervejinha ao lado do piso
+        if (bebida) r.addView(ui.tv("🍺", size * 1.5f * esc, txt, 3),
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).also { lp -> lp.marginStart = ui.dp(6) })
         return r
     }
 
