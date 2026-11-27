@@ -486,6 +486,15 @@ class CopilotService : AccessibilityService() {
     }
 
     /** Mostra uma oferta de teste (botão "Testar painel"). */
+    /** Linha de baixo do quadro do semáforo, em pixels da tela; null se o quadro não estiver na tela. */
+    fun fimDoSemaforoPx(): Int? {
+        val v = overlay ?: return null
+        if (!attached || v.height == 0) return null
+        val loc = IntArray(2)
+        v.getLocationOnScreen(loc)
+        return loc[1] + v.height
+    }
+
     fun showSimulation() {
         val p = Prefs(this)
         val offer = Offer("Simulação", 18.50, 1.2, 4.0, 6.8, 17.0)

@@ -14,9 +14,9 @@ import android.view.View
 import android.view.WindowManager
 
 /**
- * Popup pequeno no topo, na faixa livre acima do semáforo, com um desenho simples do trajeto.
- * Não recebe toques e não pega o foco: o botão Aceitar e o semáforo continuam clicáveis.
- * Se não couber acima do semáforo, não aparece (a notificação de voz continua mostrando a distância).
+ * Popup pequeno à direita, logo abaixo do semáforo, na área livre ao lado do bloco de valores.
+ * Não recebe toques e não pega o foco: Aceitar e o semáforo continuam clicáveis.
+ * Some sozinho depois de alguns segundos.
  */
 object MapaPopup {
     private val handler = Handler(Looper.getMainLooper())
@@ -24,32 +24,36 @@ object MapaPopup {
     private val sumir = Runnable { fechar() }
 
     /** Devolve null se o popup abriu; senão, o motivo (aparece na notificação para diagnóstico). */
-    fun mostrar(acess: Context, p: Prefs, l: Destino.Local, origemPessoa: Destino.Local?, duracaoMs: Long = 6000L): String? {
+    fun mostrar(servico: CopilotService, p: Prefs, l: Destino.Local, origemPessoa: Destino.Local?, duracaoMs: Long = 6000L): String? {
         fechar()
-        val res = acess.resources
+        val res = servico.resources
         val dp = res.displayMetrics.density
-        val manager = acess.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        val alturaTela = res.displayMetrics.heightPixels
+        val manager = servico.getSystemService(Context.WINDOW_SERVICE) as WindowManager
 
-        // faixa livre: do fim da barra de status até o topo do semáforo
-        val statusId = res.getIdentifier("status_bar_height", "dimen", "android")
-        val statusPx = if (statusId > 0) res.getDimensionPixelSize(statusId) else (24 * dp).toInt()
-        val inicio = statusPx + (4 * dp).toInt()
-        val cardEmBaixo = p.compacto && p.cpI("ancora", 0) == 1
-        val alturaPx: Int = if (cardEmBaixo) {
-            (96 * dp).toInt()
+        val fimSemaforo = servico.fimDoSemaforoPx()
+        val cardEmCima = fimSemaforo != null && fimSemaforo < alturaTela * 0.6
+        val topo: Int
+        val alturaMax: Int
+        if (cardEmCima) {
+            topo = fimSemaforo!! + (12 * dp).toInt()
+            alturaMax = (200 * dp).toInt()
         } else {
-            val topoCardDp = if (p.compacto) p.cpI("distTopo", p.overlayTopDp.toInt()) else p.overlayTopDp.toInt()
-            (topoCardDp * dp).toInt() - (6 * dp).toInt() - inicio
+            // semáforo embaixo ou ainda não desenhado: usa a faixa de cima, logo abaixo da barra de status
+            val statusId = res.getIdentifier("status_bar_height", "dimen", "android")
+            val statusPx = if (statusId > 0) res.getDimensionPixelSize(statusId) else (24 * dp).toInt()
+            topo = statusPx + (36 * dp).toInt()
+            alturaMax = (120 * dp).toInt()
         }
-        if (alturaPx < (40 * dp).toInt()) {
-            val motivo = "sem espaço acima do semáforo (${(alturaPx / dp).toInt()} dp)"
+        val alturaDisponivel = minOf(alturaMax, alturaTela - topo - (24 * dp).toInt())
+        if (alturaDisponivel < (100 * dp).toInt()) {
+            val motivo = "sem espaço ao lado do semáforo (${(alturaDisponivel / dp).toInt()} dp)"
             DebugLog.add("Popup do mapa não abriu: $motivo")
             return motivo
         }
-        val altura = minOf(alturaPx, (96 * dp).toInt())
 
         val lp = WindowManager.LayoutParams(
-            (184 * dp).toInt(), altura,
+            (132 * dp).toInt(), alturaDisponivel,
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                 WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
@@ -57,10 +61,10 @@ object MapaPopup {
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.END
-            x = (10 * dp).toInt()
-            y = if (cardEmBaixo) (36 * dp).toInt() else inicio
+            x = (12 * dp).toInt()
+            y = topo
         }
-        val v = Desenho(acess, l, origemPessoa)
+        val v = Desenho(servico, l, origemPessoa)
         return try {
             manager.addView(v, lp)
             atual = v
@@ -84,12 +88,15 @@ object MapaPopup {
         } catch (_: Exception) {}
     }
 
-    /** Texto à esquerda (bairro e distância) e desenho à direita (dois pontos e o traço entre eles). */
+    /** Layout vertical: nome do bairro no topo, desenho do trajeto no meio, distância embaixo. */
     private class Desenho(ctx: Context, private val destino: Destino.Local, private val pessoa: Destino.Local?) : View(ctx) {
         private val dp = resources.displayMetrics.density
         private val fundo = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(236, 17, 24, 39) }
-        private val titulo = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE; textSize = 14 * dp; isFakeBoldText = true }
-        private val legenda = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#CBD5E1"); textSize = 12 * dp }
+        private val borda = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(60, 255, 255, 255); style = Paint.Style.STROKE; strokeWidth = 1 * dp }
+        private val titulo = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE; textSize = 13 * dp; isFakeBoldText = true }
+        private val km = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE; textSize = 16 * dp; isFakeBoldText = true }
+        private val legenda = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#CBD5E1"); textSize = 11 * dp }
+        private val rotulo = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#CBD5E1"); textSize = 10 * dp; textAlign = Paint.Align.CENTER }
         private val trajeto = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.parseColor("#E2E8F0"); style = Paint.Style.STROKE; strokeWidth = 2 * dp
             pathEffect = DashPathEffect(floatArrayOf(5 * dp, 4 * dp), 0f)
@@ -101,39 +108,48 @@ object MapaPopup {
         override fun onDraw(c: Canvas) {
             val w = width.toFloat()
             val h = height.toFloat()
-            val raio = 14 * dp
+            val raio = 16 * dp
             c.drawRoundRect(RectF(0f, 0f, w, h), raio, raio, fundo)
+            c.drawRoundRect(RectF(0.5f * dp, 0.5f * dp, w - 0.5f * dp, h - 0.5f * dp), raio, raio, borda)
 
-            // esquerda: bairro e distância
-            c.drawText(destino.nome.take(13), 12 * dp, 26 * dp, titulo)
+            val pad = 12 * dp
+            // nome do bairro, cortado se for longo demais
+            var nome = destino.nome
+            while (nome.length > 3 && titulo.measureText(nome) > w - 2 * pad) nome = nome.dropLast(1)
+            if (nome != destino.nome) nome = nome.trimEnd() + "…"
+            c.drawText(nome, pad, 24 * dp, titulo)
+
             val origem = pessoa ?: Destino.localDoBairro("Centro")
-            val km = if (origem != null) Destino.kmEntre(origem.lat, origem.lon, destino.lat, destino.lon) else destino.km
-            val textoKm = if (pessoa != null) String.format(java.util.Locale("pt", "BR"), "%.1f km de você", km)
-                else String.format(java.util.Locale("pt", "BR"), "%.1f km do centro", km)
-            c.drawText(textoKm, 12 * dp, h - 16 * dp, legenda)
+            val distancia = if (origem != null) Destino.kmEntre(origem.lat, origem.lon, destino.lat, destino.lon) else destino.km
 
-            // direita: traço entre a origem (você ou centro) e o destino
-            val area = RectF(96 * dp, 12 * dp, w - 12 * dp, h - 12 * dp)
+            // desenho do trajeto na área do meio
+            val area = RectF(pad + 4 * dp, 40 * dp, w - pad - 4 * dp, h - 64 * dp)
             if (origem == null) {
                 c.drawCircle(area.centerX(), area.centerY(), 6 * dp, pontoDestino)
-                return
+            } else {
+                val lat0 = Math.toRadians((origem.lat + destino.lat) / 2)
+                val minLon = minOf(origem.lon, destino.lon); val maxLon = maxOf(origem.lon, destino.lon)
+                val minLat = minOf(origem.lat, destino.lat); val maxLat = maxOf(origem.lat, destino.lat)
+                val rangeX = maxOf((maxLon - minLon) * Math.cos(lat0), 1e-5)
+                val rangeY = maxOf(maxLat - minLat, 1e-5)
+                val s = minOf(area.width() / rangeX, area.height() / rangeY).toFloat()
+                val offX = area.centerX() - (rangeX * s).toFloat() / 2
+                val offY = area.centerY() - (rangeY * s).toFloat() / 2
+                fun xDe(lon: Double) = offX + ((lon - minLon) * Math.cos(lat0) * s).toFloat()
+                fun yDe(lat: Double) = offY + ((maxLat - lat) * s).toFloat()
+                val ox = xDe(origem.lon); val oy = yDe(origem.lat)
+                val dx = xDe(destino.lon); val dy = yDe(destino.lat)
+                c.drawLine(ox, oy, dx, dy, trajeto)
+                c.drawCircle(ox, oy, 5 * dp, pontoOrigem)
+                c.drawCircle(dx, dy, 6 * dp, pontoDestino)
+                c.drawCircle(dx, dy, 6 * dp, contorno)
+                c.drawText(if (pessoa != null) "você" else "centro", ox, oy + 16 * dp, rotulo)
+                c.drawText("destino", dx, dy - 10 * dp, rotulo)
             }
-            val lat0 = Math.toRadians((origem.lat + destino.lat) / 2)
-            val minLon = minOf(origem.lon, destino.lon); val maxLon = maxOf(origem.lon, destino.lon)
-            val minLat = minOf(origem.lat, destino.lat); val maxLat = maxOf(origem.lat, destino.lat)
-            val rangeX = maxOf((maxLon - minLon) * Math.cos(lat0), 1e-5)
-            val rangeY = maxOf(maxLat - minLat, 1e-5)
-            val s = minOf(area.width() / rangeX, area.height() / rangeY).toFloat()
-            val offX = area.centerX() - (rangeX * s).toFloat() / 2
-            val offY = area.centerY() - (rangeY * s).toFloat() / 2
-            fun xDe(lon: Double) = offX + ((lon - minLon) * Math.cos(lat0) * s).toFloat()
-            fun yDe(lat: Double) = offY + ((maxLat - lat) * s).toFloat()
-            val ox = xDe(origem.lon); val oy = yDe(origem.lat)
-            val dx = xDe(destino.lon); val dy = yDe(destino.lat)
-            c.drawLine(ox, oy, dx, dy, trajeto)
-            c.drawCircle(ox, oy, 5 * dp, pontoOrigem)
-            c.drawCircle(dx, dy, 6 * dp, pontoDestino)
-            c.drawCircle(dx, dy, 6 * dp, contorno)
+
+            // distância embaixo
+            c.drawText(String.format(java.util.Locale("pt", "BR"), "%.1f km", distancia), pad, h - 30 * dp, km)
+            c.drawText(if (pessoa != null) "em linha reta" else "do centro", pad, h - 13 * dp, legenda)
         }
     }
 }
