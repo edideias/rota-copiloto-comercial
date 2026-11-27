@@ -3,6 +3,7 @@ package br.rota.copiloto
 import android.content.Context
 import android.graphics.Color
 import android.graphics.PixelFormat
+import android.graphics.drawable.GradientDrawable
 import android.graphics.Typeface
 import android.os.Build
 import android.os.Handler
@@ -29,7 +30,9 @@ object Pix {
     private val VALOR = Regex("""R\$\s*([0-9]{1,3}(?:\.[0-9]{3})*,[0-9]{2}|[0-9]+,[0-9]{2})""")
     // o nome vem depois do valor, e nunca começa com "R$" ou número
     private val NOME = Regex("""(?i)\bde\s+(?!R\$|\d)([^\n\r.,;!]{3,60})""")
+    private val PALAVRAS_QUE_NAO_SAO_NOME = listOf("pagamento", "pix", "sicredi", "comprovante", "valor", "conta", "cooperativa", "cpf", "transfer")
     private val handler = Handler(Looper.getMainLooper())
+    private var fundo: View? = null
     private var atual: View? = null
     private val sumir = Runnable { fechar() }
     private var ultimaChave = ""
@@ -44,6 +47,7 @@ object Pix {
         val achado = VALOR.find(t) ?: return null
         val depois = t.substring(achado.range.last + 1)
         val nome = NOME.find(depois)?.groupValues?.get(1)?.trim()?.takeIf { it.isNotEmpty() }
+            ?.takeIf { n -> PALAVRAS_QUE_NAO_SAO_NOME.none { Destino.norm(n).contains(it) } }
         return Recebido(achado.groupValues[1], nome, t)
     }
 
@@ -77,13 +81,12 @@ object Pix {
         val card = LinearLayout(servico).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
-            setBackgroundColor(Color.WHITE)
-            // faixa de cima na cor do Pix
-            addView(
-                View(servico).apply { setBackgroundColor(Color.parseColor("#32BCAD")) },
-                LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, (6 * dp).toInt())
-            )
-            setPadding((20 * dp).toInt(), (18 * dp).toInt(), (20 * dp).toInt(), (22 * dp).toInt())
+            background = GradientDrawable().apply {
+                setColor(Color.WHITE)
+                cornerRadius = 24 * dp
+                setStroke((3 * dp).toInt(), Color.parseColor("#32BCAD"))
+            }
+            setPadding((20 * dp).toInt(), (24 * dp).toInt(), (20 * dp).toInt(), (26 * dp).toInt())
             addView(
                 ImageView(servico).apply {
                     setImageResource(R.drawable.pix_logo)
@@ -104,18 +107,31 @@ object Pix {
             }
         }
 
+        // fundo escurecido atrás do cartão: o cartão branco não se confunde com a tela do app
+        val escurecer = View(servico).apply { setBackgroundColor(Color.parseColor("#8C000000")) }
+        val lpFundo = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            PixelFormat.TRANSLUCENT
+        )
+
         // o aviso fica na tela até o toque; só some sozinho se o tempo configurado for maior que zero
         card.isClickable = true
         card.setOnClickListener { fechar() }
 
         val lp = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.WRAP_CONTENT,
+            (servico.resources.displayMetrics.widthPixels - (24 * dp).toInt()), WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT
         ).apply { gravity = Gravity.CENTER }
         try {
+            wm.addView(escurecer, lpFundo)
+            fundo = escurecer
             wm.addView(card, lp)
             atual = card
             handler.removeCallbacks(sumir)
@@ -146,10 +162,12 @@ object Pix {
 
     fun fechar() {
         handler.removeCallbacks(sumir)
-        val v = atual ?: return
+        val v = atual
+        val f = fundo
         atual = null
-        try {
-            (v.context.getSystemService(Context.WINDOW_SERVICE) as WindowManager).removeViewImmediate(v)
-        } catch (_: Exception) {}
+        fundo = null
+        val wm = (v ?: f)?.context?.getSystemService(Context.WINDOW_SERVICE) as? WindowManager ?: return
+        try { if (v != null) wm.removeViewImmediate(v) } catch (_: Exception) {}
+        try { if (f != null) wm.removeViewImmediate(f) } catch (_: Exception) {}
     }
 }
