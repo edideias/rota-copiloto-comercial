@@ -11,8 +11,8 @@ android {
         applicationId = "br.rota.copiloto.pro"
         minSdk = 26
         targetSdk = 34
-        versionCode = 110
-        versionName = "3.41.14"
+        versionCode = 111
+        versionName = "3.41.15"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -49,6 +49,9 @@ android {
 dependencies {
     // Leitura por imagem (OCR) 100% no aparelho, modelo embutido no app.
     implementation("com.google.mlkit:text-recognition:16.0.1")
+    // Reconhecimento de voz offline (Vosk): lê o microfone direto, sem pedir foco de áudio, então não pausa o Spotify.
+    implementation("com.alphacephei:vosk-android:0.3.47")
+    implementation("net.java.dev.jna:jna:5.13.0@aar")
     androidTestImplementation("androidx.test:runner:1.5.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("junit:junit:4.13.2")

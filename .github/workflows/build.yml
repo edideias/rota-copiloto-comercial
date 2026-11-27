@@ -34,6 +34,15 @@ jobs:
           echo "$RC_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/rc.keystore"
           echo "RC_KEYSTORE_PATH=$RUNNER_TEMP/rc.keystore" >> "$GITHUB_ENV"
 
+      - name: Baixar modelo de voz em português (Vosk)
+        run: |
+          # Modelo pequeno em pt-BR, empacotado no APK para o reconhecimento funcionar offline.
+          curl -fsSL -o "$RUNNER_TEMP/vosk-pt.zip" https://alphacephei.com/vosk/models/vosk-model-small-pt-0.3.zip
+          unzip -q "$RUNNER_TEMP/vosk-pt.zip" -d "$RUNNER_TEMP/vosk"
+          rm -rf app/src/main/assets/model-pt
+          mv "$RUNNER_TEMP/vosk/vosk-model-small-pt-0.3" app/src/main/assets/model-pt
+          ls app/src/main/assets/model-pt
+
       - name: Compilar
         env:
           RC_STORE_PASSWORD: ${{ secrets.RC_STORE_PASSWORD }}
