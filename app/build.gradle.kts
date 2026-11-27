@@ -11,8 +11,8 @@ android {
         applicationId = "br.rota.copiloto.pro"
         minSdk = 26
         targetSdk = 34
-        versionCode = 109
-        versionName = "3.41.13"
+        versionCode = 110
+        versionName = "3.41.14"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

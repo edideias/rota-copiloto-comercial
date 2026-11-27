@@ -32,7 +32,7 @@ object MapaPopup {
     private val sumir = Runnable { fechar() }
 
     /** Devolve null se o popup abriu; senão, o motivo (aparece na notificação para diagnóstico). */
-    fun mostrar(servico: CopilotService, p: Prefs, destino: Destino.Local, embarque: Destino.Local?, duracaoMs: Long = 6000L): String? {
+    fun mostrar(servico: CopilotService, p: Prefs, destino: Destino.Local, embarque: Destino.Local?, kmTotal: Double, duracaoMs: Long = 6000L): String? {
         fechar()
         val res = servico.resources
         val dp = res.displayMetrics.density
@@ -73,7 +73,7 @@ object MapaPopup {
             x = (12 * dp).toInt()
             y = topo
         }
-        val v = Rota(servico, destino, embarque)
+        val v = Rota(servico, destino, embarque, kmTotal)
         return try {
             manager.addView(v, lp)
             atual = v
@@ -151,7 +151,7 @@ object MapaPopup {
      * Partida e chegada aparecem como os mesmos ícones do 99, ligadas por uma linha curva.
      * Se a partida não estiver na malha, só a chegada aparece.
      */
-    private class Rota(ctx: Context, private val destino: Destino.Local, private val embarque: Destino.Local?) : View(ctx) {
+    private class Rota(ctx: Context, private val destino: Destino.Local, private val embarque: Destino.Local?, private val kmTotal: Double) : View(ctx) {
         private val dp = resources.displayMetrics.density
         private val bairros: List<Bairro> = Bairros.carregar(ctx)
         private val fundo = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(245, 15, 23, 42) }
@@ -175,6 +175,8 @@ object MapaPopup {
         private val caminhosNormais = ArrayList<Path>()
         private val caminhoChegada = ArrayList<Path>()
         private val caminhoPartida = ArrayList<Path>()
+        private val nomesBairros = ArrayList<Pair<String, PointF>>()
+        private var kmMeio: PointF? = null
 
         override fun onSizeChanged(w: Int, h: Int, ow: Int, oh: Int) {
             super.onSizeChanged(w, h, ow, oh)
@@ -184,9 +186,9 @@ object MapaPopup {
             val minLat = lats.minOrNull()!!; val maxLat = lats.maxOrNull()!!
             val minLon = lons.minOrNull()!!; val maxLon = lons.maxOrNull()!!
             val cosLat = cos(Math.toRadians((minLat + maxLat) / 2))
-            // zoom mínimo de ~2 km: corrida curta mostra o bairro e os vizinhos, não um borrão
-            val rangeX = max((maxLon - minLon) * cosLat, 0.025)
-            val rangeY = max(maxLat - minLat, 0.025)
+            // zoom mínimo de ~6 km: a corrida aparece dentro da cidade, com os bairros vizinhos
+            val rangeX = max((maxLon - minLon) * cosLat, 0.06)
+            val rangeY = max(maxLat - minLat, 0.06)
             val cxLon = (minLon + maxLon) / 2
             val cyLat = (minLat + maxLat) / 2
             val aw = w - 2 * margem
@@ -205,6 +207,38 @@ object MapaPopup {
 
             val bairroChegada = Bairros.de(bairros, destino.lon, destino.lat)
             val bairroPartida = embarque?.let { Bairros.de(bairros, it.lon, it.lat) }
+
+            // bairros que o trajeto atravessa: amostra pontos ao longo da linha entre partida e chegada
+            val origem = embarque ?: destino
+            val passam = LinkedHashSet<Bairro>()
+            val amostras = 120
+            for (k in 0..amostras) {
+                val t = k / amostras.toDouble()
+                val lon = origem.lon + (destino.lon - origem.lon) * t
+                val lat = origem.lat + (destino.lat - origem.lat) * t
+                Bairros.de(bairros, lon, lat)?.let { passam.add(it) }
+            }
+            nomesBairros.clear()
+            for (b in passam) {
+                val anel = b.aneis.maxByOrNull { it.size } ?: continue
+                var sx = 0.0; var sy = 0.0; val n = anel.size / 2
+                for (k in 0 until n) { sx += anel[2 * k]; sy += anel[2 * k + 1] }
+                nomesBairros.add(b.nome to px(sx / n, sy / n))
+            }
+
+            // km total no meio da linha curva (ponto da curva em t = 0,5)
+            if (embarque != null) {
+                val dx = pChegada.x - pPartida!!.x
+                val dy = pChegada.y - pPartida!!.y
+                val comp = hypot(dx.toDouble(), dy.toDouble()).toFloat()
+                val desvio = comp * 0.18f
+                val cx = (pPartida!!.x + pChegada.x) / 2 + (-dy / max(comp, 1f)) * desvio
+                val cy = (pPartida!!.y + pChegada.y) / 2 + (dx / max(comp, 1f)) * desvio
+                kmMeio = PointF(0.25f * pPartida!!.x + 0.5f * cx + 0.25f * pChegada.x, 0.25f * pPartida!!.y + 0.5f * cy + 0.25f * pChegada.y)
+            } else {
+                kmMeio = null
+            }
+
             caminhosNormais.clear(); caminhoChegada.clear(); caminhoPartida.clear()
             for (b in bairros) {
                 val alvo = when (b) {
@@ -257,6 +291,10 @@ object MapaPopup {
             if (partida != null) rotulo(c, "PARTIDA", partida, Color.parseColor("#34D399"))
             rotulo(c, "CHEGADA", pChegada, Color.parseColor("#FB923C"))
             if (partida == null) pilula(c, "SEM PARTIDA", w / 2f, h - 14 * dp, Color.WHITE)
+            for ((nome, p) in nomesBairros) pilula(c, nome, p.x, p.y, Color.parseColor("#CBD5E1"), tamanho = 6.5f)
+            kmMeio?.let { m ->
+                pilula(c, String.format(java.util.Locale("pt", "BR"), "%.1f km", kmTotal), m.x, m.y, Color.WHITE, tamanho = 9f)
+            }
         }
 
         /** Rótulo ao lado do marcador: abaixo se ele está na metade de cima, acima se está na de baixo. */
@@ -266,9 +304,9 @@ object MapaPopup {
         }
 
         /** Texto pequeno em pílula escura, mantido dentro do card. */
-        private fun pilula(c: Canvas, texto: String, x: Float, y: Float, cor: Int) {
+        private fun pilula(c: Canvas, texto: String, x: Float, y: Float, cor: Int, tamanho: Float = 8f) {
             val fonte = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                textSize = 8f * dp; typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER; color = cor
+                textSize = tamanho * dp; typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER; color = cor
             }
             val larg = fonte.measureText(texto)
             val pad = 5 * dp

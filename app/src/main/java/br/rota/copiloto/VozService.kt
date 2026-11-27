@@ -124,10 +124,10 @@ class VozService : Service() {
         ultimaHora = agora
         // ida = embarque da própria corrida; chegada = destino
         val embarque = Destino.analisar(a.offer.pickupText, Prefs(this)).bairro?.let { Destino.localDoBairro(it) }
-        abrirMapa(l, embarque)
+        abrirMapa(l, embarque, a.offer.pickupKm + a.offer.tripKm)
     }
 
-    private fun abrirMapa(l: Destino.Local, embarque: Destino.Local?) {
+    private fun abrirMapa(l: Destino.Local, embarque: Destino.Local?, kmTotal: Double) {
         val frase = if (embarque != null)
             String.format(BR, "De %s até %s: %.1f km em linha reta.", embarque.nome, l.nome,
                 Destino.kmEntre(embarque.lat, embarque.lon, l.lat, l.lon))
@@ -135,7 +135,7 @@ class VozService : Service() {
         // Popup pequeno sobre a tela da corrida, desenhado pelo serviço de acessibilidade (o mesmo do semáforo).
         // Não toma toques e some sozinho: não atrapalha aceitar a corrida.
         val acessibilidade = CopilotService.instance
-        val motivo = if (acessibilidade != null) MapaPopup.mostrar(acessibilidade, Prefs(this), l, embarque)
+        val motivo = if (acessibilidade != null) MapaPopup.mostrar(acessibilidade, Prefs(this), l, embarque, kmTotal)
             else "serviço de acessibilidade desligado"
         // se o popup não abrir, a notificação diz o motivo
         atualizar("Mapa: ${l.nome}", if (motivo == null) frase else "$frase · popup não abriu: $motivo", null)
