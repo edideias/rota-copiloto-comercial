@@ -3,7 +3,7 @@ package br.rota.copiloto
 import android.content.Context
 import android.graphics.Color
 import android.graphics.PixelFormat
-import android.graphics.drawable.GradientDrawable
+import android.graphics.Typeface
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -12,20 +12,23 @@ import android.os.Vibrator
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
 import android.view.WindowManager
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 
 /**
- * Aviso grande na tela quando o Sicredi notifica um Pix recebido: valor e nome de quem pagou.
+ * Aviso grande na tela quando o Sicredi notifica um Pix recebido: valor e nome de quem pagou (se vier).
  * Usa o mesmo caminho do semáforo (serviço de acessibilidade), então aparece por cima de qualquer app.
- * Não toma toques e some sozinho depois de alguns segundos.
+ * Ocupa a largura toda da tela, não toma toques e some sozinho depois do tempo configurado.
  */
 object Pix {
     data class Recebido(val valor: String, val nome: String?, val bruto: String)
 
     private val VALOR = Regex("""R\$\s*([0-9]{1,3}(?:\.[0-9]{3})*,[0-9]{2}|[0-9]+,[0-9]{2})""")
-    private val NOME = Regex("""(?i)\b(?:de|do|da)\s+([^\n\r.,;!]{3,60})""")
+    // o nome vem depois do valor, e nunca começa com "R$" ou número
+    private val NOME = Regex("""(?i)\bde\s+(?!R\$|\d)([^\n\r.,;!]{3,60})""")
     private val handler = Handler(Looper.getMainLooper())
     private var atual: View? = null
     private val sumir = Runnable { fechar() }
@@ -65,30 +68,44 @@ object Pix {
         }
         fechar()
         val dp = servico.resources.displayMetrics.density
-        val largura = servico.resources.displayMetrics.widthPixels - (24 * dp).toInt()
         val wm = servico.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        val poppinsSemi = servico.resources.getFont(R.font.poppins_semibold)
+        val poppinsBold = servico.resources.getFont(R.font.poppins_bold)
+        val poppinsMedio = servico.resources.getFont(R.font.poppins_medium)
+        val teal = "#0E7C6B"
 
         val card = LinearLayout(servico).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
-            setPadding((20 * dp).toInt(), (22 * dp).toInt(), (20 * dp).toInt(), (22 * dp).toInt())
-            background = GradientDrawable().apply {
-                setColor(Color.parseColor("#0E7C6B"))
-                cornerRadius = 24 * dp
-                setStroke((3 * dp).toInt(), Color.WHITE)
+            setBackgroundColor(Color.WHITE)
+            // faixa de cima na cor do Pix
+            addView(
+                View(servico).apply { setBackgroundColor(Color.parseColor("#32BCAD")) },
+                LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, (6 * dp).toInt())
+            )
+            setPadding((20 * dp).toInt(), (18 * dp).toInt(), (20 * dp).toInt(), (22 * dp).toInt())
+            addView(
+                ImageView(servico).apply {
+                    setImageResource(R.drawable.pix_logo)
+                    contentDescription = "Pix"
+                },
+                LinearLayout.LayoutParams((34 * dp).toInt(), (34 * dp).toInt()).apply { bottomMargin = (6 * dp).toInt() }
+            )
+            addView(texto(servico, "PIX RECEBIDO", 14f, poppinsSemi, teal, 0.12f))
+            // cifrão menor, valor grande em negrito
+            addView(LinearLayout(servico).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+                addView(texto(servico, "R$", 30f, poppinsSemi, teal, 0f).apply { setPadding(0, (8 * dp).toInt(), (4 * dp).toInt(), 0) })
+                addView(texto(servico, r.valor, 84f, poppinsBold, teal, 0f))
+            })
+            if (r.nome != null) {
+                addView(texto(servico, "de ${r.nome}", 20f, poppinsMedio, "#111827", 0f))
             }
-        }
-        card.addView(texto(servico, "PIX RECEBIDO", 26f, true, dp))
-        card.addView(texto(servico, "R$ ${r.valor}", 84f, true, dp))
-        if (r.nome != null) {
-            card.addView(texto(servico, "de ${r.nome}", 34f, true, dp))
-        } else {
-            card.addView(texto(servico, "Nome não identificado", 22f, false, dp))
-            card.addView(texto(servico, r.bruto, 14f, false, dp))
         }
 
         val lp = WindowManager.LayoutParams(
-            largura, WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                 WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
@@ -99,21 +116,22 @@ object Pix {
             wm.addView(card, lp)
             atual = card
             handler.removeCallbacks(sumir)
-            handler.postDelayed(sumir, 12_000L)
+            handler.postDelayed(sumir, Prefs(servico).pixSegundos * 1000L)
         } catch (e: Exception) {
             atual = null
             Notificador.avisarPix(ctx, r)
         }
     }
 
-    private fun texto(ctx: Context, t: String, sp: Float, negrito: Boolean, dp: Float): TextView =
+    private fun texto(ctx: Context, t: String, sp: Float, fonte: Typeface, cor: String, espaco: Float): TextView =
         TextView(ctx).apply {
             text = t
-            setTextColor(Color.WHITE)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, sp)
+            setTextColor(Color.parseColor(cor))
+            setTextSize(TypedValue.COMPLEX_UNIT_DIP, sp)
+            typeface = fonte
             gravity = Gravity.CENTER
-            if (negrito) setTypeface(typeface, android.graphics.Typeface.BOLD)
-            setPadding(0, (4 * dp).toInt(), 0, (4 * dp).toInt())
+            letterSpacing = espaco
+            includeFontPadding = false
         }
 
     private fun vibrar(ctx: Context) {

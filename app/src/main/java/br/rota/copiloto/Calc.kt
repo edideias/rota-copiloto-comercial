@@ -311,6 +311,11 @@ class Prefs(ctx: Context, override_: android.content.SharedPreferences? = null) 
     var longaMs: Int
         get() = sp.getInt("longaMs", 380)
         set(v) { sp.edit().putInt("longaMs", v.coerceIn(70, 1500)).apply() }
+    /** tempo em segundos que o aviso grande de Pix fica na tela (3 a 60) */
+    var pixSegundos: Int
+        get() = sp.getInt("pixSegundos", 12).coerceIn(3, 60)
+        set(v) { sp.edit().putInt("pixSegundos", v.coerceIn(3, 60)).apply() }
+
     /** horários de pico: o aviso de corrida longa só aparece dentro deles */
     var picoA: String
         get() = sp.getString("picoA", "06:00-09:00") ?: "06:00-09:00"
