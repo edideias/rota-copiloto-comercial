@@ -295,6 +295,9 @@ object Destino {
     /** Resultado da busca de bairro: nome, ponto, km do centro e para qual lado fica. */
     data class Local(val nome: String, val lat: Double, val lon: Double, val km: Double, val rumo: String)
 
+    /** Todos os pontos de bairro de Campo Grande (para desenhar o mapa de regiões). */
+    fun todosOsPontos(): List<Ponto> = pontos.values.toList()
+
     /** Ponto do mapa para um bairro exato (o mesmo que o semáforo usa); null se o bairro não tem ponto. */
     fun localDoBairro(bairro: String?): Local? {
         if (bairro == null) return null

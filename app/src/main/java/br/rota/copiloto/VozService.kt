@@ -122,21 +122,20 @@ class VozService : Service() {
         if (l.nome == ultimaBusca && agora - ultimaHora < 8000L) return
         ultimaBusca = l.nome
         ultimaHora = agora
-        abrirMapa(l)
+        // ida = embarque da própria corrida; chegada = destino
+        val embarque = Destino.analisar(a.offer.pickupText, Prefs(this)).bairro?.let { Destino.localDoBairro(it) }
+        abrirMapa(l, embarque)
     }
 
-    private fun abrirMapa(l: Destino.Local) {
-        val origem = minhaPosicao()
-        val frase = when {
-            origem != null -> String.format(BR, "%s: %.1f km de você, em linha reta.", l.nome,
-                Destino.kmEntre(origem.lat, origem.lon, l.lat, l.lon))
-            l.km < 0.3 -> "${l.nome}: centro da cidade."
-            else -> String.format(BR, "%s: %.1f km do centro, para o %s.", l.nome, l.km, l.rumo)
-        }
+    private fun abrirMapa(l: Destino.Local, embarque: Destino.Local?) {
+        val frase = if (embarque != null)
+            String.format(BR, "De %s até %s: %.1f km em linha reta.", embarque.nome, l.nome,
+                Destino.kmEntre(embarque.lat, embarque.lon, l.lat, l.lon))
+        else "Chegada: ${l.nome}."
         // Popup pequeno sobre a tela da corrida, desenhado pelo serviço de acessibilidade (o mesmo do semáforo).
         // Não toma toques e some sozinho: não atrapalha aceitar a corrida.
         val acessibilidade = CopilotService.instance
-        val motivo = if (acessibilidade != null) MapaPopup.mostrar(acessibilidade, Prefs(this), l, origem)
+        val motivo = if (acessibilidade != null) MapaPopup.mostrar(acessibilidade, Prefs(this), l, embarque)
             else "serviço de acessibilidade desligado"
         // se o popup não abrir, a notificação diz o motivo
         atualizar("Mapa: ${l.nome}", if (motivo == null) frase else "$frase · popup não abriu: $motivo", null)
