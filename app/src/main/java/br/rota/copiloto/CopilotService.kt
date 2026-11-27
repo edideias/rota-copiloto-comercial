@@ -37,6 +37,12 @@ class CopilotService : AccessibilityService() {
         @Volatile
         var instance: CopilotService? = null
 
+        /** Última corrida mostrada no semáforo, para a palavra-chave abrir o mapa dela. */
+        @Volatile
+        var ultimaAnalise: Analysis? = null
+        @Volatile
+        var ultimaQuando: Long = 0L
+
         /**
          * Só considera tela de oferta se tiver o botão da oferta (evita painel em telas de histórico).
          * 99: "Aceitar (1s)".  Uber: "Tenho interesse" (ou "Aceitar", em outras versões).
@@ -518,6 +524,9 @@ class CopilotService : AccessibilityService() {
             }
             shownKey = key
             shownSimulated = simulated
+            // guarda a corrida da tela: a palavra-chave abre o mapa deste bairro
+            ultimaAnalise = a
+            ultimaQuando = System.currentTimeMillis()
 
             val box = overlay ?: FrameLayout(this).also { overlay = it }
             box.removeAllViews()

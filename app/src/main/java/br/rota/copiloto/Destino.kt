@@ -295,6 +295,14 @@ object Destino {
     /** Resultado da busca de bairro: nome, ponto, km do centro e para qual lado fica. */
     data class Local(val nome: String, val lat: Double, val lon: Double, val km: Double, val rumo: String)
 
+    /** Ponto do mapa para um bairro exato (o mesmo que o semáforo usa); null se o bairro não tem ponto. */
+    fun localDoBairro(bairro: String?): Local? {
+        if (bairro == null) return null
+        val v = pontos[norm(bairro)] ?: return null
+        val km = if (norm(v.nome) == norm("Centro")) 0.0 else distanciaDoCentro(v) ?: 0.0
+        return Local(v.nome, v.lat, v.lon, km, if (km < 0.3) "" else rumoDoCentro(v))
+    }
+
     private val RUMOS = listOf("norte", "nordeste", "leste", "sudeste", "sul", "sudoeste", "oeste", "noroeste")
 
     /** Direção do centro até o ponto, em uma das 8 direções. */

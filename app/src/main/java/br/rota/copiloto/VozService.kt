@@ -89,39 +89,40 @@ class VozService : Service() {
         }
     }
 
-    /** Procura a palavra nas frases ouvidas e, depois dela, o bairro. No parcial só responde com o nome completo. */
+    /** Se a palavra-chave foi ouvida, abre o mapa do bairro de destino que está no semáforo. */
     private fun tratar(b: Bundle?, parcial: Boolean) {
         val frases = b?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION) ?: return
         val palavra = Destino.norm(Prefs(this).vozPalavra)
         if (palavra.isEmpty()) return
         val chave = " $palavra "
         if (!parcial && frases.isNotEmpty()) {
-            // mostra na notificação o que foi ouvido, para diagnosticar quando não abrir
             atualizar("Escuta por voz ligada", "Ouvi: \"${frases[0]}\"", null)
         }
         for (f in frases) {
-            val t = " ${Destino.norm(f)} "
-            val pos = t.indexOf(chave)
-            if (pos < 0) continue
-            val busca = t.substring(pos + chave.length).trim()
-            if (busca.length < 3) {
-                if (!parcial) atualizar("Diga o bairro depois de \"$palavra\"", "Ouvi: \"${f}\"", null)
-                continue
-            }
-            val achados = Destino.localizar(busca, 3)
-            if (achados.isEmpty()) {
-                if (!parcial) atualizar("Bairro não encontrado", "Ouvi o bairro \"$busca\", mas não achei na lista", null)
-                continue
-            }
-            val top = achados[0]
-            if (parcial && Destino.norm(top.nome) != busca) continue
-            val agora = System.currentTimeMillis()
-            if (busca == ultimaBusca && agora - ultimaHora < 8000L) return
-            ultimaBusca = busca
-            ultimaHora = agora
-            abrirMapa(top)
+            if (!(" ${Destino.norm(f)} ").contains(chave)) continue
+            abrirDaTela()
             return
         }
+    }
+
+    /** Abre o mapa do bairro de destino da corrida que está (ou acabou de estar) no semáforo. */
+    private fun abrirDaTela() {
+        val agora = System.currentTimeMillis()
+        val a = CopilotService.ultimaAnalise
+        if (a == null || agora - CopilotService.ultimaQuando > 180_000L) {
+            atualizar("Nenhuma corrida na tela", "Fale a palavra com a oferta aberta no semáforo", null)
+            return
+        }
+        val info = Destino.analisar(a.offer.destText, Prefs(this), a.offer.pickupText)
+        val l = Destino.localDoBairro(info.bairro)
+        if (l == null) {
+            atualizar("Bairro do destino não encontrado", "No semáforo: \"${info.bairro ?: a.offer.destText}\"", null)
+            return
+        }
+        if (l.nome == ultimaBusca && agora - ultimaHora < 8000L) return
+        ultimaBusca = l.nome
+        ultimaHora = agora
+        abrirMapa(l)
     }
 
     private fun abrirMapa(l: Destino.Local) {

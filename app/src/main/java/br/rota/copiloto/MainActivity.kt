@@ -1268,7 +1268,7 @@ class MainActivity : Activity() {
 
     private fun vozContent(p: Prefs): View {
         val box = ui.vbox()
-        box.addView(pageHeader("Voz", "Diga a palavra e depois o bairro: o app fala a distância e deixa o mapa na notificação"))
+        box.addView(pageHeader("Voz", "Com a corrida no semáforo, diga a palavra: o mapa abre no bairro de destino dela"))
         val c1 = ui.card()
         c1.addView(switchRow("Escutar por voz", p.vozOn) { ligado ->
             p.vozOn = ligado
@@ -1279,7 +1279,7 @@ class MainActivity : Activity() {
         box.addView(c1, ui.lp(top = 16))
         val c2 = ui.card()
         c2.addView(ui.tv("Palavra para acionar", 16f, C.TEXT, 3))
-        c2.addView(ui.tv("Diga a palavra e, na sequência, o nome do bairro.", 12f, C.MUTED, 0), ui.lp(top = 4))
+        c2.addView(ui.tv("Não precisa falar o bairro: o mapa mostra o bairro de destino que está no semáforo, por até 3 minutos depois da oferta.", 12f, C.MUTED, 0), ui.lp(top = 4))
         val tx = campo("Palavra").apply { setText(p.vozPalavra) }
         c2.addView(tx, ui.lp(top = 8))
         c2.addView(ui.button("Salvar palavra", false) { p.vozPalavra = tx.text.toString().trim().ifEmpty { "mila" }; render() }, ui.lp(top = 8))
