@@ -44,9 +44,5 @@
             android:exported="false"
             android:foregroundServiceType="microphone" />
 
-        <activity
-            android:name="br.rota.copiloto.MapaActivity"
-            android:exported="false"
-            android:launchMode="singleTop" />
     </application>
 </manifest>

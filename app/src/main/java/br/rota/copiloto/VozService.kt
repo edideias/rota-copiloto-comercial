@@ -133,24 +133,13 @@ class VozService : Service() {
             l.km < 0.3 -> "${l.nome}: centro da cidade."
             else -> String.format(BR, "%s: %.1f km do centro, para o %s.", l.nome, l.km, l.rumo)
         }
-        val mapa = Intent(this, MapaActivity::class.java)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-            .putExtra("nome", l.nome)
-            .putExtra("lat", l.lat)
-            .putExtra("lon", l.lon)
-            .putExtra("frase", frase)
-        if (origem != null) mapa.putExtra("ox", origem.lat).putExtra("oy", origem.lon)
-        // O serviço de acessibilidade pode abrir telas em segundo plano (o semáforo já depende disso).
-        // Um serviço de voz não pode: por isso a abertura passa pelo serviço de acessibilidade.
+        // Popup pequeno sobre a tela da corrida, desenhado pelo serviço de acessibilidade (o mesmo do semáforo).
+        // Não toma toques e some sozinho: não atrapalha aceitar a corrida.
         val acessibilidade = CopilotService.instance
         if (acessibilidade != null) {
-            try { acessibilidade.startActivity(mapa) } catch (_: Exception) {}
-        } else {
-            try { startActivity(mapa) } catch (_: Exception) {}
+            MapaPopup.mostrar(acessibilidade, Prefs(this), l, origem)
         }
-        // notificação de reserva: toque nela para abrir o mapa, caso o Android tenha bloqueado
-        alertar(l.nome, frase, mapa)
-        atualizar("Mapa: ${l.nome}", frase, mapa)
+        atualizar("Mapa: ${l.nome}", frase, null)
     }
 
     /** Última posição conhecida pela rede. Sem permissão ou sem fix, devolve null. */
@@ -187,19 +176,6 @@ class VozService : Service() {
         (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).notify(ID, notificacao(titulo, texto, intent))
     }
 
-    /** Notificação de alerta com tela cheia: abre o mapa mesmo com o celular em segundo plano, se o Android deixar. */
-    private fun alertar(titulo: String, texto: String, intent: Intent) {
-        val pi = PendingIntent.getActivity(this, ID_ALERTA, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        val b = Notification.Builder(this, CANAL_ALERTA)
-            .setSmallIcon(android.R.drawable.ic_dialog_map)
-            .setContentTitle(titulo)
-            .setContentText(texto)
-            .setContentIntent(pi)
-            .setAutoCancel(true)
-        if (Build.VERSION.SDK_INT >= 29) b.setFullScreenIntent(pi, true)
-        (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).notify(ID_ALERTA, b.build())
-    }
-
     override fun onDestroy() {
         handler.removeCallbacksAndMessages(null)
         ouvindo = false
@@ -210,7 +186,6 @@ class VozService : Service() {
 
     companion object {
         private const val ID = 4701
-        private const val ID_ALERTA = 4702
         private const val CANAL = "escuta_voz"
         private const val CANAL_ALERTA = "mapa_bairro"
         const val ACAO_PARAR = "br.rota.copiloto.PARAR_VOZ"
