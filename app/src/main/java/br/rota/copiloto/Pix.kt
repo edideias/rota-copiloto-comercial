@@ -31,7 +31,8 @@ object Pix {
     // o nome vem depois do valor, e nunca começa com "R$" ou número
     private val NOME = Regex("""(?i)\bde\s+(?!R\$|\d)([^\n\r.,;!]{3,60})""")
     private val PALAVRAS_QUE_NAO_SAO_NOME = listOf("pagamento", "pix", "sicredi", "comprovante", "valor", "conta", "cooperativa", "cpf", "transfer")
-    private val SAIDAS = listOf("enviad", "enviou", "pagou", "pagamento", "transferencia enviada")
+    // frases de pagamento que eu envio; palavras soltas como "pagamento" ficam de fora porque podem aparecer num recebimento
+    private val SAIDAS = listOf("pagamento enviado", "voce pagou", "voce enviou", "transferencia enviada")
     private val handler = Handler(Looper.getMainLooper())
     private var fundo: View? = null
     private var atual: View? = null
