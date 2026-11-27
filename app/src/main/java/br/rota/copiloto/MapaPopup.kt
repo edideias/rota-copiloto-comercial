@@ -186,9 +186,9 @@ object MapaPopup {
             val minLat = lats.minOrNull()!!; val maxLat = lats.maxOrNull()!!
             val minLon = lons.minOrNull()!!; val maxLon = lons.maxOrNull()!!
             val cosLat = cos(Math.toRadians((minLat + maxLat) / 2))
-            // zoom mínimo de ~6 km: a corrida aparece dentro da cidade, com os bairros vizinhos
-            val rangeX = max((maxLon - minLon) * cosLat, 0.06)
-            val rangeY = max(maxLat - minLat, 0.06)
+            // zoom mínimo de ~4 km: a corrida aparece com os bairros vizinhos, sem ficar longe demais
+            val rangeX = max((maxLon - minLon) * cosLat, 0.035)
+            val rangeY = max(maxLat - minLat, 0.035)
             val cxLon = (minLon + maxLon) / 2
             val cyLat = (minLat + maxLat) / 2
             val aw = w - 2 * margem
@@ -288,33 +288,58 @@ object MapaPopup {
             c.drawRoundRect(RectF(0.5f * dp, 0.5f * dp, w - 0.5f * dp, h - 0.5f * dp), raio, raio, borda)
             if (partida != null) marcador(c, partida, partidaCor, cima = true)
             marcador(c, pChegada, chegadaCor, cima = false)
-            if (partida != null) rotulo(c, "PARTIDA", partida, Color.parseColor("#047857"))
-            rotulo(c, "CHEGADA", pChegada, Color.parseColor("#C2410C"))
-            if (partida == null) pilula(c, "SEM PARTIDA", w / 2f, h - 14 * dp, Color.parseColor("#1C1917"))
-            for ((nome, p) in nomesBairros) pilula(c, nome, p.x, p.y, Color.parseColor("#1C1917"), tamanho = 6.5f)
+
+            // textos: cada um só entra se não encostar em outro texto ou em um marcador
+            val ocupados = ArrayList<RectF>()
+            fun obstaculo(p: PointF) { ocupados.add(RectF(p.x - 13 * dp, p.y - 13 * dp, p.x + 13 * dp, p.y + 13 * dp)) }
+            obstaculo(pChegada); partida?.let { obstaculo(it) }
+            fun cabe(r: RectF) = ocupados.none { RectF.intersects(it, r) }
+
+            val rChegada = caixa("CHEGADA", pChegada.x, yRotulo(pChegada), 8f)
+            ocupados.add(rChegada)
+            desenhar(c, "CHEGADA", rChegada, Color.parseColor("#C2410C"), 8f)
+            if (partida != null) {
+                val rPartida = caixa("PARTIDA", partida.x, yRotulo(partida), 8f)
+                ocupados.add(rPartida)
+                desenhar(c, "PARTIDA", rPartida, Color.parseColor("#047857"), 8f)
+            } else {
+                val rSem = caixa("SEM PARTIDA", w / 2f, h - 14 * dp, 8f)
+                ocupados.add(rSem)
+                desenhar(c, "SEM PARTIDA", rSem, Color.parseColor("#1C1917"), 8f)
+            }
             kmMeio?.let { m ->
-                pilula(c, String.format(java.util.Locale("pt", "BR"), "%.1f km", kmTotal), m.x, m.y, Color.parseColor("#1C1917"), tamanho = 9f)
+                val rKm = caixa(kmTxt, m.x, m.y, 9f)
+                if (cabe(rKm)) { ocupados.add(rKm); desenhar(c, kmTxt, rKm, Color.parseColor("#1C1917"), 9f) }
+            }
+            for ((nome, p) in nomesBairros) {
+                val r = caixa(nome, p.x, p.y, 6.5f)
+                if (cabe(r)) { ocupados.add(r); desenhar(c, nome, r, Color.parseColor("#1C1917"), 6.5f) }
             }
         }
 
-        /** Rótulo ao lado do marcador: abaixo se ele está na metade de cima, acima se está na de baixo. */
-        private fun rotulo(c: Canvas, texto: String, p: PointF, cor: Int) {
-            val cy = if (p.y > height / 2f) p.y - 22 * dp else p.y + 22 * dp
-            pilula(c, texto, p.x, cy, cor)
-        }
+        private val kmTxt: String get() = String.format(java.util.Locale("pt", "BR"), "%.1f km", kmTotal)
 
-        /** Texto pequeno em pílula escura, mantido dentro do card. */
-        private fun pilula(c: Canvas, texto: String, x: Float, y: Float, cor: Int, tamanho: Float = 8f) {
-            val fonte = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                textSize = tamanho * dp; typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER; color = cor
-            }
+        /** Altura do rótulo: abaixo do marcador se ele está na metade de cima, acima se está na de baixo. */
+        private fun yRotulo(p: PointF): Float = if (p.y > height / 2f) p.y - 22 * dp else p.y + 22 * dp
+
+        /** Retângulo da pílula, mantido dentro do card. */
+        private fun caixa(texto: String, x: Float, y: Float, tamanho: Float): RectF {
+            val fonte = Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = tamanho * dp; typeface = Typeface.DEFAULT_BOLD }
             val larg = fonte.measureText(texto)
             val pad = 5 * dp
             val alt = 14 * dp
             val cx = x.coerceIn(larg / 2 + pad + 2 * dp, width - larg / 2 - pad - 2 * dp)
-            val cyPilula = y.coerceIn(alt / 2 + 2 * dp, height - alt / 2 - 2 * dp)
-            c.drawRoundRect(RectF(cx - larg / 2 - pad, cyPilula - alt / 2, cx + larg / 2 + pad, cyPilula + alt / 2), alt / 2, alt / 2, rotuloFundo)
-            c.drawText(texto, cx, cyPilula + fonte.textSize * 0.35f, fonte)
+            val cy = y.coerceIn(alt / 2 + 2 * dp, height - alt / 2 - 2 * dp)
+            return RectF(cx - larg / 2 - pad, cy - alt / 2, cx + larg / 2 + pad, cy + alt / 2)
+        }
+
+        private fun desenhar(c: Canvas, texto: String, r: RectF, cor: Int, tamanho: Float) {
+            val alt = r.height()
+            c.drawRoundRect(r, alt / 2, alt / 2, rotuloFundo)
+            val fonte = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                textSize = tamanho * dp; typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER; color = cor
+            }
+            c.drawText(texto, r.centerX(), r.centerY() + fonte.textSize * 0.35f, fonte)
         }
 
         /** Círculo com borda branca e seta (para cima na partida, para baixo na chegada), como no app do 99. */
