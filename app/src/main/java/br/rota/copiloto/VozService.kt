@@ -95,14 +95,24 @@ class VozService : Service() {
         val palavra = Destino.norm(Prefs(this).vozPalavra)
         if (palavra.isEmpty()) return
         val chave = " $palavra "
+        if (!parcial && frases.isNotEmpty()) {
+            // mostra na notificação o que foi ouvido, para diagnosticar quando não abrir
+            atualizar("Escuta por voz ligada", "Ouvi: \"${frases[0]}\"", null)
+        }
         for (f in frases) {
             val t = " ${Destino.norm(f)} "
             val pos = t.indexOf(chave)
             if (pos < 0) continue
             val busca = t.substring(pos + chave.length).trim()
-            if (busca.length < 3) continue
+            if (busca.length < 3) {
+                if (!parcial) atualizar("Diga o bairro depois de \"$palavra\"", "Ouvi: \"${f}\"", null)
+                continue
+            }
             val achados = Destino.localizar(busca, 3)
-            if (achados.isEmpty()) continue
+            if (achados.isEmpty()) {
+                if (!parcial) atualizar("Bairro não encontrado", "Ouvi o bairro \"$busca\", mas não achei na lista", null)
+                continue
+            }
             val top = achados[0]
             if (parcial && Destino.norm(top.nome) != busca) continue
             val agora = System.currentTimeMillis()
@@ -129,8 +139,15 @@ class VozService : Service() {
             .putExtra("lon", l.lon)
             .putExtra("frase", frase)
         if (origem != null) mapa.putExtra("ox", origem.lat).putExtra("oy", origem.lon)
-        // tenta abrir direto; se o Android bloquear (serviço em segundo plano), a notificação de tela cheia abre
-        try { startActivity(mapa) } catch (_: Exception) {}
+        // O serviço de acessibilidade pode abrir telas em segundo plano (o semáforo já depende disso).
+        // Um serviço de voz não pode: por isso a abertura passa pelo serviço de acessibilidade.
+        val acessibilidade = CopilotService.instance
+        if (acessibilidade != null) {
+            try { acessibilidade.startActivity(mapa) } catch (_: Exception) {}
+        } else {
+            try { startActivity(mapa) } catch (_: Exception) {}
+        }
+        // notificação de reserva: toque nela para abrir o mapa, caso o Android tenha bloqueado
         alertar(l.nome, frase, mapa)
         atualizar("Mapa: ${l.nome}", frase, mapa)
     }
