@@ -506,6 +506,7 @@ class MainActivity : Activity() {
         )
         b.addView(ui.button("Abrir configurações do app (liberar restritas)") { openAppDetails() })
         b.addView(ui.button("Abrir Acessibilidade", false) { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) })
+        b.addView(ui.button("Liberar aviso de Pix (acesso a notificações)", false) { startActivity(Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS")) })
         c.addView(b, ui.lp(top = 14))
         return screen("Ajuda", c)
     }
