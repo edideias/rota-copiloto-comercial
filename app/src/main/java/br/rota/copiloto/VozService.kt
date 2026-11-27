@@ -136,10 +136,10 @@ class VozService : Service() {
         // Popup pequeno sobre a tela da corrida, desenhado pelo serviço de acessibilidade (o mesmo do semáforo).
         // Não toma toques e some sozinho: não atrapalha aceitar a corrida.
         val acessibilidade = CopilotService.instance
-        if (acessibilidade != null) {
-            MapaPopup.mostrar(acessibilidade, Prefs(this), l, origem)
-        }
-        atualizar("Mapa: ${l.nome}", frase, null)
+        val motivo = if (acessibilidade != null) MapaPopup.mostrar(acessibilidade, Prefs(this), l, origem)
+            else "serviço de acessibilidade desligado"
+        // se o popup não abrir, a notificação diz o motivo
+        atualizar("Mapa: ${l.nome}", if (motivo == null) frase else "$frase · popup não abriu: $motivo", null)
     }
 
     /** Última posição conhecida pela rede. Sem permissão ou sem fix, devolve null. */

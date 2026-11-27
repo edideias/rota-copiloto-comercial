@@ -23,7 +23,8 @@ object MapaPopup {
     private var atual: View? = null
     private val sumir = Runnable { fechar() }
 
-    fun mostrar(acess: Context, p: Prefs, l: Destino.Local, origemPessoa: Destino.Local?, duracaoMs: Long = 6000L) {
+    /** Devolve null se o popup abriu; senão, o motivo (aparece na notificação para diagnóstico). */
+    fun mostrar(acess: Context, p: Prefs, l: Destino.Local, origemPessoa: Destino.Local?, duracaoMs: Long = 6000L): String? {
         fechar()
         val res = acess.resources
         val dp = res.displayMetrics.density
@@ -40,7 +41,11 @@ object MapaPopup {
             val topoCardDp = if (p.compacto) p.cpI("distTopo", p.overlayTopDp.toInt()) else p.overlayTopDp.toInt()
             (topoCardDp * dp).toInt() - (6 * dp).toInt() - inicio
         }
-        if (alturaPx < (48 * dp).toInt()) return
+        if (alturaPx < (40 * dp).toInt()) {
+            val motivo = "sem espaço acima do semáforo (${(alturaPx / dp).toInt()} dp)"
+            DebugLog.add("Popup do mapa não abriu: $motivo")
+            return motivo
+        }
         val altura = minOf(alturaPx, (96 * dp).toInt())
 
         val lp = WindowManager.LayoutParams(
@@ -56,12 +61,17 @@ object MapaPopup {
             y = if (cardEmBaixo) (36 * dp).toInt() else inicio
         }
         val v = Desenho(acess, l, origemPessoa)
-        try {
+        return try {
             manager.addView(v, lp)
             atual = v
             handler.postDelayed(sumir, duracaoMs)
-        } catch (_: Exception) {
+            DebugLog.add("Popup do mapa aberto: ${l.nome}")
+            null
+        } catch (e: Exception) {
             atual = null
+            val motivo = "erro ao mostrar (${e.javaClass.simpleName}: ${e.message ?: ""})"
+            DebugLog.add("Popup do mapa não abriu: $motivo")
+            motivo
         }
     }
 
