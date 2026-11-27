@@ -13,6 +13,7 @@ import android.os.Looper
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
+import org.json.JSONArray
 import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.max
@@ -95,14 +96,72 @@ object MapaPopup {
         } catch (_: Exception) {}
     }
 
-    /** Rota da corrida enquadrada no card: partida, chegada e uma linha curva entre elas. */
+    /** Bairro real do IBGE: anéis externos em (lon, lat), no arquivo assets/campo_grande_bairros.json. */
+    private class Bairro(val nome: String, val aneis: List<DoubleArray>)
+
+    private object Bairros {
+        @Volatile private var cache: List<Bairro>? = null
+
+        fun carregar(ctx: Context): List<Bairro> {
+            cache?.let { return it }
+            val texto = ctx.assets.open("campo_grande_bairros.json").bufferedReader().use { it.readText() }
+            val arr = JSONArray(texto)
+            val lista = ArrayList<Bairro>()
+            for (i in 0 until arr.length()) {
+                val o = arr.getJSONObject(i)
+                val rings = o.getJSONArray("p")
+                val aneis = ArrayList<DoubleArray>()
+                for (j in 0 until rings.length()) {
+                    val ring = rings.getJSONArray(j)
+                    val a = DoubleArray(ring.length() * 2)
+                    for (k in 0 until ring.length()) {
+                        val pt = ring.getJSONArray(k)
+                        a[2 * k] = pt.getDouble(0)
+                        a[2 * k + 1] = pt.getDouble(1)
+                    }
+                    aneis.add(a)
+                }
+                lista.add(Bairro(o.getString("n"), aneis))
+            }
+            cache = lista
+            return lista
+        }
+
+        /** Ray casting: ponto (lon, lat) dentro do anel. */
+        fun dentro(lon: Double, lat: Double, a: DoubleArray): Boolean {
+            var c = false
+            val n = a.size / 2
+            var j = n - 1
+            for (i in 0 until n) {
+                val xi = a[2 * i]; val yi = a[2 * i + 1]
+                val xj = a[2 * j]; val yj = a[2 * j + 1]
+                if ((yi > lat) != (yj > lat) && lon < (xj - xi) * (lat - yi) / (yj - yi) + xi) c = !c
+                j = i
+            }
+            return c
+        }
+
+        fun de(lista: List<Bairro>, lon: Double, lat: Double): Bairro? =
+            lista.firstOrNull { b -> b.aneis.any { dentro(lon, lat, it) } }
+    }
+
+    /**
+     * Mapa real: contornos dos bairros do IBGE, com o bairro de chegada em laranja e o de partida em verde.
+     * Partida e chegada aparecem como os mesmos ícones do 99, ligadas por uma linha curva.
+     * Se a partida não estiver na malha, só a chegada aparece.
+     */
     private class Rota(ctx: Context, private val destino: Destino.Local, private val embarque: Destino.Local?) : View(ctx) {
         private val dp = resources.displayMetrics.density
+        private val bairros: List<Bairro> = Bairros.carregar(ctx)
         private val fundo = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(245, 15, 23, 42) }
         private val borda = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(90, 255, 255, 255); style = Paint.Style.STROKE; strokeWidth = 1 * dp }
+        private val preench = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(255, 30, 41, 59); style = Paint.Style.FILL }
+        private val preenchChegada = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(170, 232, 89, 12); style = Paint.Style.FILL }
+        private val preenchPartida = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(170, 0, 168, 107); style = Paint.Style.FILL }
+        private val contorno = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(255, 100, 116, 139); style = Paint.Style.STROKE; strokeWidth = 0.6f * dp }
         private val linha = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.argb(230, 226, 232, 240); style = Paint.Style.STROKE
-            strokeWidth = 3.5f * dp; strokeCap = Paint.Cap.ROUND
+            strokeWidth = 3f * dp; strokeCap = Paint.Cap.ROUND
         }
         private val anelBranco = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
         private val partidaCor = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#00A86B") }
@@ -111,29 +170,56 @@ object MapaPopup {
 
         private var pChegada = PointF()
         private var pPartida: PointF? = null
+        private val caminhosNormais = ArrayList<Path>()
+        private val caminhoChegada = ArrayList<Path>()
+        private val caminhoPartida = ArrayList<Path>()
 
         override fun onSizeChanged(w: Int, h: Int, ow: Int, oh: Int) {
             super.onSizeChanged(w, h, ow, oh)
-            val margem = 26 * dp
+            val margem = 10 * dp
             val lats = listOfNotNull(destino.lat, embarque?.lat)
             val lons = listOfNotNull(destino.lon, embarque?.lon)
             val minLat = lats.minOrNull()!!; val maxLat = lats.maxOrNull()!!
             val minLon = lons.minOrNull()!!; val maxLon = lons.maxOrNull()!!
             val cosLat = cos(Math.toRadians((minLat + maxLat) / 2))
-            // zoom mínimo: corridas curtas não viram um borrão de tão ampliadas
-            val rangeX = max((maxLon - minLon) * cosLat, 0.012)
-            val rangeY = max(maxLat - minLat, 0.012)
+            // zoom mínimo de ~2 km: corrida curta mostra o bairro e os vizinhos, não um borrão
+            val rangeX = max((maxLon - minLon) * cosLat, 0.025)
+            val rangeY = max(maxLat - minLat, 0.025)
+            val cxLon = (minLon + maxLon) / 2
+            val cyLat = (minLat + maxLat) / 2
             val aw = w - 2 * margem
             val ah = h - 2 * margem
             val escala = min(aw / rangeX, ah / rangeY)
             val offX = margem + (aw - rangeX * escala).toFloat() / 2
             val offY = margem + (ah - rangeY * escala).toFloat() / 2
+            val xMin = cxLon - rangeX / (2 * cosLat)
+            val yMax = cyLat + rangeY / 2
             fun px(lon: Double, lat: Double) = PointF(
-                offX + ((lon - minLon) * cosLat * escala).toFloat(),
-                offY + ((maxLat - lat) * escala).toFloat()
+                offX + ((lon - xMin) * cosLat * escala).toFloat(),
+                offY + ((yMax - lat) * escala).toFloat()
             )
             pChegada = px(destino.lon, destino.lat)
             pPartida = embarque?.let { px(it.lon, it.lat) }
+
+            val bairroChegada = Bairros.de(bairros, destino.lon, destino.lat)
+            val bairroPartida = embarque?.let { Bairros.de(bairros, it.lon, it.lat) }
+            caminhosNormais.clear(); caminhoChegada.clear(); caminhoPartida.clear()
+            for (b in bairros) {
+                val alvo = when (b) {
+                    bairroChegada -> caminhoChegada
+                    bairroPartida -> caminhoPartida
+                    else -> caminhosNormais
+                }
+                for (anel in b.aneis) {
+                    val p = Path()
+                    for (k in 0 until anel.size / 2) {
+                        val q = px(anel[2 * k], anel[2 * k + 1])
+                        if (k == 0) p.moveTo(q.x, q.y) else p.lineTo(q.x, q.y)
+                    }
+                    p.close()
+                    alvo.add(p)
+                }
+            }
         }
 
         override fun onDraw(c: Canvas) {
@@ -141,8 +227,12 @@ object MapaPopup {
             val h = height.toFloat()
             val raio = 16 * dp
             c.drawRoundRect(RectF(0f, 0f, w, h), raio, raio, fundo)
-            c.drawRoundRect(RectF(0.5f * dp, 0.5f * dp, w - 0.5f * dp, h - 0.5f * dp), raio, raio, borda)
-
+            val recorte = Path().apply { addRoundRect(RectF(0f, 0f, w, h), raio, raio, Path.Direction.CW) }
+            c.save()
+            c.clipPath(recorte)
+            for (p in caminhosNormais) { c.drawPath(p, preench); c.drawPath(p, contorno) }
+            for (p in caminhoChegada) { c.drawPath(p, preenchChegada); c.drawPath(p, contorno) }
+            for (p in caminhoPartida) { c.drawPath(p, preenchPartida); c.drawPath(p, contorno) }
             val partida = pPartida
             if (partida != null) {
                 // linha curva: o ponto de controle sai para o lado, para o trajeto não parecer uma reta seca
@@ -157,8 +247,10 @@ object MapaPopup {
                     quadTo(cx, cy, pChegada.x, pChegada.y)
                 }
                 c.drawPath(caminho, linha)
-                marcador(c, partida, partidaCor, cima = true)
             }
+            c.restore()
+            c.drawRoundRect(RectF(0.5f * dp, 0.5f * dp, w - 0.5f * dp, h - 0.5f * dp), raio, raio, borda)
+            if (partida != null) marcador(c, partida, partidaCor, cima = true)
             marcador(c, pChegada, chegadaCor, cima = false)
         }
 
