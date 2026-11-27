@@ -1,11 +1,11 @@
 package br.rota.copiloto
 
 import android.content.Context
-import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.DashPathEffect
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.PixelFormat
 import android.graphics.PointF
 import android.graphics.RectF
@@ -17,9 +17,9 @@ import android.view.WindowManager
 
 /**
  * Popup pequeno à direita, logo abaixo do semáforo, na área livre ao lado do bloco de valores.
- * Mostra o mapa de regiões de Campo Grande em cores, sem nenhum texto, com dois pontos:
- * o embarque (ida, branco) e o destino (chegada, preto). Não recebe toques e não pega o foco.
- * Some sozinho depois de alguns segundos.
+ * Mostra o mapa de regiões de Campo Grande em cores, sem texto, e dois marcadores iguais aos do 99:
+ * seta verde para cima (partida, ida) e seta laranja para baixo (chegada, destino).
+ * Não recebe toques e não pega o foco. Some sozinho depois de alguns segundos.
  */
 object MapaPopup {
     private val handler = Handler(Looper.getMainLooper())
@@ -55,8 +55,9 @@ object MapaPopup {
             return motivo
         }
 
+        // estreito, para não cobrir o preço, o multiplicador e o texto da oferta
         val lp = WindowManager.LayoutParams(
-            (132 * dp).toInt(), alturaDisponivel,
+            (110 * dp).toInt(), alturaDisponivel,
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                 WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
@@ -91,35 +92,36 @@ object MapaPopup {
         } catch (_: Exception) {}
     }
 
-    /** Mapa de regiões em cores (sem texto) e os dois pontos da corrida. */
+    /** Mapa vetorial: cada bairro é um ponto da cor da sua região; partida e chegada são marcadores do 99. */
     private class Mapa(ctx: Context, private val destino: Destino.Local, private val embarque: Destino.Local?) : View(ctx) {
         private val dp = resources.displayMetrics.density
         private val pontos = Destino.todosOsPontos()
         private val regioes = Regioes.regiaoDos(pontos)
-        private val lats = DoubleArray(pontos.size) { pontos[it].lat }
-        private val lons = DoubleArray(pontos.size) { pontos[it].lon }
-        private val latMin = lats.minOrNull() ?: 0.0
-        private val latMax = lats.maxOrNull() ?: 0.0
-        private val lonMin = lons.minOrNull() ?: 0.0
-        private val lonMax = lons.maxOrNull() ?: 0.0
+        private val latMin = pontos.minOfOrNull { it.lat } ?: 0.0
+        private val latMax = pontos.maxOfOrNull { it.lat } ?: 0.0
+        private val lonMin = pontos.minOfOrNull { it.lon } ?: 0.0
+        private val lonMax = pontos.maxOfOrNull { it.lon } ?: 0.0
         private val cosLat = Math.cos(Math.toRadians((latMin + latMax) / 2))
+        private val margem = 8 * dp
 
         private var escala = 1f
         private var offX = 0f
         private var offY = 0f
-        private var grade: Bitmap? = null
-        private val margem = 8 * dp
+        private var projetados: Array<PointF> = emptyArray()
 
         private val fundo = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(245, 15, 23, 42) }
         private val borda = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(90, 255, 255, 255); style = Paint.Style.STROKE; strokeWidth = 1 * dp }
+        private val coresRegiao = Array(Regioes.CORES.size) { i ->
+            Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Regioes.CORES[i] }
+        }
         private val trajeto = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE; style = Paint.Style.STROKE; strokeWidth = 2.5f * dp
-            pathEffect = DashPathEffect(floatArrayOf(6 * dp, 5 * dp), 0f)
+            pathEffect = DashPathEffect(floatArrayOf(5 * dp, 4 * dp), 0f)
         }
-        private val pontoIda = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
-        private val contornoIda = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#0F172A"); style = Paint.Style.STROKE; strokeWidth = 2 * dp }
-        private val pontoChegada = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#0F172A") }
-        private val contornoChegada = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE; style = Paint.Style.STROKE; strokeWidth = 3 * dp }
+        private val marcadorBorda = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
+        private val partidaCor = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#00A86B") }
+        private val chegadaCor = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#E8590C") }
+        private val seta = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE; style = Paint.Style.FILL }
 
         override fun onSizeChanged(w: Int, h: Int, ow: Int, oh: Int) {
             super.onSizeChanged(w, h, ow, oh)
@@ -130,7 +132,7 @@ object MapaPopup {
             escala = minOf(aw / rangeX, ah / rangeY).toFloat()
             offX = margem + (aw - (rangeX * escala).toFloat()) / 2
             offY = margem + (ah - (rangeY * escala).toFloat()) / 2
-            grade = construirGrade(w, h)
+            projetados = Array(pontos.size) { i -> px(pontos[i].lon, pontos[i].lat) }
         }
 
         /** Converte longitude/latitude em pixels da view. */
@@ -139,52 +141,45 @@ object MapaPopup {
             offY + ((latMax - lat) * escala).toFloat()
         )
 
-        /** Pinta cada célula com a cor da região do bairro mais próximo; fora da cidade fica transparente. */
-        private fun construirGrade(w: Int, h: Int): Bitmap? {
-            if (w <= 0 || h <= 0 || pontos.isEmpty()) return null
-            val celula = 3 * dp
-            val gw = (w / celula).toInt() + 1
-            val gh = (h / celula).toInt() + 1
-            val bmp = Bitmap.createBitmap(gw, gh, Bitmap.Config.ARGB_8888)
-            val limiar = 0.02 * 0.02 // graus ao quadrado (~2 km): mais longe disso é fora da cidade
-            for (gy in 0 until gh) {
-                val y = gy * celula + celula / 2
-                val lat = latMax - (y - offY) / escala
-                for (gx in 0 until gw) {
-                    val x = gx * celula + celula / 2
-                    val lon = lonMin + (x - offX) / escala / cosLat
-                    var melhor = -1
-                    var melhorD = Double.MAX_VALUE
-                    for (i in lats.indices) {
-                        val dla = lats[i] - lat
-                        val dlo = (lons[i] - lon) * cosLat
-                        val d = dla * dla + dlo * dlo
-                        if (d < melhorD) { melhorD = d; melhor = i }
-                    }
-                    val cor = if (melhor >= 0 && melhorD <= limiar) Regioes.CORES[regioes[melhor]] else Color.TRANSPARENT
-                    bmp.setPixel(gx, gy, cor)
-                }
-            }
-            return bmp
-        }
-
         override fun onDraw(c: Canvas) {
             val w = width.toFloat()
             val h = height.toFloat()
             val raio = 16 * dp
             c.drawRoundRect(RectF(0f, 0f, w, h), raio, raio, fundo)
-            grade?.let { c.drawBitmap(it, null, RectF(0f, 0f, w, h), null) }
+
+            // bairros: pontos da cor da região, bem visíveis
+            val r = 4.2f * dp
+            for (i in projetados.indices) {
+                val p = projetados[i]
+                c.drawCircle(p.x, p.y, r, coresRegiao[regioes[i]])
+            }
+
             c.drawRoundRect(RectF(0.5f * dp, 0.5f * dp, w - 0.5f * dp, h - 0.5f * dp), raio, raio, borda)
 
             val chegada = px(destino.lon, destino.lat)
-            val ida = embarque?.let { px(it.lon, it.lat) }
-            if (ida != null) {
-                c.drawLine(ida.x, ida.y, chegada.x, chegada.y, trajeto)
-                c.drawCircle(ida.x, ida.y, 5 * dp, pontoIda)
-                c.drawCircle(ida.x, ida.y, 5 * dp, contornoIda)
+            val partida = embarque?.let { px(it.lon, it.lat) }
+            if (partida != null) {
+                c.drawLine(partida.x, partida.y, chegada.x, chegada.y, trajeto)
+                marcador(c, partida, partidaCor, cima = true)
             }
-            c.drawCircle(chegada.x, chegada.y, 7 * dp, pontoChegada)
-            c.drawCircle(chegada.x, chegada.y, 7 * dp, contornoChegada)
+            marcador(c, chegada, chegadaCor, cima = false)
+        }
+
+        /** Círculo com borda branca e seta (para cima na partida, para baixo na chegada), como no app do 99. */
+        private fun marcador(c: Canvas, p: PointF, cor: Paint, cima: Boolean) {
+            val raio = 9 * dp
+            c.drawCircle(p.x, p.y, raio + 2 * dp, marcadorBorda)
+            c.drawCircle(p.x, p.y, raio, cor)
+            val s = 5 * dp
+            val caminho = Path().apply {
+                if (cima) {
+                    moveTo(p.x, p.y - s); lineTo(p.x + s, p.y + s * 0.4f); lineTo(p.x - s, p.y + s * 0.4f)
+                } else {
+                    moveTo(p.x, p.y + s); lineTo(p.x + s, p.y - s * 0.4f); lineTo(p.x - s, p.y - s * 0.4f)
+                }
+                close()
+            }
+            c.drawPath(caminho, seta)
         }
     }
 }
